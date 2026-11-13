@@ -674,3 +674,18 @@ test('Header clock shows local HH:MM:SS and day/night icon', () => {
   assert.equal(app.elements['current-time'].textContent, '12:00:05');
   assert.equal(app.elements['time-period-icon']['aria-label'], 'Ban ngày');
 });
+
+test('Hamburger menu switches between settings and contact, including keyboard navigation', () => {
+  const app = boot();
+  app.elements['open-settings'].listeners.click();
+  assert.equal(app.elements['open-settings']['aria-expanded'], 'true');
+  app.elements['menu-contact-tab'].listeners.click();
+  assert.equal(app.elements['menu-contact-panel'].hidden, false);
+  assert.equal(app.elements['menu-settings-panel'].hidden, true);
+  assert.equal(app.elements['menu-contact-tab']['aria-selected'], 'true');
+  app.elements['menu-contact-tab'].listeners.keydown({ key: 'Home', preventDefault() {} });
+  assert.equal(app.elements['menu-settings-panel'].hidden, false);
+  assert.equal(app.elements['menu-contact-panel'].hidden, true);
+  app.elements['close-settings'].listeners.click();
+  assert.equal(app.elements['open-settings']['aria-expanded'], 'false');
+});

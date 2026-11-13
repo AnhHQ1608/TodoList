@@ -880,14 +880,37 @@ settingsButton.addEventListener('click', () => {
   updateNotificationStatus();
   updateSoundStatus();
   settingsDialog.showModal();
+  settingsButton.setAttribute('aria-expanded', 'true');
 });
-function closeSettings() { settingsDialog.close(); settingsButton.focus(); }
+function closeSettings() { settingsDialog.close(); settingsButton.setAttribute('aria-expanded', 'false'); settingsButton.focus(); }
+settingsDialog.addEventListener('close', () => settingsButton.setAttribute('aria-expanded', 'false'));
 document.getElementById('close-settings').addEventListener('click', closeSettings);
 settingsDialog.addEventListener('click', event => {
   if (event.target !== settingsDialog) return;
   const bounds = settingsDialog.getBoundingClientRect();
   if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
 });
+
+function selectMenuSection(section) {
+  for (const name of ['settings', 'contact']) {
+    const active = name === section;
+    const tab = document.getElementById('menu-' + name + '-tab');
+    tab.setAttribute('aria-selected', String(active));
+    tab.setAttribute('tabindex', active ? '0' : '-1');
+    document.getElementById('menu-' + name + '-panel').hidden = !active;
+  }
+}
+for (const section of ['settings', 'contact']) {
+  const tab = document.getElementById('menu-' + section + '-tab');
+  tab.addEventListener('click', () => selectMenuSection(section));
+  tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 'settings' : event.key === 'End' ? 'contact' : section === 'settings' ? 'contact' : 'settings';
+    selectMenuSection(next);
+    document.getElementById('menu-' + next + '-tab').focus();
+  });
+}
 
 // Hiệu ứng bấm/chạm, tách biệt với âm thanh và logic công việc.
 function showClickEffect(x, y, target) {

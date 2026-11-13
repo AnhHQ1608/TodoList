@@ -252,3 +252,21 @@ button:active { transform: scale(.97); }
 #current-time { color: #e9e5f2; font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
 .time-period-icon { color: #abb5ce; font-size: 23px; line-height: 1; }
 .header-clock + .intro { margin-top: 40px; }
+/* Menu ba gạch với hai phần Cài đặt và Contact. */
+.settings-button { width: 44px; height: 44px; border-radius: 14px; background: #14142b80; }
+.settings-button[aria-expanded="true"] { background: #a38aff25; border-color: #b59cff70; }
+.menu-tabs { display: flex; gap: 5px; padding: 5px; margin-top: 24px; background: #11132a; border: 1px solid #b59cff15; border-radius: 12px; }
+.menu-tabs button { flex: 1; min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; }
+.menu-tabs button[aria-selected="true"] { background: #a38aff25; color: #e3d4ff; }
+.menu-tabs button:hover { color: white; }
+.menu-contact-panel { padding-top: 22px; }
+.contact-profile { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.contact-profile h3 { margin: 0 0 4px; font-size: 17px; }
+.contact-profile p { margin: 0; color: var(--muted); font-size: 12px; }
+.menu-contact-link { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 15px; border: 1px solid #b59cff25; border-radius: 12px; background: #a38aff08; color: #dfd1f9; text-decoration: none; font-size: 14px; }
+.menu-contact-link > span:nth-child(2) { flex: 1; }
+.menu-contact-link small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
+.contact-channel-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: #a38aff15; color: #baa2fa; font-size: 23px; font-weight: 700; }
+.coming-soon { color: #aca2c3; }
+.soon-tag { padding: 4px 8px; border-radius: 6px; background: #ffffff06; color: #9f95b6; font-size: 10px; }
