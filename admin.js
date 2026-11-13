@@ -42,7 +42,7 @@
     $('events-body').replaceChildren();
     data.events.forEach(event => {
       const row = document.createElement('tr');
-      cell(row, date(event.created_at)); cell(row, (isOwnDevice(event.visitor_id) ? 'adin · ' : '') + short(event.session_id)); cell(row, labels[event.action] || 'Thao tác khác');
+      cell(row, date(event.created_at)); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + short(event.session_id)); cell(row, labels[event.action] || 'Thao tác khác');
       $('events-body').append(row);
     });
     if (!data.events.length) { const row = document.createElement('tr'); cell(row, 'Chưa có thao tác phù hợp.'); $('events-body').append(row); }
@@ -63,14 +63,14 @@
       const all = document.createElement('option'); all.value = ''; all.textContent = 'Tất cả phiên'; $('session-filter').append(all);
       data.sessions.forEach(session => {
         const own = isOwnDevice(session.visitor_id);
-        const option = document.createElement('option'); option.value = session.session_id; option.textContent = (own ? 'adin · ' : '') + short(session.session_id) + ' · ' + session.browser; $('session-filter').append(option);
+        const option = document.createElement('option'); option.value = session.session_id; option.textContent = (own ? 'admin · ' : '') + short(session.session_id) + ' · ' + session.browser; $('session-filter').append(option);
         const row = document.createElement('tr');
         const identity = document.createElement('td');
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link'; button.textContent = short(session.session_id); button.title = session.session_id;
         button.addEventListener('click', () => { $('session-filter').value = session.session_id; offset = 0; loadEvents().catch(showError); });
-        const visitor = document.createElement('small'); visitor.textContent = own ? 'Thiết bị của bạn · adin' : 'Khách ' + short(session.visitor_id);
+        const visitor = document.createElement('small'); visitor.textContent = own ? 'Thiết bị của bạn · admin' : 'Khách ' + short(session.visitor_id);
         identity.append(button, visitor); row.append(identity);
-        cell(row, own ? 'adin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
+        cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
         cell(row, Date.now() / 1000 - session.last_seen < 120 ? 'Vừa hoạt động' : 'Không hoạt động gần đây');
         $('sessions-body').append(row);
       });

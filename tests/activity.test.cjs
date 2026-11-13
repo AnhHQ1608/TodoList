@@ -174,13 +174,13 @@ test('Admin disabled without backend; login keeps token in memory and logout hid
   assert.equal(app.elements['events-body'].children.length, 0);
 });
 
-test('Admin names only this browser visitor adin, leaving other devices unchanged', async () => {
+test('Admin names only this browser visitor admin, leaving other devices unchanged', async () => {
   const ownId = crypto.randomUUID();
   const sessions = [ownId, crypto.randomUUID()].map(visitor_id => ({ visitor_id, session_id: crypto.randomUUID(), device: 'desktop', browser: 'CocCoc', os: 'Windows', last_seen: Math.floor(Date.now()/1000) }));
   const app = adminClient(true, sessions, ownId);
   app.elements['admin-password'].value = 'test-only';
   await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
-  assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'adin · desktop');
+  assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'admin · desktop');
   assert.equal(app.elements['sessions-body'].children[1].children[1].textContent, 'desktop');
-  assert.match(app.elements['session-filter'].children[1].textContent, /^adin/);
+  assert.match(app.elements['session-filter'].children[1].textContent, /^admin/);
 });
