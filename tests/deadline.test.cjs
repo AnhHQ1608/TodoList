@@ -15,6 +15,9 @@ function boot(initial = [], options = {}) {
     constructor() { this.children = []; this.listeners = {}; this.style = {}; this.dataset = {}; this.value = ''; this.classList = { toggle() {} }; }
     addEventListener(name, fn) { this.listeners[name] = fn; }
     setAttribute(key, value) { this[key] = value; }
+    getAttribute(key) { return this[key]; }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
     append(...children) { this.children.push(...children); }
     replaceChildren() { this.children = []; }
     focus() {}
@@ -114,4 +117,52 @@ test('Corrupt localStorage, invalid deadline and blocked writes do not crash', (
   assert.match(app.elements.message.textContent, /Không thể lưu/);
   app.submit('Lỗi ngày', 'invalid');
   assert.equal(app.run('tasks.length'), 2);
+});
+
+test('Custom picker: leap year, month navigation, cancel, apply and clear', () => {
+  const app = boot([], { permission: 'default' });
+  app.elements['deadline-input'].value = '2028-02-29T23:45';
+  app.elements['open-picker'].listeners.click();
+  assert.equal(app.elements['date-picker'].open, true);
+  assert.equal(app.elements['calendar-days'].children.length, 42);
+  assert.equal(app.elements['picker-hour'].value, '23');
+  assert.equal(app.elements['picker-minute'].value, '45');
+  const chosen = app.elements['calendar-days'].children.filter(day => day['aria-pressed'] === 'true');
+  assert.equal(chosen.length, 1);
+  assert.equal(chosen[0].textContent, 29);
+  app.elements['next-month'].listeners.click();
+  assert.equal(app.elements['calendar-month'].textContent, 'Tháng 3, 2028');
+  app.elements['previous-month'].listeners.click();
+  assert.equal(app.elements['calendar-month'].textContent, 'Tháng 2, 2028');
+  app.elements['calendar-days'].children.find(day => day.textContent === 15).listeners.click();
+  app.elements['picker-hour'].value = '09';
+  app.elements['picker-minute'].value = '05';
+  app.elements['cancel-picker'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '2028-02-29T23:45');
+  app.elements['open-picker'].listeners.click();
+  app.elements['calendar-days'].children.find(day => day.textContent === 15).listeners.click();
+  app.elements['picker-hour'].value = '09';
+  app.elements['picker-minute'].value = '05';
+  app.elements['apply-deadline'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '2028-02-15T09:05');
+  assert.equal(app.elements['date-picker'].open, false);
+  app.submit('Công việc có lịch', app.elements['deadline-input'].value);
+  assert.equal(app.run('tasks[0].deadline'), new Date('2028-02-15T09:05').toISOString());
+  app.run('startEditing(tasks[0])');
+  assert.match(app.elements['deadline-display'].textContent, /2028/);
+  app.elements['open-picker'].listeners.click();
+  app.elements['clear-deadline'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '');
+  assert.equal(app.elements['deadline-display'].textContent, 'Chọn ngày & giờ');
+});
+test('Custom picker navigates December to January and quick dates do not apply prematurely', () => {
+  const app = boot();
+  app.elements['deadline-input'].value = '2026-12-31T00:00';
+  app.elements['open-picker'].listeners.click();
+  app.elements['next-month'].listeners.click();
+  assert.equal(app.elements['calendar-month'].textContent, 'Tháng 1, 2027');
+  app.elements['pick-today'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '2026-12-31T00:00');
+  app.elements['pick-tomorrow'].listeners.click();
+  assert.equal(app.elements['calendar-days'].children.filter(day => day['aria-pressed'] === 'true').length, 1);
 });

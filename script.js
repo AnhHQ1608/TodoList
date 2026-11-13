@@ -75,6 +75,7 @@ function updateCountdowns() {
 function resetEditor() {
   editingId = null;
   form.reset();
+  updateDeadlineDisplay();
   submitButton.textContent = '＋ Add Task';
   cancelButton.hidden = true;
 }
@@ -87,6 +88,7 @@ function startEditing(task) {
     const pad = value => String(value).padStart(2, '0');
     deadlineInput.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } else deadlineInput.value = '';
+  updateDeadlineDisplay();
   submitButton.textContent = 'Lưu thay đổi';
   cancelButton.hidden = false;
   input.focus();
@@ -167,7 +169,7 @@ form.addEventListener('submit', event => {
   if (!text) { message.textContent = 'Vui lòng nhập nội dung công việc.'; input.focus(); return; }
   const date = deadlineInput.value ? new Date(deadlineInput.value) : null;
   if (date && !Number.isFinite(date.getTime())) {
-    message.textContent = 'Ngày giờ deadline không hợp lệ.'; deadlineInput.focus(); return;
+    message.textContent = 'Ngày giờ deadline không hợp lệ.'; document.getElementById('open-picker').focus(); return;
   }
   const deadline = date ? date.toISOString() : null;
   if (editingId) {
@@ -262,3 +264,109 @@ updateNotificationStatus();
 checkDeadlines();
 // Bộ hẹn giờ chỉ hoạt động khi trang còn mở; đây không phải push notification.
 setInterval(checkDeadlines, 15000);
+
+// 6. Bộ chọn lịch riêng. Chỉ ghi vào deadline thật khi nhấn Xác nhận.
+const picker = document.getElementById('date-picker');
+const calendarDays = document.getElementById('calendar-days');
+const hourSelect = document.getElementById('picker-hour');
+const minuteSelect = document.getElementById('picker-minute');
+let selectedDate = null;
+let calendarMonth = null;
+const padDate = value => String(value).padStart(2, '0');
+function localDateValue(date) {
+  return `${date.getFullYear()}-${padDate(date.getMonth() + 1)}-${padDate(date.getDate())}T${padDate(date.getHours())}:${padDate(date.getMinutes())}`;
+}
+function updateDeadlineDisplay() {
+  document.getElementById('deadline-display').textContent = deadlineInput.value
+    ? new Date(deadlineInput.value).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+    : 'Chọn ngày & giờ';
+}
+function updatePickerPreview() {
+  const date = new Date(selectedDate);
+  date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
+  document.getElementById('picker-preview').textContent = date.toLocaleString('vi-VN', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
+function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function renderCalendar() {
+  calendarDays.replaceChildren();
+  document.getElementById('calendar-month').textContent = `Tháng ${calendarMonth.getMonth() + 1}, ${calendarMonth.getFullYear()}`;
+  const first = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+  // Tuần bắt đầu bằng thứ Hai; hiển thị đủ 6 hàng để lịch không nhảy chiều cao.
+  const offset = (first.getDay() + 6) % 7;
+  for (let index = 0; index < 42; index++) {
+    const date = new Date(first.getFullYear(), first.getMonth(), 1 - offset + index);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = date.getDate();
+    button.className = 'calendar-day';
+    if (date.getMonth() !== calendarMonth.getMonth()) button.className += ' outside';
+    if (sameDay(date, new Date())) { button.className += ' today'; button.setAttribute('aria-current', 'date'); }
+    const chosen = sameDay(date, selectedDate);
+    if (chosen) button.className += ' chosen';
+    button.setAttribute('aria-pressed', String(chosen));
+    button.setAttribute('aria-label', date.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+    button.addEventListener('click', () => {
+      selectedDate = date;
+      calendarMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      renderCalendar();
+      const active = Array.from(calendarDays.children).find(day => day.getAttribute('aria-pressed') === 'true');
+      if (active) active.focus();
+    });
+    calendarDays.append(button);
+  }
+  updatePickerPreview();
+}
+function openDatePicker() {
+  selectedDate = deadlineInput.value ? new Date(deadlineInput.value) : new Date();
+  calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  hourSelect.value = padDate(selectedDate.getHours());
+  minuteSelect.value = padDate(selectedDate.getMinutes());
+  renderCalendar();
+  picker.showModal(); // dialog hỗ trợ Escape, giữ focus và chặn tương tác phía sau.
+}
+for (const [select, count] of [[hourSelect, 24], [minuteSelect, 60]]) {
+  for (let value = 0; value < count; value++) {
+    const option = document.createElement('option');
+    option.value = padDate(value);
+    option.textContent = padDate(value);
+    select.append(option);
+  }
+  select.addEventListener('change', updatePickerPreview);
+}
+document.getElementById('open-picker').addEventListener('click', openDatePicker);
+function closeDatePicker() { picker.close(); document.getElementById('open-picker').focus(); }
+document.getElementById('close-picker').addEventListener('click', closeDatePicker);
+document.getElementById('cancel-picker').addEventListener('click', closeDatePicker);
+picker.addEventListener('click', event => { if (event.target === picker) {
+  const bounds = picker.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeDatePicker();
+} });
+for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + step, 1);
+    renderCalendar();
+  });
+}
+for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    const now = new Date();
+    selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    renderCalendar();
+  });
+}
+document.getElementById('apply-deadline').addEventListener('click', () => {
+  const date = new Date(selectedDate);
+  date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
+  deadlineInput.value = localDateValue(date);
+  updateDeadlineDisplay();
+  closeDatePicker();
+});
+document.getElementById('clear-deadline').addEventListener('click', () => {
+  deadlineInput.value = '';
+  updateDeadlineDisplay();
+  closeDatePicker();
+});
+updateDeadlineDisplay();

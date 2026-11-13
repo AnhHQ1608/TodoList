@@ -21,7 +21,7 @@
       <form id="task-form" autocomplete="off">
         <label class="sr-only" for="task-input">Công việc mới</label>
         <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
-        <div class="deadline-field"><label for="deadline-input">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" aria-describedby="deadline-help"></div>
+        <div class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span aria-hidden="true">⌄</span></button></div>
         <button id="submit-task" class="add" type="submit">＋ Add Task</button>
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
@@ -46,5 +46,15 @@
     </section>
     <p class="footnote">Một việc nhỏ hoàn thành. Một bước tiến lớn hơn.<br><span>Dữ liệu được lưu trên trình duyệt của bạn.</span></p>
   </main>
+  <dialog id="date-picker" class="date-picker" aria-labelledby="picker-title">
+    <div class="picker-heading"><div><p class="eyebrow">LÊN LỊCH HOÀN THÀNH</p><h2 id="picker-title">Chọn deadline</h2></div><button id="close-picker" class="icon-button" type="button" aria-label="Đóng bộ chọn">×</button></div>
+    <div class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="Tháng trước">‹</button><h3 id="calendar-month" aria-live="polite"></h3><button id="next-month" class="icon-button" type="button" aria-label="Tháng sau">›</button></div>
+    <div class="weekdays" aria-hidden="true"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+    <div id="calendar-days" class="calendar-days" role="group" aria-label="Chọn ngày"></div>
+    <div class="time-section"><div><span class="time-caption">THỜI GIAN</span><p>Giờ địa phương · 24 giờ</p></div><div class="time-controls"><label><span class="sr-only">Giờ</span><select id="picker-hour"></select></label><span>:</span><label><span class="sr-only">Phút</span><select id="picker-minute"></select></label></div></div>
+    <div class="quick-dates"><button id="pick-today" type="button">Hôm nay</button><button id="pick-tomorrow" type="button">Ngày mai</button><button id="clear-deadline" type="button">Bỏ deadline</button></div>
+    <p id="picker-preview" class="picker-preview" aria-live="polite"></p>
+    <div class="picker-footer"><button id="cancel-picker" class="secondary" type="button">Hủy</button><button id="apply-deadline" class="add" type="button">Xác nhận deadline <span aria-hidden="true">↗</span></button></div>
+  </dialog>
 </body>
 </html>

@@ -77,3 +77,41 @@ form { flex-wrap: wrap; align-items: stretch; }
 .task-actions { display: flex; align-items: center; gap: 3px; }
 .edit { font-size: 12px; padding: 8px; }
 @media (max-width: 520px) { .deadline-field { width: 100%; flex: auto; } .secondary { min-height: 42px; } .task { flex-wrap: wrap; gap: 8px; } .task-content { flex-basis: calc(100% - 32px); } .task-actions { margin-left: 28px; } }
+/* Bộ chọn ngày giờ riêng, đồng bộ với giao diện Focus List. */
+.deadline-trigger { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 10px 13px; border: 1px solid #555074; border-radius: 10px; background: #14172e; color: #e8dfff; text-align: left; }
+.deadline-trigger:hover { border-color: #b59cff; background: #23203f; }
+#deadline-display { flex: 1; font-size: 13px; }
+.calendar-icon { color: #baa1ff; font-size: 24px; }
+.date-picker { width: min(404px, calc(100% - 28px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 24px; border: 1px solid #64518c; border-radius: 24px; background: radial-gradient(ellipse at top left, #49326470, transparent 60%), #1a1c36; color: #f5f3ff; box-shadow: 0 30px 100px #0008; }
+.date-picker[open] { animation: appear .2s ease-out; }
+.date-picker::backdrop { background: #080b20b8; backdrop-filter: blur(6px); }
+.picker-heading, .calendar-nav, .time-section, .time-controls, .picker-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.picker-heading .eyebrow { margin: 0 0 7px; font-size: 9px; letter-spacing: 1.6px; }
+.picker-heading h2 { font-size: 23px; letter-spacing: -.6px; }
+.icon-button { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #ffffff12; border-radius: 11px; background: #ffffff06; color: #cdc0ef; font-size: 24px; }
+.icon-button:hover { background: #a38aff25; color: white; }
+.calendar-nav { margin: 25px 0 14px; }
+.calendar-nav h3 { margin: 0; font-size: 15px; }
+.weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.weekdays { color: #9896b5; text-align: center; font-size: 10px; padding: 0 0 10px; }
+.calendar-day { aspect-ratio: 1; min-width: 0; border: 1px solid transparent; border-radius: 12px; background: transparent; color: #e8e4f4; font-size: 13px; position: relative; }
+.calendar-day:hover { background: #a38aff20; border-color: #a38aff50; }
+.calendar-day.outside { color: #777792; }
+.calendar-day.today::after { content: ''; position: absolute; width: 4px; height: 4px; background: #c5b2ff; border-radius: 50%; bottom: 4px; left: calc(50% - 2px); }
+.calendar-day.chosen { background: linear-gradient(135deg, #c1a6ff, #9670ef); color: #211337; font-weight: 800; box-shadow: 0 4px 14px #9b70f940; }
+.calendar-day.chosen::after { background: #39244e; }
+.time-section { margin-top: 18px; padding: 18px 0; border-top: 1px solid #ffffff12; border-bottom: 1px solid #ffffff12; }
+.time-caption { font-size: 10px; letter-spacing: 1.5px; color: #bca8e7; font-weight: 700; }
+.time-section p { margin: 5px 0 0; color: #9f9bb8; font-size: 10px; }
+.time-controls { gap: 6px; color: #bda8ed; }
+.time-controls select { width: 62px; padding: 10px 6px; border: 1px solid #65537f; border-radius: 10px; background: #2d2545; color: #e4d5ff; font: 600 17px "Segoe UI", sans-serif; cursor: pointer; }
+.time-controls select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+.quick-dates { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
+.quick-dates button { border: 1px solid #ffffff16; border-radius: 20px; padding: 7px 10px; background: #ffffff04; color: #bdb2d8; font-size: 11px; }
+.quick-dates button:hover { border-color: #aa88f9; color: #e6d9ff; }
+#clear-deadline { margin-left: auto; }
+.picker-preview { margin: 18px 0; color: #c0afdF; font-size: 12px; line-height: 1.6; min-height: 20px; }
+.picker-footer { gap: 10px; }
+.picker-footer .add { min-height: 44px; flex: 1; font-size: 12px; padding: 0 12px; }
+.picker-footer .add span { font-size: 16px; margin-left: 6px; }
+@media (max-width: 380px) { .date-picker { padding: 18px; } .time-controls select { width: 56px; } .calendar-day { border-radius: 9px; } }
