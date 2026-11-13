@@ -606,3 +606,50 @@ test('Header settings button opens dialog; close button hides it', () => {
   assert.ok(header.includes('id="open-settings"'));
   assert.equal(html.includes('<details class="app-settings">'), false);
 });
+
+test('Completed tasks expire at exactly two hours, active tasks never expire', () => {
+  const initial = [task({ completed: true, completedAt: NOW - 2*HOUR + 1 }), task({ id: 'active', completed: false, completedAt: NOW - 10*HOUR })];
+  const app = boot(initial);
+  assert.equal(app.run('tasks.length'), 2);
+  app.run(`cleanupCompletedTasks(${NOW + 1})`);
+  assert.equal(app.run('tasks.length'), 1);
+  assert.equal(app.run('tasks[0].id'), 'active');
+  assert.equal(JSON.parse(app.storage.value).length, 1);
+});
+test('Checking completion saves timestamp; undo cancels expiry and completing again restarts it', () => {
+  const app = boot([task()]);
+  let checkbox = app.elements['task-list'].children[0].children[0];
+  checkbox.checked = true; checkbox.listeners.change();
+  assert.equal(app.run('tasks[0].completedAt'), NOW);
+  assert.equal(JSON.parse(app.storage.value)[0].completedAt, NOW);
+  app.run(`Date.now = () => ${NOW + HOUR}`);
+  checkbox = app.elements['task-list'].children[0].children[0];
+  checkbox.checked = false; checkbox.listeners.change();
+  assert.equal(app.run('tasks[0].completedAt'), null);
+  app.run(`cleanupCompletedTasks(${NOW + 3*HOUR})`);
+  assert.equal(app.run('tasks.length'), 1);
+  checkbox = app.elements['task-list'].children[0].children[0];
+  checkbox.checked = true; checkbox.listeners.change();
+  assert.equal(app.run('tasks[0].completedAt'), NOW + HOUR);
+});
+test('Reload removes expired tasks; old completed tasks get a persisted grace period', () => {
+  const expired = boot([task({ completed: true, completedAt: NOW - 3*HOUR })]);
+  assert.equal(expired.run('tasks.length'), 0);
+  assert.equal(expired.elements['task-list'].children.length, 0);
+  const legacy = boot([task({ completed: true })]);
+  assert.equal(legacy.run('tasks.length'), 1);
+  assert.equal(legacy.run('tasks[0].completedAt'), NOW);
+  assert.equal(JSON.parse(legacy.storage.value)[0].completedAt, NOW);
+  assert.equal(boot([], { storage: legacy.storage }).run('tasks[0].completedAt'), NOW);
+});
+test('Cleanup respects latest storage from another tab and keeps its unrelated new tasks', () => {
+  const app = boot([task({ completed: true, completedAt: NOW - HOUR })]);
+  app.storage.value = JSON.stringify([task({ completed: false }), task({ id: 'new', text: 'New from other tab' })]);
+  app.run(`cleanupCompletedTasks(${NOW + 2*HOUR})`);
+  assert.equal(JSON.parse(app.storage.value).length, 2);
+  assert.equal(JSON.parse(app.storage.value)[0].completed, false);
+  app.storage.value = JSON.stringify([task({ completed: true, completedAt: NOW - HOUR }), task({ id: 'new', text: 'New from other tab' })]);
+  app.run(`cleanupCompletedTasks(${NOW + HOUR})`);
+  assert.equal(app.run('tasks.length'), 1);
+  assert.equal(app.run('tasks[0].id'), 'new');
+});

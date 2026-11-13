@@ -42,6 +42,7 @@ function renderFolderIcons() {
 renderFolderIcons();
 const hour = 60 * 60 * 1000;
 let tasks = [];
+let tasksNeedSaving = false;
 let currentFilter = 'all';
 let editingId = null;
 let notificationTestPending = false;
@@ -203,6 +204,7 @@ function readTasks() {
   return saved.filter(task => task && typeof task.id === 'string'
     && typeof task.text === 'string' && typeof task.completed === 'boolean')
     .map(task => ({ ...task,
+      completedAt: task.completed && Number.isFinite(task.completedAt) && task.completedAt > 0 ? task.completedAt : null,
       folderId: typeof task.folderId === 'string' ? task.folderId : '',
       deadline: typeof task.deadline === 'string' && Number.isFinite(Date.parse(task.deadline))
         ? new Date(task.deadline).toISOString() : null,
@@ -218,9 +220,11 @@ try { tasks = readTasks(); } catch (error) {
 function saveTasks() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(tasks));
+    tasksNeedSaving = false;
     message.textContent = '';
     return true;
   } catch (error) {
+    tasksNeedSaving = true;
     message.textContent = 'Không thể lưu dữ liệu. Thay đổi và trạng thái nhắc chỉ được giữ trong tab này.';
     return false;
   }
@@ -232,6 +236,33 @@ function setFilter(filter) {
     button.classList.toggle('selected', selected);
     button.setAttribute('aria-pressed', String(selected));
   });
+}
+
+// Tự xóa sau 2 giờ hoàn thành. Khi đóng trang, việc dọn diễn ra ở lần mở sau.
+function cleanupCompletedTasks(now = Date.now()) {
+  let source = tasks;
+  // Đọc bản mới nhất trước khi xóa để giữ thay đổi từ tab khác.
+  if (!tasksNeedSaving) {
+    try { source = readTasks(); } catch (error) { return; }
+  }
+  let changed = false;
+  const remaining = [];
+  for (const task of source) {
+    if (task.completed && !task.completedAt) {
+      task.completedAt = now; // Task cũ chưa có mốc thời gian: bắt đầu tính từ bây giờ.
+      changed = true;
+    }
+    if (task.completed && now - task.completedAt >= 2 * hour) {
+      changed = true;
+      continue;
+    }
+    remaining.push(task);
+  }
+  if (!changed) return;
+  tasks = remaining;
+  if (editingId && !tasks.some(task => task.id === editingId)) resetEditor();
+  saveTasks();
+  renderTasks();
 }
 
 // 2. Tính thời gian bằng timestamp để không bị sai khi bộ hẹn giờ chạy trễ.
@@ -251,6 +282,12 @@ function deadlineInfo(task, now = Date.now()) {
 function updateCountdowns() {
   // Chỉ cập nhật chữ và màu, không vẽ lại form hoặc làm mất focus.
   tasks.forEach(task => {
+    const cleanupLabel = document.getElementById('cleanup-' + task.id);
+    if (cleanupLabel && task.completedAt) {
+      const minutes = Math.max(0, Math.ceil((task.completedAt + 2 * hour - Date.now()) / 60000));
+      const hours = Math.floor(minutes / 60);
+      cleanupLabel.textContent = minutes === 0 ? 'Đang chờ tự xóa' : `Tự xóa sau ${hours ? hours + ' giờ ' : ''}${minutes % 60 ? minutes % 60 + ' phút' : ''}`;
+    }
     const element = document.getElementById('deadline-' + task.id);
     if (!element) return;
     const info = deadlineInfo(task);
@@ -305,6 +342,7 @@ function renderTasks() {
     checkbox.checked = task.completed;
     checkbox.addEventListener('change', () => {
       task.completed = checkbox.checked;
+      task.completedAt = task.completed ? Date.now() : null;
       saveTasks();
       renderTasks();
       (document.getElementById(checkbox.id) || document.querySelector('.filters .selected')).focus();
@@ -323,6 +361,12 @@ function renderTasks() {
     folderBadge.setAttribute('data-icon', getFolderIcon(folders.find(folder => folder.id === taskFolderId(task))));
     folderBadge.textContent = folders.find(folder => folder.id === taskFolderId(task))?.name || 'Chưa phân loại';
     content.append(folderBadge);
+    if (task.completed) {
+      const cleanupLabel = document.createElement('p');
+      cleanupLabel.id = 'cleanup-' + task.id;
+      cleanupLabel.className = 'cleanup-label';
+      content.append(cleanupLabel);
+    }
     const actions = document.createElement('div');
     actions.className = 'task-actions';
     const editButton = document.createElement('button');
@@ -390,7 +434,7 @@ form.addEventListener('submit', event => {
     task.folderId = folderId;
   } else {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    tasks.push({ id, text, completed: false, deadline, folderId, notifiedDeadline: null });
+    tasks.push({ id, text, completed: false, completedAt: null, deadline, folderId, notifiedDeadline: null });
     setFilter('all');
   }
   if (currentFolder !== 'all') currentFolder = folderId;
@@ -684,11 +728,15 @@ async function sendDueNotifications() {
   if (changed) saveTasks();
 }
 async function checkDeadlines() {
-  updateCountdowns();
+  const runChecks = async () => {
+    cleanupCompletedTasks();
+    updateCountdowns();
+    await sendDueNotifications();
+  };
   // Web Locks tuần tự hóa kiểm tra giữa các tab trên trình duyệt hỗ trợ.
   if (navigator.locks) {
-    await navigator.locks.request('focus-list-deadline-check', sendDueNotifications);
-  } else await sendDueNotifications();
+    await navigator.locks.request('focus-list-deadline-check', runChecks);
+  } else await runChecks();
 }
 window.addEventListener('storage', event => {
   if (event.key !== storageKey && event.key !== foldersKey && event.key !== null) return;
