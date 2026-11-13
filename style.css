@@ -1,4 +1,4 @@
-﻿/* 1. Màu sắc và bố cục chung */
+/* 1. Màu sắc và bố cục chung */
 :root { color-scheme: dark; --muted: #a5a7c4; --line: #343650; --purple: #b59cff; }
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100vh; color: #f5f3ff; font-family: "Segoe UI", Arial, sans-serif; background: radial-gradient(ellipse at 10% 0%, #47296665, transparent 52%), radial-gradient(ellipse at 100% 80%, #17425b45, transparent 50%), #101329; }
@@ -57,3 +57,23 @@ h3 { font-size: 15px; font-weight: 600; }
 /* 4. Điều chỉnh cho điện thoại và người dùng hạn chế chuyển động */
 @media (max-width: 520px) { .app { width: calc(100% - 28px); padding-top: 24px; } .tagline { display: none; } .intro { margin-top: 44px; } .card { padding: 20px 16px; } form { flex-direction: column; } .add { min-height: 46px; } .filters button { padding: 8px 10px; } #task-count { font-size: 10px; } .badge { font-size: 8px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+/* Deadline, chỉnh sửa và thông báo */
+form { flex-wrap: wrap; align-items: stretch; }
+#task-input { flex-basis: 100%; }
+.deadline-field { flex: 1; min-width: 0; }
+.deadline-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+#deadline-input { width: 100%; min-width: 0; padding: 11px; border: 1px solid #41425e; border-radius: 9px; background: #12162d; color: white; }
+.secondary, .edit { border: 1px solid #575071; border-radius: 8px; background: #a38aff12; color: #d8caff; padding: 9px 12px; }
+.secondary:hover, .edit:hover { background: #a38aff30; }
+[hidden] { display: none !important; }
+.help, #notification-status { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.notification-settings { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+#notification-status { flex: 1; min-width: 150px; margin: 0; }
+.task-content { flex: 1; min-width: 0; }
+.task-content label { display: block; }
+.deadline { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.deadline.warning { color: #ffdb7d; }
+.deadline.overdue { color: #ff9cab; font-weight: 600; }
+.task-actions { display: flex; align-items: center; gap: 3px; }
+.edit { font-size: 12px; padding: 8px; }
+@media (max-width: 520px) { .deadline-field { width: 100%; flex: auto; } .secondary { min-height: 42px; } .task { flex-wrap: wrap; gap: 8px; } .task-content { flex-basis: calc(100% - 32px); } .task-actions { margin-left: 28px; } }

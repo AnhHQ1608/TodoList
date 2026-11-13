@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -21,8 +21,13 @@
       <form id="task-form" autocomplete="off">
         <label class="sr-only" for="task-input">Công việc mới</label>
         <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
-        <button class="add" type="submit"><span aria-hidden="true">＋</span> Add Task</button>
+        <div class="deadline-field"><label for="deadline-input">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" aria-describedby="deadline-help"></div>
+        <button id="submit-task" class="add" type="submit">＋ Add Task</button>
+        <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
+      <p id="deadline-help" class="help">Ngày giờ theo múi giờ thiết bị. Để trống nếu không có deadline.</p>
+      <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><p id="notification-status" role="status"></p></div>
+      <p class="help">Nhắc một lần trong 1 giờ cuối trước deadline khi trang đang mở. Tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
       <p id="message" role="status" aria-live="polite"></p>
       <div class="toolbar">
         <div class="filters" role="group" aria-label="Lọc công việc">
