@@ -1,2 +1,2 @@
 // Chỉ điền URL Worker công khai sau khi triển khai backend. Không đặt mật khẩu ở đây.
-window.TODO_ANALYTICS = Object.freeze({ apiUrl: '' });
+window.TODO_ANALYTICS = Object.freeze({ apiUrl: 'https://focus-list-activity.quocanh0918106.workers.dev' });

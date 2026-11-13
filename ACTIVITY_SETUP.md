@@ -2,7 +2,11 @@
 
 ## Trạng thái hiện tại
 
-Mã frontend, trang `admin.html`, API Worker và schema D1 đã có sẵn. **Chưa thu thập dữ liệu khi `telemetry-config.js` có `apiUrl: ''`.** Phải triển khai backend vào tài khoản Cloudflare rồi điền URL thật mới hoạt động online. GitHub Pages chỉ phục vụ frontend; push lên GitHub không tự triển khai Worker.
+Backend đã triển khai tại `https://focus-list-activity.quocanh0918106.workers.dev`, database D1 đã tạo và secret quản trị đã cấu hình. Frontend kết nối bằng URL công khai trong `telemetry-config.js`. Chỉ thu thập sau khi khách đồng ý.
+
+Trang quản trị: `https://anhhq1608.github.io/TodoList/admin.html`. Mật khẩu ban đầu được tạo ngẫu nhiên và lưu trong tệp riêng `%USERPROFILE%\.focus-list\admin-access.txt`, bên ngoài project/Git, chỉ tài khoản Windows hiện tại có quyền đọc. Không đưa tệp đó vào Git hoặc chia sẻ cho người khác. Nên chuyển mật khẩu vào trình quản lý mật khẩu. Không cần nhập tên đăng nhập, chỉ cần mật khẩu.
+
+**Để ngừng ghi nhận:** đổi `apiUrl` thành `''` và push. GitHub Pages chỉ phục vụ frontend; push lên GitHub không tự triển khai Worker. Khi sửa `backend/worker.mjs`, cần chạy lại lệnh Wrangler deploy bên dưới. Các bước triển khai lần đầu dưới đây dùng khi chuyển sang tài khoản/database mới; không tạo lại database đang dùng.
 
 Người dùng vẫn dùng TodoList không cần tài khoản. Mỗi trình duyệt có mã khách ngẫu nhiên, mỗi lần mở/tải trang có mã phiên mới. Đây không phải danh tính hoặc mã phần cứng thật. Chế độ ẩn danh, đổi trình duyệt hoặc xóa storage sẽ tạo khách khác.
 

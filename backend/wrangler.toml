@@ -9,8 +9,8 @@ ALLOWED_ORIGIN = "https://anhhq1608.github.io"
 [[d1_databases]]
 binding = "DB"
 database_name = "focus-list-activity"
-# Thay UUID bên dưới bằng database_id do lệnh d1 create trả về.
-database_id = "00000000-0000-0000-0000-000000000000"
+# Database D1 của backend lịch sử hoạt động.
+database_id = "d6fcab14-79de-4a1d-99a2-f466925fe116"
 
 [triggers]
 crons = ["0 3 * * *"]
