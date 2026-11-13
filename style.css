@@ -289,3 +289,15 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 .notification-help > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; list-style: none; }
 .notification-help > summary::-webkit-details-marker { display: none; }
 .notification-help .ui-chevron { width: 20px; height: 20px; background: transparent; }
+
+/* Căn hàng nhập công việc: nhãn cùng hàng, ba ô điều khiển cùng chiều cao. */
+#task-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) auto; align-items: end; gap: 14px 12px; }
+#task-input { grid-column: 1 / -1; width: 100%; }
+#task-form .folder-field, #task-form .deadline-field { width: 100%; min-width: 0; }
+#task-form .field-label, #task-form .deadline-field > label { min-height: 18px; margin-bottom: 8px; line-height: 18px; }
+#task-form .folder-picker summary, #task-form .deadline-trigger, #submit-task { height: 48px; min-height: 48px; border-radius: 11px; }
+#task-form .folder-picker summary, #task-form .deadline-trigger { padding: 0 12px; }
+#deadline-display { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#submit-task { min-width: 122px; padding: 0 18px; align-self: end; font-size: 14px; }
+#cancel-edit { grid-column: 1 / -1; justify-self: end; min-height: 40px; }
+@media (max-width: 520px) { #task-form { grid-template-columns: minmax(0, 1fr); gap: 14px; } #submit-task, #cancel-edit { width: 100%; } }
