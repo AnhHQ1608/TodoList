@@ -11,6 +11,7 @@ const iso = offset => new Date(NOW + offset).toISOString();
 function boot(initial = [], options = {}) {
   const storage = options.storage || { value: JSON.stringify(initial) };
   const elements = {};
+  const documentListeners = {};
   class Element {
     constructor() { this.children = []; this.listeners = {}; this.style = {}; this.dataset = {}; this.value = ''; this.classList = { toggle() {} }; }
     addEventListener(name, fn) { this.listeners[name] = fn; }
@@ -49,12 +50,13 @@ function boot(initial = [], options = {}) {
   if (options.unsupported) delete window.Notification;
   const context = vm.createContext({ Date: Clock, window, Notification, navigator: {}, console,
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
-      querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(), addEventListener() {} },
+      querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(),
+      addEventListener: (type, listener) => { documentListeners[type] = listener; } },
     localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : storage.value,
       setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else storage.value = value; } },
     setInterval: () => {} });
   vm.runInContext(code, context);
-  return { elements, filters, storage, sent, audio, requested: () => requested,
+  return { elements, filters, storage, sent, audio, documentListeners, requested: () => requested,
     run: expression => vm.runInContext(expression, context),
     submit(text, deadline = '') { elements['task-input'].value = text; elements['deadline-input'].value = deadline; elements['task-form'].listeners.submit({ preventDefault() {} }); } };
 }
@@ -245,14 +247,14 @@ test('Remembered audio preference needs activation after reload; audio failure i
   assert.match(app.elements['toggle-sound'].textContent, /Kích hoạt lại/);
   await app.elements['toggle-sound'].listeners.click();
   assert.equal(app.elements['toggle-sound']['aria-pressed'], 'true');
-  const failed = boot([], { audio: true, audioFails: true });
+  const failed = boot([], { audio: true, audioFails: true, storage: { value: '[]', sound: 'false' } });
   await failed.elements['toggle-sound'].listeners.click();
   assert.match(failed.elements['sound-status'].textContent, /Không bật được/);
   assert.equal(failed.run('soundEnabled'), false);
 });
 
 test('Click sounds cover dynamic controls, respect mute and do not create audio on load', async () => {
-  const app = boot([], { audio: true });
+  const app = boot([], { audio: true, storage: { value: '[]', sound: 'false' } });
   const control = { id: 'add-task', disabled: false, hidden: false, matches: () => false };
   const event = { target: { closest: () => control } };
   // Chưa bật âm thanh: click không tạo AudioContext.
@@ -287,4 +289,31 @@ test('Click restores saved sound preference after reload and handles blocked aud
   const failed = boot([], { audio: true, audioFails: true, storage: { value: '[]', sound: 'true' } });
   await failed.run('handleInteractionSound')(event);
   assert.equal(failed.audio.tones, 0);
+});
+
+test('Default first pointer interaction produces sound; following click does not double-play', async () => {
+  const app = boot([], { audio: true });
+  assert.equal(app.audio.created, 0);
+  const control = { id: 'task-input', tagName: 'INPUT', matches: () => false };
+  const target = { closest: () => control };
+  await app.documentListeners.pointerdown({ type: 'pointerdown', button: 0, target });
+  assert.equal(app.audio.created, 1);
+  assert.equal(app.audio.tones, 1);
+  await app.documentListeners.click({ type: 'click', target });
+  assert.equal(app.audio.tones, 1);
+  await app.documentListeners.click({ type: 'click', detail: 0, target });
+  assert.equal(app.audio.tones, 2); // Kích hoạt bằng bàn phím vẫn có tiếng.
+});
+test('Label interaction plays once, right clicks stay silent, stored mute is respected', async () => {
+  const app = boot([], { audio: true });
+  const checkbox = { id: 'checkbox', tagName: 'INPUT', matches: () => false };
+  const label = { tagName: 'LABEL', control: checkbox };
+  await app.documentListeners.pointerdown({ type: 'pointerdown', button: 2, target: { closest: () => checkbox } });
+  assert.equal(app.audio.created, 0);
+  await app.documentListeners.pointerdown({ type: 'pointerdown', button: 0, target: { closest: () => label } });
+  await app.documentListeners.click({ type: 'click', target: { closest: () => label } });
+  assert.equal(app.audio.tones, 1);
+  const muted = boot([], { audio: true, storage: { value: '[]', sound: 'false' } });
+  await muted.documentListeners.pointerdown({ type: 'pointerdown', button: 0, target: { closest: () => checkbox } });
+  assert.equal(muted.audio.created, 0);
 });
