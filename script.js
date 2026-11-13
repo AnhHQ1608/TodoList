@@ -776,8 +776,8 @@ setInterval(() => {
 // 6. Bộ chọn lịch riêng. Chỉ ghi vào deadline thật khi nhấn Xác nhận.
 const picker = document.getElementById('date-picker');
 const calendarDays = document.getElementById('calendar-days');
-const hourSelect = document.getElementById('picker-hour');
-const minuteSelect = document.getElementById('picker-minute');
+const hourInput = document.getElementById('picker-hour');
+const minuteInput = document.getElementById('picker-minute');
 let selectedDate = null;
 let calendarMonth = null;
 const padDate = value => String(value).padStart(2, '0');
@@ -789,13 +789,22 @@ function updateDeadlineDisplay() {
     ? new Date(deadlineInput.value).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
     : 'Chọn ngày & giờ';
 }
+function readPickerTime() {
+  if (!/^\d{1,2}$/.test(hourInput.value) || !/^\d{1,2}$/.test(minuteInput.value)) return null;
+  const hours = Number(hourInput.value);
+  const minutes = Number(minuteInput.value);
+  return hours <= 23 && minutes <= 59 ? { hours, minutes } : null;
+}
 function updatePickerPreview() {
+  const time = readPickerTime();
+  if (!time) {
+    document.getElementById('apply-deadline').disabled = true;
+    document.getElementById('picker-error').textContent = 'Nhập giờ 00–23 và phút 00–59.';
+    document.getElementById('picker-preview').textContent = '';
+    return;
+  }
   const date = new Date(selectedDate);
-  date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
-  const now = new Date(Date.now());
-  const today = sameDay(selectedDate, now);
-  for (const option of hourSelect.children) option.disabled = today && Number(option.value) < now.getHours();
-  for (const option of minuteSelect.children) option.disabled = today && Number(hourSelect.value) === now.getHours() && Number(option.value) <= now.getMinutes();
+  date.setHours(time.hours, time.minutes, 0, 0);
   const invalid = date.getTime() <= Date.now();
   document.getElementById('apply-deadline').disabled = invalid;
   document.getElementById('picker-error').textContent = invalid ? 'Chọn thời gian trong tương lai.' : '';
@@ -841,19 +850,35 @@ function openDatePicker() {
   const existing = deadlineInput.value ? new Date(deadlineInput.value) : null;
   selectedDate = existing && existing.getTime() > Date.now() ? existing : new Date(Math.ceil((Date.now() + 1) / 60000) * 60000);
   calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-  hourSelect.value = padDate(selectedDate.getHours());
-  minuteSelect.value = padDate(selectedDate.getMinutes());
+  hourInput.value = padDate(selectedDate.getHours());
+  minuteInput.value = padDate(selectedDate.getMinutes());
   renderCalendar();
   picker.showModal(); // dialog hỗ trợ Escape, giữ focus và chặn tương tác phía sau.
 }
-for (const [select, count] of [[hourSelect, 24], [minuteSelect, 60]]) {
-  for (let value = 0; value < count; value++) {
-    const option = document.createElement('option');
-    option.value = padDate(value);
-    option.textContent = padDate(value);
-    select.append(option);
-  }
-  select.addEventListener('change', updatePickerPreview);
+for (const [field, max, name] of [[hourInput, 23, 'hour'], [minuteInput, 59, 'minute']]) {
+  field.addEventListener('input', () => {
+    field.value = field.value.replace(/\D/g, '').slice(0, 2);
+    updatePickerPreview();
+  });
+  field.addEventListener('change', updatePickerPreview);
+  field.addEventListener('focus', () => field.select());
+  field.addEventListener('blur', () => {
+    if (/^\d{1,2}$/.test(field.value) && Number(field.value) <= max) field.value = padDate(Number(field.value));
+    updatePickerPreview();
+  });
+  const stepTime = delta => {
+    const value = Number(field.value) || 0;
+    field.value = padDate(Math.min(max, Math.max(0, value + delta)));
+    updatePickerPreview();
+  };
+  document.getElementById(name + '-down').addEventListener('click', () => stepTime(-1));
+  document.getElementById(name + '-up').addEventListener('click', () => stepTime(1));
+  field.addEventListener('keydown', event => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      stepTime(event.key === 'ArrowUp' ? 1 : -1);
+    }
+  });
 }
 document.getElementById('open-picker').addEventListener('click', openDatePicker);
 function closeDatePicker() { picker.close(); document.getElementById('open-picker').focus(); }
@@ -878,8 +903,10 @@ for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
   });
 }
 document.getElementById('apply-deadline').addEventListener('click', () => {
+  const time = readPickerTime();
+  if (!time) { updatePickerPreview(); return; }
   const date = new Date(selectedDate);
-  date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
+  date.setHours(time.hours, time.minutes, 0, 0);
   if (date.getTime() <= Date.now()) {
     updatePickerPreview();
     return;

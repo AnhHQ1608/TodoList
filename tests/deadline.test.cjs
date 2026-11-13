@@ -728,3 +728,43 @@ test('Picker disables old dates and cannot confirm a time that became past while
   assert.equal(app.elements['date-picker'].open, true);
   assert.match(app.elements['picker-error'].textContent, /tương lai/);
 });
+
+test('Direct time entry validates ranges, blank fields and past times without modifying deadline', () => {
+  const app = boot();
+  app.elements['open-picker'].listeners.click();
+  for (const [hours, minutes] of [['24','00'], ['12','60'], ['','10'], ['ab','10']]) {
+    app.elements['picker-hour'].value = hours;
+    app.elements['picker-minute'].value = minutes;
+    app.elements['picker-hour'].listeners.change();
+    app.elements['apply-deadline'].listeners.click();
+    assert.equal(app.elements['deadline-input'].value, '');
+    assert.equal(app.elements['apply-deadline'].disabled, true);
+    assert.match(app.elements['picker-error'].textContent, /00–23/);
+  }
+  app.run('selectedDate = new Date(Date.now() - 86400000)');
+  app.elements['picker-hour'].value = '12';
+  app.elements['picker-minute'].value = '30';
+  app.elements['apply-deadline'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '');
+  assert.match(app.elements['picker-error'].textContent, /tương lai/);
+});
+test('Time inputs sanitize typing, pad on blur, and step with buttons or arrow keys', () => {
+  const app = boot();
+  app.elements['open-picker'].listeners.click();
+  app.elements['picker-hour'].value = '1a';
+  app.elements['picker-hour'].listeners.input();
+  assert.equal(app.elements['picker-hour'].value, '1');
+  app.elements['picker-hour'].listeners.blur();
+  assert.equal(app.elements['picker-hour'].value, '01');
+  app.elements['picker-minute'].value = '09';
+  app.elements['minute-up'].listeners.click();
+  assert.equal(app.elements['picker-minute'].value, '10');
+  app.elements['picker-minute'].listeners.keydown({ key: 'ArrowDown', preventDefault() {} });
+  assert.equal(app.elements['picker-minute'].value, '09');
+  app.elements['picker-hour'].value = '23';
+  app.elements['hour-up'].listeners.click();
+  assert.equal(app.elements['picker-hour'].value, '23');
+  app.elements['picker-minute'].value = '00';
+  app.elements['minute-down'].listeners.click();
+  assert.equal(app.elements['picker-minute'].value, '00');
+});

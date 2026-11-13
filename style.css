@@ -110,12 +110,19 @@ form { flex-wrap: wrap; align-items: stretch; }
 .calendar-day:disabled { opacity: .25; cursor: not-allowed; background: transparent; border-color: transparent; }
 .picker-error { margin: -8px 0 14px; color: #ffadbd; font-size: 12px; }
 .picker-error:empty { display: none; }
-.time-section { margin-top: 18px; padding: 18px 0; border-top: 1px solid #ffffff12; border-bottom: 1px solid #ffffff12; }
+.time-section { display: block; margin-top: 18px; padding: 18px 0; border-top: 1px solid #ffffff12; border-bottom: 1px solid #ffffff12; }
 .time-caption { font-size: 10px; letter-spacing: 1.5px; color: #bca8e7; font-weight: 700; }
 .time-section p { margin: 5px 0 0; color: #9f9bb8; font-size: 10px; }
-.time-controls { gap: 6px; color: #bda8ed; }
-.time-controls select { width: 62px; padding: 10px 6px; border: 1px solid #65537f; border-radius: 10px; background: #2d2545; color: #e4d5ff; font: 600 17px "Segoe UI", sans-serif; cursor: pointer; }
-.time-controls select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+.time-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.time-heading > span:last-child { color: #9f9bb8; font-size: 10px; }
+.time-controls { gap: 10px; margin-top: 13px; color: #bda8ed; }
+.time-unit { flex: 1; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr) 30px; align-items: center; gap: 4px; padding: 9px; border: 1px solid #65537f60; border-radius: 13px; background: #12142b; }
+.time-unit:focus-within { border-color: #b59cff; box-shadow: 0 0 0 3px #a38aff12; }
+.time-unit label { grid-column: 1 / -1; color: #ada1c5; text-align: center; font-size: 10px; }
+.time-unit input { width: 100%; min-width: 0; padding: 6px 0; border: 0; border-radius: 5px; background: transparent; color: #ecddff; text-align: center; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.time-unit button { display: grid; place-items: center; width: 30px; height: 34px; padding: 0; border: 0; border-radius: 7px; background: #a38aff12; color: #c7adff; font-size: 17px; }
+.time-unit button:hover { background: #a38aff30; color: white; }
+.time-colon { padding-top: 14px; color: #ac93d8; font-size: 23px; }
 .quick-dates { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
 .quick-dates button { border: 1px solid #ffffff16; border-radius: 20px; padding: 7px 10px; background: #ffffff04; color: #bdb2d8; font-size: 11px; }
 .quick-dates button:hover { border-color: #aa88f9; color: #e6d9ff; }
@@ -124,7 +131,7 @@ form { flex-wrap: wrap; align-items: stretch; }
 .picker-footer { gap: 10px; }
 .picker-footer .add { min-height: 44px; flex: 1; font-size: 12px; padding: 0 12px; }
 .picker-footer .add span { font-size: 16px; margin-left: 6px; }
-@media (max-width: 380px) { .date-picker { padding: 18px; } .time-controls select { width: 56px; } .calendar-day { border-radius: 9px; } }
+@media (max-width: 380px) { .date-picker { padding: 18px; } .time-unit { padding: 7px 4px; gap: 2px; grid-template-columns: 27px minmax(0, 1fr) 27px; } .time-unit button { width: 27px; } .time-unit input { font-size: 23px; } .calendar-day { border-radius: 9px; } }
 /* Cảnh báo quá hạn nổi bật, vẫn hiện khi chưa cấp quyền thông báo. */
 .overdue-alert { margin: 18px 0; padding: 16px; border: 1px solid #f47c9860; border-left: 4px solid #ff879e; border-radius: 12px; background: linear-gradient(120deg, #a9395128, #a939510c); color: #ffb4c4; }
 .overdue-alert strong { font-size: 14px; }
