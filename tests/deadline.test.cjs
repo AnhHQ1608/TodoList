@@ -689,3 +689,42 @@ test('Hamburger menu switches between settings and contact, including keyboard n
   app.elements['close-settings'].listeners.click();
   assert.equal(app.elements['open-settings']['aria-expanded'], 'false');
 });
+
+test('Reject past or current deadlines on add and changed deadlines on edit', () => {
+  const app = boot([task({ deadline: iso(HOUR) })]);
+  const local = value => app.run(`localDateValue(new Date(${value}))`);
+  app.submit('Deadline cũ', local(NOW - HOUR));
+  assert.equal(app.run('tasks.length'), 1);
+  assert.match(app.elements.message.textContent, /phải sau/);
+  app.submit('Đúng hiện tại', local(NOW));
+  assert.equal(app.run('tasks.length'), 1);
+  app.run('startEditing(tasks[0])');
+  app.submit('Sửa sai', local(NOW - HOUR));
+  assert.equal(app.run('tasks[0].text'), 'Học JS');
+  assert.equal(app.run('tasks[0].deadline'), iso(HOUR));
+  app.submit('Sửa đúng', local(NOW + 2*HOUR));
+  assert.equal(app.run('tasks[0].deadline'), iso(2*HOUR));
+});
+test('Old overdue deadline stays intact when editing text; clearing deadline is allowed', () => {
+  const app = boot([task({ deadline: iso(-HOUR) })]);
+  app.run('startEditing(tasks[0])');
+  app.elements['task-input'].value = 'Đổi tên';
+  app.elements['task-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.run('tasks[0].text'), 'Đổi tên');
+  assert.equal(app.run('tasks[0].deadline'), iso(-HOUR));
+  app.run('startEditing(tasks[0])');
+  app.submit('Bỏ deadline', '');
+  assert.equal(app.run('tasks[0].deadline'), null);
+});
+test('Picker disables old dates and cannot confirm a time that became past while open', () => {
+  const app = boot();
+  app.elements['open-picker'].listeners.click();
+  assert.ok(app.elements['calendar-days'].children.some(day => day.disabled));
+  const future = app.run('new Date(selectedDate).getTime()');
+  assert.ok(future > NOW);
+  app.run(`Date.now = () => ${future + 60000}`);
+  app.elements['apply-deadline'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value, '');
+  assert.equal(app.elements['date-picker'].open, true);
+  assert.match(app.elements['picker-error'].textContent, /tương lai/);
+});

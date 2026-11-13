@@ -422,6 +422,12 @@ form.addEventListener('submit', event => {
     message.textContent = 'Ngày giờ deadline không hợp lệ.'; document.getElementById('open-picker').focus(); return;
   }
   const deadline = date ? date.toISOString() : null;
+  const originalDeadline = editingId ? tasks.find(task => task.id === editingId)?.deadline : null;
+  if (date && date.getTime() <= Date.now() && deadline !== originalDeadline) {
+    message.textContent = 'Deadline phải sau thời gian hiện tại.';
+    document.getElementById('open-picker').focus();
+    return;
+  }
   const folderId = folders.some(folder => folder.id === folderSelect.value) ? folderSelect.value : '';
   if (editingId) {
     const task = tasks.find(task => task.id === editingId);
@@ -786,6 +792,13 @@ function updateDeadlineDisplay() {
 function updatePickerPreview() {
   const date = new Date(selectedDate);
   date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
+  const now = new Date(Date.now());
+  const today = sameDay(selectedDate, now);
+  for (const option of hourSelect.children) option.disabled = today && Number(option.value) < now.getHours();
+  for (const option of minuteSelect.children) option.disabled = today && Number(hourSelect.value) === now.getHours() && Number(option.value) <= now.getMinutes();
+  const invalid = date.getTime() <= Date.now();
+  document.getElementById('apply-deadline').disabled = invalid;
+  document.getElementById('picker-error').textContent = invalid ? 'Chọn thời gian trong tương lai.' : '';
   document.getElementById('picker-preview').textContent = date.toLocaleString('vi-VN', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
   });
@@ -797,19 +810,23 @@ function renderCalendar() {
   const first = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
   // Tuần bắt đầu bằng thứ Hai; hiển thị đủ 6 hàng để lịch không nhảy chiều cao.
   const offset = (first.getDay() + 6) % 7;
+  const now = new Date(Date.now());
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   for (let index = 0; index < 42; index++) {
     const date = new Date(first.getFullYear(), first.getMonth(), 1 - offset + index);
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = date.getDate();
     button.className = 'calendar-day';
+    button.disabled = date.getTime() < todayStart;
     if (date.getMonth() !== calendarMonth.getMonth()) button.className += ' outside';
-    if (sameDay(date, new Date())) { button.className += ' today'; button.setAttribute('aria-current', 'date'); }
+    if (sameDay(date, now)) { button.className += ' today'; button.setAttribute('aria-current', 'date'); }
     const chosen = sameDay(date, selectedDate);
     if (chosen) button.className += ' chosen';
     button.setAttribute('aria-pressed', String(chosen));
     button.setAttribute('aria-label', date.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
     button.addEventListener('click', () => {
+      if (button.disabled) return;
       selectedDate = date;
       calendarMonth = new Date(date.getFullYear(), date.getMonth(), 1);
       renderCalendar();
@@ -821,7 +838,8 @@ function renderCalendar() {
   updatePickerPreview();
 }
 function openDatePicker() {
-  selectedDate = deadlineInput.value ? new Date(deadlineInput.value) : new Date();
+  const existing = deadlineInput.value ? new Date(deadlineInput.value) : null;
+  selectedDate = existing && existing.getTime() > Date.now() ? existing : new Date(Math.ceil((Date.now() + 1) / 60000) * 60000);
   calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
   hourSelect.value = padDate(selectedDate.getHours());
   minuteSelect.value = padDate(selectedDate.getMinutes());
@@ -853,7 +871,7 @@ for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
 }
 for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
   document.getElementById(id).addEventListener('click', () => {
-    const now = new Date();
+    const now = new Date(Date.now());
     selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
     calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
     renderCalendar();
@@ -862,6 +880,10 @@ for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
 document.getElementById('apply-deadline').addEventListener('click', () => {
   const date = new Date(selectedDate);
   date.setHours(Number(hourSelect.value), Number(minuteSelect.value), 0, 0);
+  if (date.getTime() <= Date.now()) {
+    updatePickerPreview();
+    return;
+  }
   deadlineInput.value = localDateValue(date);
   updateDeadlineDisplay();
   closeDatePicker();

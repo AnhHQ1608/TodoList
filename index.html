@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101329">
   <title>Focus List — Công việc của bạn</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg?v=1">
-  <link rel="stylesheet" href="style.css?v=navigation-menu-1">
-  <script src="script.js?v=navigation-menu-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=future-deadline-1">
+  <script src="script.js?v=future-deadline-1" defer></script>
 </head>
 <body>
   <div class="ambient-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -84,6 +84,7 @@
     <div class="time-section"><div><span class="time-caption">THỜI GIAN</span><p>Giờ địa phương · 24 giờ</p></div><div class="time-controls"><label><span class="sr-only">Giờ</span><select id="picker-hour"></select></label><span>:</span><label><span class="sr-only">Phút</span><select id="picker-minute"></select></label></div></div>
     <div class="quick-dates"><button id="pick-today" type="button">Hôm nay</button><button id="pick-tomorrow" type="button">Ngày mai</button><button id="clear-deadline" type="button">Bỏ deadline</button></div>
     <p id="picker-preview" class="picker-preview" aria-live="polite"></p>
+    <p id="picker-error" class="picker-error" role="alert"></p>
     <div class="picker-footer"><button id="cancel-picker" class="secondary" type="button">Hủy</button><button id="apply-deadline" class="add" type="button">Xác nhận deadline <span aria-hidden="true">↗</span></button></div>
   </dialog>
 </body>

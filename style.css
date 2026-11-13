@@ -107,6 +107,9 @@ form { flex-wrap: wrap; align-items: stretch; }
 .calendar-day.today::after { content: ''; position: absolute; width: 4px; height: 4px; background: #c5b2ff; border-radius: 50%; bottom: 4px; left: calc(50% - 2px); }
 .calendar-day.chosen { background: linear-gradient(135deg, #c1a6ff, #9670ef); color: #211337; font-weight: 800; box-shadow: 0 4px 14px #9b70f940; }
 .calendar-day.chosen::after { background: #39244e; }
+.calendar-day:disabled { opacity: .25; cursor: not-allowed; background: transparent; border-color: transparent; }
+.picker-error { margin: -8px 0 14px; color: #ffadbd; font-size: 12px; }
+.picker-error:empty { display: none; }
 .time-section { margin-top: 18px; padding: 18px 0; border-top: 1px solid #ffffff12; border-bottom: 1px solid #ffffff12; }
 .time-caption { font-size: 10px; letter-spacing: 1.5px; color: #bca8e7; font-weight: 700; }
 .time-section p { margin: 5px 0 0; color: #9f9bb8; font-size: 10px; }
