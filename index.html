@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101329">
   <title>Focus List — Công việc của bạn</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js?v=desktop-notifications-2" defer></script>
+  <link rel="stylesheet" href="style.css?v=folders-1">
+  <script src="script.js?v=folders-1" defer></script>
 </head>
 <body>
   <main class="app">
@@ -21,6 +21,7 @@
       <form id="task-form" autocomplete="off">
         <label class="sr-only" for="task-input">Công việc mới</label>
         <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
+        <div class="folder-field"><label for="task-folder">Mục công việc</label><select id="task-folder"><option value="">Chưa phân loại</option></select></div>
         <div class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span aria-hidden="true">⌄</span></button></div>
         <button id="submit-task" class="add" type="submit">＋ Add Task</button>
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
@@ -34,6 +35,12 @@
       <p class="help">Nhắc một lần trong 1 giờ cuối và một lần khi quá hạn nếu chưa hoàn thành. Nhấn Bật âm báo để cho phép phát tiếng; sau khi tải lại trang có thể cần kích hoạt lại. Chỉ hoạt động khi trang mở; tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
       <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p></aside>
       <p id="message" role="status" aria-live="polite"></p>
+      <section class="folder-section" aria-labelledby="folders-title">
+        <div class="folder-heading"><div><p class="eyebrow">SẮP XẾP KHÔNG GIAN CỦA BẠN</p><h3 id="folders-title">Các mục công việc</h3></div><span class="folder-hint">Tạo mục theo cách của bạn</span></div>
+        <form id="folder-form" autocomplete="off"><label class="sr-only" for="folder-name">Tên mục mới</label><input id="folder-name" placeholder="Ví dụ: Học tập, Công việc, Cá nhân…" maxlength="40" required><button class="secondary" type="submit">＋ Tạo mục</button></form>
+        <p id="folder-message" class="help" role="status"></p>
+        <div id="folder-filters" class="folder-filters" role="group" aria-label="Lọc theo mục công việc"></div>
+      </section>
       <div class="toolbar">
         <div class="filters" role="group" aria-label="Lọc công việc">
           <button type="button" data-filter="all" class="selected" aria-pressed="true">All</button>

@@ -10,6 +10,10 @@ const list = document.getElementById('task-list');
 const message = document.getElementById('message');
 const filters = document.querySelectorAll('[data-filter]');
 const storageKey = 'focus-list-tasks-v1';
+const foldersKey = 'focus-list-folders-v1';
+const folderSelect = document.getElementById('task-folder');
+let folders = [];
+let currentFolder = 'all';
 const hour = 60 * 60 * 1000;
 let tasks = [];
 let currentFilter = 'all';
@@ -20,12 +24,88 @@ let soundEnabled = true;
 let audioContext = null;
 try { soundEnabled = localStorage.getItem(soundKey) !== 'false'; } catch (error) { /* Chờ tương tác đầu tiên để phát âm thanh. */ }
 
+// Mỗi mục có ID riêng; công việc cũ hoặc không có mục được giữ ở Chưa phân loại.
+function readFolders() {
+  const saved = JSON.parse(localStorage.getItem(foldersKey) || '[]');
+  if (!Array.isArray(saved)) throw new Error('Danh sách mục không hợp lệ');
+  const ids = new Set();
+  return saved.filter(folder => {
+    if (!folder || typeof folder.id !== 'string' || !folder.id || folder.id === 'all'
+      || typeof folder.name !== 'string' || !folder.name.trim() || ids.has(folder.id)) return false;
+    ids.add(folder.id);
+    return true;
+  });
+}
+try { folders = readFolders(); } catch (error) {
+  document.getElementById('folder-message').textContent = 'Không thể đọc các mục đã lưu. Các công việc vẫn được giữ nguyên.';
+}
+function taskFolderId(task) {
+  return folders.some(folder => folder.id === task.folderId) ? task.folderId : '';
+}
+function renderFolders() {
+  const selected = folderSelect.value;
+  folderSelect.replaceChildren();
+  for (const folder of [{ id: '', name: 'Chưa phân loại' }, ...folders]) {
+    const option = document.createElement('option');
+    option.value = folder.id;
+    option.textContent = folder.name;
+    folderSelect.append(option);
+  }
+  folderSelect.value = folders.some(folder => folder.id === selected) ? selected : '';
+  const container = document.getElementById('folder-filters');
+  container.replaceChildren();
+  for (const folder of [{ id: 'all', name: 'Tất cả mục' }, { id: '', name: 'Chưa phân loại' }, ...folders]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'folder-chip' + (currentFolder === folder.id ? ' chosen-folder' : '');
+    button.setAttribute('aria-pressed', String(currentFolder === folder.id));
+    const name = document.createElement('span');
+    name.textContent = folder.name;
+    const count = document.createElement('span');
+    count.className = 'folder-count';
+    count.textContent = tasks.filter(task => folder.id === 'all' || taskFolderId(task) === folder.id).length;
+    button.append(name, count);
+    button.addEventListener('click', () => {
+      currentFolder = folder.id;
+      renderTasks();
+      if (!editingId) folderSelect.value = folder.id === 'all' ? '' : folder.id;
+      const active = Array.from(document.getElementById('folder-filters').children)
+        .find(item => item.getAttribute('aria-pressed') === 'true');
+      if (active) active.focus();
+    });
+    container.append(button);
+  }
+}
+document.getElementById('folder-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const nameInput = document.getElementById('folder-name');
+  const name = nameInput.value.trim().replace(/\s+/g, ' ');
+  const status = document.getElementById('folder-message');
+  if (!name || name.length > 40) { status.textContent = 'Nhập tên mục từ 1 đến 40 ký tự.'; nameInput.focus(); return; }
+  if (['tất cả mục', 'chưa phân loại', ...folders.map(folder => folder.name.toLocaleLowerCase('vi-VN'))].includes(name.toLocaleLowerCase('vi-VN'))) {
+    status.textContent = 'Tên mục đã tồn tại. Hãy chọn tên khác.'; nameInput.focus(); return;
+  }
+  const folder = { id: 'folder-' + Date.now().toString(36) + Math.random().toString(36).slice(2), name };
+  const nextFolders = [...folders, folder];
+  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); } catch (error) {
+    status.textContent = 'Không thể lưu mục mới. Kiểm tra quyền lưu trữ của trình duyệt.'; return;
+  }
+  folders = nextFolders;
+  currentFolder = folder.id;
+  nameInput.value = '';
+  renderTasks();
+  folderSelect.value = folder.id;
+  status.textContent = `Đã tạo mục “${name}”. Bạn có thể thêm công việc vào mục này.`;
+  input.focus();
+});
+
 function readTasks() {
   const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
   if (!Array.isArray(saved)) throw new Error('Dữ liệu không hợp lệ');
   return saved.filter(task => task && typeof task.id === 'string'
     && typeof task.text === 'string' && typeof task.completed === 'boolean')
     .map(task => ({ ...task,
+      folderId: typeof task.folderId === 'string' ? task.folderId : '',
       deadline: typeof task.deadline === 'string' && Number.isFinite(Date.parse(task.deadline))
         ? new Date(task.deadline).toISOString() : null,
       notifiedDeadline: typeof task.notifiedDeadline === 'string' ? task.notifiedDeadline : null,
@@ -88,6 +168,7 @@ function updateCountdowns() {
 function resetEditor() {
   editingId = null;
   form.reset();
+  folderSelect.value = currentFolder === 'all' ? '' : currentFolder;
   updateDeadlineDisplay();
   submitButton.textContent = '＋ Add Task';
   cancelButton.hidden = true;
@@ -95,6 +176,7 @@ function resetEditor() {
 function startEditing(task) {
   editingId = task.id;
   input.value = task.text;
+  folderSelect.value = taskFolderId(task);
   // datetime-local cần giờ địa phương, không phải chuỗi UTC từ toISOString().
   if (task.deadline) {
     const date = new Date(task.deadline);
@@ -109,9 +191,10 @@ function startEditing(task) {
 
 // 3. Vẽ danh sách. textContent ngăn nội dung nhập bị chạy như HTML.
 function renderTasks() {
+  renderFolders();
   list.replaceChildren();
-  const visible = tasks.filter(task => currentFilter === 'active' ? !task.completed
-    : currentFilter === 'completed' ? task.completed : true);
+  const visible = tasks.filter(task => (currentFolder === 'all' || taskFolderId(task) === currentFolder)
+    && (currentFilter === 'active' ? !task.completed : currentFilter === 'completed' ? task.completed : true));
   visible.forEach(task => {
     const item = document.createElement('li');
     item.className = task.completed ? 'task completed' : 'task';
@@ -134,6 +217,10 @@ function renderTasks() {
     const deadline = document.createElement('p');
     deadline.id = 'deadline-' + task.id;
     content.append(label, deadline);
+    const folderBadge = document.createElement('span');
+    folderBadge.className = 'task-folder-badge';
+    folderBadge.textContent = folders.find(folder => folder.id === taskFolderId(task))?.name || 'Chưa phân loại';
+    content.append(folderBadge);
     const actions = document.createElement('div');
     actions.className = 'task-actions';
     const editButton = document.createElement('button');
@@ -158,10 +245,11 @@ function renderTasks() {
     item.append(checkbox, content, actions);
     list.append(item);
   });
-  const completed = tasks.filter(task => task.completed).length;
-  const percent = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
+  const scopedTasks = tasks.filter(task => currentFolder === 'all' || taskFolderId(task) === currentFolder);
+  const completed = scopedTasks.filter(task => task.completed).length;
+  const percent = scopedTasks.length ? Math.round(completed / scopedTasks.length * 100) : 0;
   document.getElementById('task-count').textContent = visible.length + ' công việc';
-  document.getElementById('completed-count').textContent = `Đã hoàn thành ${completed} / ${tasks.length} công việc`;
+  document.getElementById('completed-count').textContent = `Đã hoàn thành ${completed} / ${scopedTasks.length} công việc`;
   document.getElementById('percentage').textContent = percent + '%';
   document.getElementById('progress-fill').style.width = percent + '%';
   document.getElementById('progress').setAttribute('aria-valuenow', percent);
@@ -185,6 +273,7 @@ form.addEventListener('submit', event => {
     message.textContent = 'Ngày giờ deadline không hợp lệ.'; document.getElementById('open-picker').focus(); return;
   }
   const deadline = date ? date.toISOString() : null;
+  const folderId = folders.some(folder => folder.id === folderSelect.value) ? folderSelect.value : '';
   if (editingId) {
     const task = tasks.find(task => task.id === editingId);
     if (!task) { resetEditor(); message.textContent = 'Công việc đã bị xóa ở tab khác.'; return; }
@@ -196,11 +285,13 @@ form.addEventListener('submit', event => {
     }
     task.text = text;
     task.deadline = deadline;
+    task.folderId = folderId;
   } else {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    tasks.push({ id, text, completed: false, deadline, notifiedDeadline: null });
+    tasks.push({ id, text, completed: false, deadline, folderId, notifiedDeadline: null });
     setFilter('all');
   }
+  if (currentFolder !== 'all') currentFolder = folderId;
   saveTasks();
   resetEditor();
   renderTasks();
@@ -490,8 +581,13 @@ async function checkDeadlines() {
   } else await sendDueNotifications();
 }
 window.addEventListener('storage', event => {
-  if (event.key !== storageKey && event.key !== null) return;
-  try { tasks = readTasks(); renderTasks(); } catch (error) { message.textContent = 'Không thể đồng bộ dữ liệu từ tab khác.'; }
+  if (event.key !== storageKey && event.key !== foldersKey && event.key !== null) return;
+  try {
+    folders = readFolders();
+    tasks = readTasks();
+    if (currentFolder !== 'all' && !folders.some(folder => folder.id === currentFolder)) currentFolder = 'all';
+    renderTasks();
+  } catch (error) { message.textContent = 'Không thể đồng bộ dữ liệu từ tab khác.'; }
 });
 window.addEventListener('focus', () => { updateNotificationStatus(); updateSoundStatus(); checkDeadlines(); });
 document.addEventListener('visibilitychange', () => {

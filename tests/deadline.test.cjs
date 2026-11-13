@@ -70,8 +70,8 @@ function boot(initial = [], options = {}) {
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
       querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(),
       addEventListener: (type, listener) => { documentListeners[type] = listener; } },
-    localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : storage.value,
-      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else storage.value = value; } },
+    localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : key === 'focus-list-folders-v1' ? storage.folders : storage.value,
+      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else if (key === 'focus-list-folders-v1') storage.folders = value; else storage.value = value; } },
     setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); }, clearTimeout() {} });
   vm.runInContext(code, context);
   return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, workerSent, registrations, focusCount: () => focusCount, requested: () => requested,
@@ -428,4 +428,80 @@ test('Service worker click focuses existing TodoList or opens its own scope', as
   tabs = [];
   handlers.notificationclick(event); await pending;
   assert.equal(opened, 'https://anhhq1608.github.io/TodoList/');
+});
+
+test('Create folders, assign new tasks, persist and reload without changing old tasks', () => {
+  const app = boot([task()]);
+  assert.equal(app.run('tasks[0].folderId'), '');
+  const oldStorage = app.storage.value;
+  app.elements['folder-name'].value = '  Học   tập  ';
+  app.elements['folder-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.run('folders[0].name'), 'Học tập');
+  assert.equal(app.storage.value, oldStorage);
+  assert.equal(app.elements['task-folder'].value, app.run('folders[0].id'));
+  app.submit('Học HTML');
+  assert.equal(app.run('tasks[1].folderId'), app.run('folders[0].id'));
+  assert.equal(app.elements['task-list'].children.length, 1);
+  const reload = boot([], { storage: app.storage });
+  assert.equal(reload.run('folders[0].name'), 'Học tập');
+  assert.equal(reload.run('tasks.length'), 2);
+  assert.equal(reload.elements['task-list'].children[1].children[1].children[2].textContent, 'Học tập');
+});
+test('Folder filtering combines with status; editing moves tasks and preserves deadlines', () => {
+  const folders = [{ id: 'school', name: 'Học tập' }, { id: 'work', name: 'Công việc' }];
+  const initial = [task({ folderId: 'school', deadline: iso(2*HOUR) }), task({ id: '2', folderId: 'school', completed: true }), task({ id: '3', folderId: 'work' })];
+  const app = boot([], { storage: { value: JSON.stringify(initial), folders: JSON.stringify(folders) } });
+  app.elements['folder-filters'].children[2].listeners.click();
+  assert.equal(app.elements['task-list'].children.length, 2);
+  assert.equal(app.elements.percentage.textContent, '50%');
+  app.filters[1].listeners.click();
+  assert.equal(app.elements['task-list'].children.length, 1);
+  app.filters[2].listeners.click();
+  assert.equal(app.elements['task-list'].children.length, 1);
+  app.filters[0].listeners.click();
+  app.elements['task-list'].children[0].children[2].children[0].listeners.click();
+  assert.equal(app.elements['task-folder'].value, 'school');
+  app.elements['task-folder'].value = 'work';
+  app.elements['task-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.run('tasks[0].folderId'), 'work');
+  assert.equal(app.run('tasks[0].deadline'), iso(2*HOUR));
+  assert.equal(app.run('currentFolder'), 'work');
+  assert.equal(app.elements['task-list'].children.length, 2);
+  app.run('startEditing(tasks[0])');
+  app.elements['task-folder'].value = '';
+  app.elements['task-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.run('tasks[0].folderId'), '');
+  assert.equal(app.elements['task-list'].children.length, 1);
+});
+test('Reject blank, duplicate, reserved folder names; render names as plain text', () => {
+  const app = boot();
+  const create = name => { app.elements['folder-name'].value = name; app.elements['folder-form'].listeners.submit({ preventDefault() {} }); };
+  create('   '); create('Chưa phân loại'); create('TẤT CẢ MỤC');
+  assert.equal(app.run('folders.length'), 0);
+  create('Học tập'); create('  học   TẬP  ');
+  assert.equal(app.run('folders.length'), 1);
+  create('<img src=x onerror=alert(1)>');
+  assert.equal(app.run('folders.length'), 2);
+  assert.equal(app.elements['folder-filters'].children[3].children[0].textContent, '<img src=x onerror=alert(1)>');
+});
+test('Missing/corrupt folder storage and blocked writes keep existing tasks accessible', () => {
+  for (const folders of ['{broken', 'null', '[]']) {
+    const app = boot([], { storage: { value: JSON.stringify([task({ folderId: 'missing' })]), folders } });
+    assert.equal(app.elements['task-list'].children.length, 1);
+    assert.equal(app.run('taskFolderId(tasks[0])'), '');
+  }
+  const app = boot([task()], { blocked: true });
+  app.elements['folder-name'].value = 'Cá nhân';
+  app.elements['folder-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.run('folders.length'), 0);
+  assert.equal(app.run('tasks.length'), 1);
+  assert.match(app.elements['folder-message'].textContent, /Không thể lưu/);
+});
+test('Hidden folder tasks still get deadline notifications', async () => {
+  const app = boot([task({ deadline: iso(-1) })]);
+  const sentBefore = app.sent.length;
+  app.run("folders = [{id:'empty-folder', name:'Mục khác'}]; currentFolder = 'empty-folder'; renderTasks(); tasks[0].overdueNotifiedDeadline = null; saveTasks()");
+  assert.equal(app.elements['task-list'].children.length, 0);
+  await app.run('checkDeadlines()');
+  assert.equal(app.sent.length, sentBefore + 1);
 });
