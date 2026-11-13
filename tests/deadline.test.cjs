@@ -78,6 +78,7 @@ function boot(initial = [], options = {}) {
     run: expression => vm.runInContext(expression, context),
     submit(text, deadline = '') { elements['task-input'].value = text; elements['deadline-input'].value = deadline; elements['task-form'].listeners.submit({ preventDefault() {} }); } };
 }
+async function setSound(app, enabled) { app.elements['toggle-sound'].checked = enabled; await app.elements['toggle-sound'].listeners.change(); }
 const task = (extra = {}) => ({ id: '1', text: 'Học JS', completed: false, ...extra });
 test('Deadline: 24h boundary, yellow, overdue and completed', () => {
   const app = boot();
@@ -227,7 +228,7 @@ test('Sound requires click, works without Notification, batches overdue and pers
   const app = boot([task({ deadline: iso(-1) }), task({ id: '2', deadline: iso(-2) })], { audio: true, unsupported: true });
   assert.equal(app.audio.created, 0);
   assert.equal(app.audio.tones, 0);
-  await app.elements['toggle-sound'].listeners.click();
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
   assert.equal(app.audio.created, 1);
   assert.equal(app.audio.tones, 3); // Một chuỗi âm cho cả nhóm công việc.
   assert.equal(app.storage.sound, 'true');
@@ -236,16 +237,16 @@ test('Sound requires click, works without Notification, batches overdue and pers
   assert.equal(JSON.parse(app.storage.value)[0].overdueSoundedDeadline, iso(-1));
   app.elements['test-sound'].listeners.click();
   assert.equal(app.audio.tones, 6);
-  await app.elements['toggle-sound'].listeners.click();
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
   assert.equal(app.storage.sound, 'false');
   assert.equal(app.run('playAlertSound(true)'), false);
   const reload = boot([], { storage: app.storage, audio: true });
-  await reload.elements['toggle-sound'].listeners.click();
+  await setSound(reload, true);
   assert.equal(reload.audio.tones, 0);
 });
 test('Reminder and overdue each play once; changing deadline resets both sound markers', async () => {
   const app = boot([task({ deadline: iso(100) })], { audio: true });
-  await app.elements['toggle-sound'].listeners.click();
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
   assert.equal(app.audio.tones, 2);
   app.run(`Date.now = () => ${NOW + 101}`);
   await app.run('checkDeadlines()');
@@ -262,11 +263,11 @@ test('Remembered audio preference needs activation after reload; audio failure i
   const storage = { value: '[]', sound: 'true' };
   const app = boot([], { storage, audio: true });
   assert.equal(app.audio.created, 0);
-  assert.match(app.elements['toggle-sound'].textContent, /Âm thanh tự động/);
-  await app.elements['toggle-sound'].listeners.click();
-  assert.equal(app.elements['toggle-sound']['aria-pressed'], 'true');
+  assert.equal(app.elements['toggle-sound'].checked, true);
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
+  assert.equal(app.elements['toggle-sound'].checked, true);
   const failed = boot([], { audio: true, audioFails: true, storage: { value: '[]', sound: 'false' } });
-  await failed.elements['toggle-sound'].listeners.click();
+  await setSound(failed, true);
   assert.match(failed.elements['sound-status'].textContent, /Không bật được/);
   assert.equal(failed.run('soundEnabled'), false);
 });
@@ -278,7 +279,7 @@ test('Click sounds cover dynamic controls, respect mute and do not create audio 
   // Chưa bật âm thanh: click không tạo AudioContext.
   await app.run('handleInteractionSound') (event);
   assert.equal(app.audio.created, 0);
-  await app.elements['toggle-sound'].listeners.click();
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
   for (const id of ['submit-task', 'task-input', 'filter-active', 'calendar-day', 'picker-hour', 'delete-task', 'checkbox']) {
     control.id = id;
     await app.run('handleInteractionSound')(event);
@@ -293,7 +294,7 @@ test('Click sounds cover dynamic controls, respect mute and do not create audio 
   }
   await app.run('handleInteractionSound')({ target: { closest: () => null } });
   assert.equal(app.audio.tones, 7);
-  await app.elements['toggle-sound'].listeners.click();
+  await setSound(app, app.run("audioContext?.state !== 'running'"));
   control.id = 'submit-task';
   await app.run('handleInteractionSound')(event);
   assert.equal(app.audio.tones, 7);

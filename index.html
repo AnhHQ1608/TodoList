@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101329">
   <title>Focus List — Công việc của bạn</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg?v=1">
-  <link rel="stylesheet" href="style.css?v=brand-logo-1">
-  <script src="script.js?v=auto-audio-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=clean-ui-1">
+  <script src="script.js?v=clean-ui-1" defer></script>
 </head>
 <body>
   <main class="app">
@@ -27,22 +27,25 @@
         <button id="submit-task" class="add" type="submit">＋ Add Task</button>
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
-      <p id="deadline-help" class="help">Ngày giờ theo múi giờ thiết bị. Để trống nếu không có deadline.</p>
-      <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
-      <p id="notification-diagnostics" class="help" role="status"></p>
-      <p class="help">Nhấn Bật thông báo → Cho phép, rồi Gửi thử ngay. Nếu không thấy banner trên Windows, nhấn Win + N để kiểm tra trung tâm thông báo; bật thông báo cho Chrome/Edge trong Settings → System → Notifications và tắt Không làm phiền. Dùng Thử sau 5 giây để kiểm tra khi chuyển app. Giữ trang mở để kiểm tra deadline; service worker không tự hẹn giờ nhắc khi trang đóng. Một số trình duyệt điện thoại yêu cầu cài website vào màn hình chính.</p>
-      <div class="notification-settings sound-settings"><button id="toggle-sound" class="secondary" type="button" aria-pressed="false">Bật âm báo</button><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button><p id="sound-status" role="status"></p></div>
-      <p class="help">Tiếng click được kích hoạt từ lần bấm đầu tiên vào nút, ô nhập hoặc lịch. Nếu đã tắt âm báo, nhấn Bật âm báo để mở lại. Tắt âm báo sẽ tắt cả tiếng click và tiếng nhắc deadline.</p>
-      <p class="help">Nhắc một lần trong 1 giờ cuối và một lần khi quá hạn nếu chưa hoàn thành. Nhấn Bật âm báo để cho phép phát tiếng; sau khi tải lại trang có thể cần kích hoạt lại. Chỉ hoạt động khi trang mở; tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
+      <span id="deadline-help" class="sr-only">Giờ địa phương, không bắt buộc.</span>
+      <details class="app-settings">
+        <summary>Cài đặt <span aria-hidden="true">⌄</span></summary>
+        <div class="settings-content">
+          <div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div>
+          <p id="sound-status" class="help" role="status"></p>
+          <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
+          <details class="notification-help"><summary>Trợ giúp thông báo</summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details>
+        </div>
+      </details>
       <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p></aside>
       <p id="message" role="status" aria-live="polite"></p>
-      <section class="folder-section" aria-labelledby="folders-title">
-        <div class="folder-heading"><div><p class="eyebrow">SẮP XẾP KHÔNG GIAN CỦA BẠN</p><h3 id="folders-title">Các mục công việc</h3></div><span class="folder-hint">Tạo mục theo cách của bạn</span></div>
+      <details class="folder-section folder-manager">
+        <summary>Thư mục <span>＋ Tạo / quản lý</span></summary>
         <form id="folder-form" autocomplete="off"><label class="sr-only" for="folder-name">Tên mục mới</label><input id="folder-name" placeholder="Ví dụ: Học tập, Công việc, Cá nhân…" maxlength="40" required><button class="secondary" type="submit">＋ Tạo mục</button></form>
-        <p class="icon-label">Chọn biểu tượng cho mục mới</p><div id="folder-icons" class="folder-icons" role="group" aria-label="Biểu tượng thư mục"></div>
-        <div class="folder-delete-row"><span class="help">Chọn một mục trên thanh lọc để xóa. Task sẽ được giữ lại.</span><button id="delete-folder" class="secondary delete-folder" type="button" hidden>Xóa mục này</button></div>
+        <p class="icon-label">Biểu tượng</p><div id="folder-icons" class="folder-icons" role="group" aria-label="Biểu tượng thư mục"></div>
+        <div class="folder-delete-row"><span class="help">Xóa mục vẫn giữ task.</span><button id="delete-folder" class="secondary delete-folder" type="button" hidden>Xóa mục này</button></div>
         <p id="folder-message" class="help" role="status"></p>
-      </section>
+      </details>
       <div class="toolbar">
         <div class="filters" role="group" aria-label="Lọc công việc">
           <button type="button" data-filter="all" class="selected" aria-pressed="true">All</button>
@@ -59,7 +62,7 @@
         <div id="progress" role="progressbar" aria-label="Tiến độ hoàn thành" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
       </footer>
     </section>
-    <p class="footnote">Một việc nhỏ hoàn thành. Một bước tiến lớn hơn.<br><span>Dữ liệu được lưu trên trình duyệt của bạn.</span></p>
+    <p class="footnote">Tự động lưu trên trình duyệt.</p>
   </main>
   <dialog id="date-picker" class="date-picker" aria-labelledby="picker-title">
     <div class="picker-heading"><div><p class="eyebrow">LÊN LỊCH HOÀN THÀNH</p><h2 id="picker-title">Chọn deadline</h2></div><button id="close-picker" class="icon-button" type="button" aria-label="Đóng bộ chọn">×</button></div>

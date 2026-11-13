@@ -515,14 +515,11 @@ document.getElementById('test-notification-now').addEventListener('click', () =>
 function updateSoundStatus() {
   const supported = Boolean(window.AudioContext || window.webkitAudioContext);
   const active = soundEnabled && audioContext?.state === 'running';
-  const button = document.getElementById('toggle-sound');
-  button.disabled = !supported;
-  button.setAttribute('aria-pressed', String(active));
-  button.textContent = active ? 'Tắt âm báo' : soundEnabled ? 'Âm thanh tự động' : 'Bật âm báo';
+  const toggle = document.getElementById('toggle-sound');
+  toggle.disabled = !supported;
+  toggle.checked = soundEnabled;
   document.getElementById('test-sound').disabled = !active;
-  document.getElementById('sound-status').textContent = !supported ? 'Trình duyệt không hỗ trợ âm báo.'
-    : active ? 'Đã bật tiếng click và tiếng nhắc deadline.'
-    : soundEnabled ? 'Sẽ tự bật khi bạn chạm, bấm hoặc nhấn phím trên trang. Không cần bật thủ công.' : 'Âm báo đang tắt. Nhấn Bật âm báo để nghe tiếng click.';
+  document.getElementById('sound-status').textContent = supported ? '' : 'Trình duyệt không hỗ trợ âm thanh.';
 }
 function playAlertSound(overdue = false) {
   if (!soundEnabled || !audioContext || audioContext.state !== 'running') return false;
@@ -549,26 +546,28 @@ function playAlertSound(overdue = false) {
     return false;
   }
 }
-document.getElementById('toggle-sound').addEventListener('click', async () => {
+document.getElementById('toggle-sound').addEventListener('change', async () => {
+  const toggle = document.getElementById('toggle-sound');
   try {
-    if (soundEnabled && audioContext?.state === 'running') {
-      soundEnabled = false;
-      await audioContext.suspend();
-    } else {
+    if (toggle.checked) {
       const Audio = window.AudioContext || window.webkitAudioContext;
       if (!Audio) { updateSoundStatus(); return; }
       if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
       await audioContext.resume();
       if (audioContext.state !== 'running') throw new Error('Âm thanh bị chặn');
       soundEnabled = true;
+    } else {
+      soundEnabled = false;
+      if (audioContext?.state === 'running') await audioContext.suspend();
     }
     updateSoundStatus();
     try { localStorage.setItem(soundKey, String(soundEnabled)); } catch (error) {
-      document.getElementById('sound-status').textContent += ' Không thể lưu cài đặt âm thanh.';
+      document.getElementById('sound-status').textContent = 'Không thể lưu cài đặt âm thanh.';
     }
     await checkDeadlines();
   } catch (error) {
-    document.getElementById('sound-status').textContent = 'Không bật được âm báo. Hãy thử lại trong trình duyệt hỗ trợ.';
+    toggle.checked = soundEnabled;
+    document.getElementById('sound-status').textContent = 'Không bật được âm thanh trên trình duyệt này.';
   }
 });
 document.getElementById('test-sound').addEventListener('click', () => playAlertSound(true));
