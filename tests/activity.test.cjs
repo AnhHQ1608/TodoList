@@ -133,7 +133,7 @@ test('Unavailable analytics server does not fail task interaction', async () => 
   await assert.doesNotReject(app.window.todoActivity.track('task_created'));
 });
 
-function adminClient(configured = true) {
+function adminClient(configured = true, sessions = [], visitorId = '') {
   const elements = {};
   class Element {
     constructor() { this.listeners = {}; this.children = []; this.value = ''; }
@@ -145,12 +145,13 @@ function adminClient(configured = true) {
   const requests = [];
   const context = {
     window: { TODO_ANALYTICS: { apiUrl: configured ? 'https://activity.example' : '' } }, URL, Date,
+    localStorage: { getItem: () => visitorId },
     document: { getElementById: id => elements[id], createElement: () => new Element(), visibilityState: 'visible' },
     setTimeout() {}, clearTimeout() {}, setInterval() {},
     fetch: async (url, options) => {
       requests.push({ url, options });
       const data = url.endsWith('/admin/login') ? { token: 'test-token', expiresIn: 1800 }
-        : url.endsWith('/admin/sessions') ? { sessions: [] } : { events: [], hasMore: false };
+        : url.endsWith('/admin/sessions') ? { sessions } : { events: [], hasMore: false };
       return { ok: true, status: 200, json: async () => data };
     }
   };
@@ -171,4 +172,15 @@ test('Admin disabled without backend; login keeps token in memory and logout hid
   assert.equal(app.elements['admin-dashboard'].hidden, true);
   assert.equal(app.elements['sessions-body'].children.length, 0);
   assert.equal(app.elements['events-body'].children.length, 0);
+});
+
+test('Admin names only this browser visitor adin, leaving other devices unchanged', async () => {
+  const ownId = crypto.randomUUID();
+  const sessions = [ownId, crypto.randomUUID()].map(visitor_id => ({ visitor_id, session_id: crypto.randomUUID(), device: 'desktop', browser: 'CocCoc', os: 'Windows', last_seen: Math.floor(Date.now()/1000) }));
+  const app = adminClient(true, sessions, ownId);
+  app.elements['admin-password'].value = 'test-only';
+  await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'adin · desktop');
+  assert.equal(app.elements['sessions-body'].children[1].children[1].textContent, 'desktop');
+  assert.match(app.elements['session-filter'].children[1].textContent, /^adin/);
 });
