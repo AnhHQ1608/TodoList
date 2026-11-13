@@ -42,6 +42,45 @@ try { folders = readFolders(); } catch (error) {
 function taskFolderId(task) {
   return folders.some(folder => folder.id === task.folderId) ? task.folderId : '';
 }
+function updateFolderPicker() {
+  const selected = folderSelect.value;
+  document.getElementById('folder-selected-name').textContent = folders.find(folder => folder.id === selected)?.name || 'Chưa phân loại';
+  const options = document.getElementById('folder-options');
+  options.replaceChildren();
+  for (const folder of [{ id: '', name: 'Chưa phân loại' }, ...folders]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'folder-option' + (folder.id === selected ? ' picked' : '');
+    button.setAttribute('aria-pressed', String(folder.id === selected));
+    const icon = document.createElement('span');
+    icon.className = 'folder-option-icon';
+    icon.textContent = '▱';
+    icon.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.className = 'folder-option-name';
+    text.textContent = folder.name;
+    const check = document.createElement('span');
+    check.textContent = folder.id === selected ? '✓' : '';
+    check.setAttribute('aria-hidden', 'true');
+    button.append(icon, text, check);
+    button.addEventListener('click', () => {
+      folderSelect.value = folder.id;
+      document.getElementById('folder-picker').open = false;
+      updateFolderPicker();
+      document.getElementById('folder-picker-trigger').focus();
+    });
+    options.append(button);
+  }
+}
+document.addEventListener('pointerdown', event => {
+  if (!event.target.closest?.('#folder-picker')) document.getElementById('folder-picker').open = false;
+}, true);
+document.getElementById('folder-picker').addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    document.getElementById('folder-picker').open = false;
+    document.getElementById('folder-picker-trigger').focus();
+  }
+});
 function renderFolders() {
   const selected = folderSelect.value;
   folderSelect.replaceChildren();
@@ -52,6 +91,7 @@ function renderFolders() {
     folderSelect.append(option);
   }
   folderSelect.value = folders.some(folder => folder.id === selected) ? selected : '';
+  updateFolderPicker();
   const container = document.getElementById('folder-filters');
   container.replaceChildren();
   for (const folder of [{ id: 'all', name: 'Tất cả mục' }, { id: '', name: 'Chưa phân loại' }, ...folders]) {
@@ -69,6 +109,7 @@ function renderFolders() {
       currentFolder = folder.id;
       renderTasks();
       if (!editingId) folderSelect.value = folder.id === 'all' ? '' : folder.id;
+      updateFolderPicker();
       const active = Array.from(document.getElementById('folder-filters').children)
         .find(item => item.getAttribute('aria-pressed') === 'true');
       if (active) active.focus();
@@ -95,6 +136,7 @@ document.getElementById('folder-form').addEventListener('submit', event => {
   nameInput.value = '';
   renderTasks();
   folderSelect.value = folder.id;
+  updateFolderPicker();
   status.textContent = `Đã tạo mục “${name}”. Bạn có thể thêm công việc vào mục này.`;
   input.focus();
 });
@@ -169,6 +211,8 @@ function resetEditor() {
   editingId = null;
   form.reset();
   folderSelect.value = currentFolder === 'all' ? '' : currentFolder;
+  document.getElementById('folder-picker').open = false;
+  updateFolderPicker();
   updateDeadlineDisplay();
   submitButton.textContent = '＋ Add Task';
   cancelButton.hidden = true;
@@ -177,6 +221,7 @@ function startEditing(task) {
   editingId = task.id;
   input.value = task.text;
   folderSelect.value = taskFolderId(task);
+  updateFolderPicker();
   // datetime-local cần giờ địa phương, không phải chuỗi UTC từ toISOString().
   if (task.deadline) {
     const date = new Date(task.deadline);
@@ -495,7 +540,7 @@ let lastPointerControl = null;
 let lastPointerTime = 0;
 async function handleInteractionSound(event) {
   if (event.type === 'pointerdown' && event.button > 0) return;
-  let control = event.target.closest?.('button, input, select, a, label');
+  let control = event.target.closest?.('button, input, select, summary, a, label');
   // Bấm chữ của checkbox cũng chỉ phát một tiếng cho checkbox tương ứng.
   if (control?.tagName === 'LABEL') control = control.control;
   if (!control || control.disabled || control.matches(':disabled') || control.hidden || !soundEnabled) return;

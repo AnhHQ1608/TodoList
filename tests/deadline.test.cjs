@@ -505,3 +505,31 @@ test('Hidden folder tasks still get deadline notifications', async () => {
   await app.run('checkDeadlines()');
   assert.equal(app.sent.length, sentBefore + 1);
 });
+
+test('Custom folder picker selects, closes, and stays in sync when adding or editing tasks', () => {
+  const app = boot([], { storage: { value: '[]', folders: JSON.stringify([{ id: 'sports', name: 'Thể thao' }]) } });
+  assert.equal(app.elements['folder-selected-name'].textContent, 'Chưa phân loại');
+  app.elements['folder-picker'].open = true;
+  app.elements['folder-options'].children[1].listeners.click();
+  assert.equal(app.elements['task-folder'].value, 'sports');
+  assert.equal(app.elements['folder-selected-name'].textContent, 'Thể thao');
+  assert.equal(app.elements['folder-picker'].open, false);
+  app.submit('Chạy bộ');
+  assert.equal(app.run('tasks[0].folderId'), 'sports');
+  app.run('startEditing(tasks[0])');
+  assert.equal(app.elements['folder-selected-name'].textContent, 'Thể thao');
+  assert.equal(app.elements['folder-options'].children[1]['aria-pressed'], 'true');
+  app.elements['folder-picker'].open = true;
+  app.elements['folder-picker'].listeners.keydown({ key: 'Escape' });
+  assert.equal(app.elements['folder-picker'].open, false);
+});
+test('Toolbar folder selection updates picker and still combines with Active filter', () => {
+  const app = boot([], { storage: { value: JSON.stringify([task({ folderId: 'sports' }), task({ id: '2', folderId: 'sports', completed: true })]), folders: JSON.stringify([{ id: 'sports', name: 'Thể thao' }]) } });
+  app.elements['folder-filters'].children[2].listeners.click();
+  assert.equal(app.elements['folder-selected-name'].textContent, 'Thể thao');
+  app.filters[1].listeners.click();
+  assert.equal(app.elements['task-list'].children.length, 1);
+  assert.equal(app.run('currentFolder'), 'sports');
+  const toolbar = html.slice(html.indexOf('<div class="toolbar">'), html.indexOf('<ul id="task-list"'));
+  assert.ok(toolbar.includes('id="folder-filters"'));
+});

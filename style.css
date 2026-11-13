@@ -146,3 +146,31 @@ select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .folder-count { display: inline-grid; place-items: center; min-width: 21px; padding: 2px 5px; background: #ffffff0c; border-radius: 6px; color: #c7b5ef; font-size: 10px; }
 .task-folder-badge { display: inline-block; max-width: 100%; margin-top: 7px; padding: 3px 7px; border-radius: 5px; background: #a38aff12; color: #bdb0dc; font-size: 10px; overflow-wrap: anywhere; }
 @media (max-width: 520px) { .folder-field { flex: auto; width: 100%; } .folder-section { padding: 14px; } .folder-hint { display: none; } .folder-chip { min-height: 42px; } }
+/* Menu phân loại riêng thay cho dropdown mặc định của hệ điều hành. */
+.field-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+.folder-field { flex-basis: 185px; }
+.folder-picker { position: relative; }
+.folder-picker summary { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 10px 12px; list-style: none; border: 1px solid #655283; border-radius: 11px; background: linear-gradient(125deg, #302343, #1b1933); color: #eadfff; cursor: pointer; font-size: 13px; }
+.folder-picker summary::-webkit-details-marker { display: none; }
+.folder-picker summary:hover, .folder-picker[open] summary { border-color: #b59cff; box-shadow: 0 0 0 3px #a38aff12; }
+.folder-picker summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+.folder-symbol { color: #c1a5ff; font-size: 22px; line-height: 1; }
+#folder-selected-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-chevron { color: #c1a5ff; transition: transform .2s; }
+.folder-picker[open] .folder-chevron { transform: rotate(180deg); }
+.folder-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; width: max(100%, 250px); max-width: calc(100vw - 70px); padding: 9px; border: 1px solid #675281; border-radius: 14px; background: #222039; box-shadow: 0 16px 40px #08091b80; animation: appear .15s ease-out; }
+.folder-menu > p { margin: 5px 8px 10px; color: #a699bf; font-size: 9px; letter-spacing: 1.2px; }
+#folder-options { max-height: 240px; overflow-y: auto; scrollbar-color: #655080 transparent; }
+.folder-option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #c5bdd7; text-align: left; font-size: 13px; }
+.folder-option:hover { background: #ffffff08; color: white; }
+.folder-option.picked { border-color: #b59cff40; background: #a38aff20; color: #e0ceff; }
+.folder-option-icon { display: grid; place-items: center; width: 27px; height: 27px; flex-shrink: 0; border-radius: 7px; background: #a38aff12; color: #c2a3ff; font-size: 21px; }
+.folder-option-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Các mục nằm ngay trên thanh All / Active / Completed. */
+.toolbar { flex-wrap: wrap; justify-content: flex-start; gap: 10px; padding: 12px 0 16px; }
+.toolbar .filters { flex-shrink: 0; }
+.toolbar .folder-filters { flex: 1 1 230px; display: flex; flex-wrap: nowrap; min-width: 0; gap: 6px; margin: 0; padding: 3px 0 6px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #63507e transparent; }
+.toolbar .folder-chip { flex-shrink: 0; min-height: 34px; max-width: 190px; padding: 7px 10px; border-radius: 8px; font-size: 11px; }
+.toolbar .folder-chip > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#task-count { margin-left: auto; flex-shrink: 0; }
+@media (max-width: 520px) { .folder-field { flex-basis: auto; } .toolbar .folder-filters { flex-basis: 100%; order: 3; } .folder-menu { width: 100%; } .toolbar .folder-chip { min-height: 42px; } }
