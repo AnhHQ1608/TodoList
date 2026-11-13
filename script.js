@@ -14,6 +14,32 @@ const foldersKey = 'focus-list-folders-v1';
 const folderSelect = document.getElementById('task-folder');
 let folders = [];
 let currentFolder = 'all';
+const folderIcons = [ ['📁', 'Thư mục'], ['📚', 'Học tập'], ['💼', 'Công việc'], ['🏠', 'Nhà cửa'], ['⚽', 'Thể thao'], ['🎯', 'Mục tiêu'], ['💡', 'Ý tưởng'], ['🎨', 'Sáng tạo'], ['💻', 'Lập trình'], ['🎵', 'Âm nhạc'], ['❤️', 'Sức khỏe'], ['✈️', 'Du lịch'] ];
+let selectedFolderIcon = '📁';
+function getFolderIcon(folder) {
+  return folderIcons.some(([icon]) => icon === folder?.icon) ? folder.icon : '📁';
+}
+function renderFolderIcons() {
+  const container = document.getElementById('folder-icons');
+  container.replaceChildren();
+  folderIcons.forEach(([icon, title]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = icon;
+    button.className = 'folder-icon-choice';
+    button.setAttribute('aria-label', title);
+    button.setAttribute('aria-pressed', String(selectedFolderIcon === icon));
+    button.title = title;
+    button.addEventListener('click', () => {
+      selectedFolderIcon = icon;
+      renderFolderIcons();
+      const selected = Array.from(container.children).find(item => item.getAttribute('aria-pressed') === 'true');
+      if (selected) selected.focus();
+    });
+    container.append(button);
+  });
+}
+renderFolderIcons();
 const hour = 60 * 60 * 1000;
 let tasks = [];
 let currentFilter = 'all';
@@ -34,7 +60,7 @@ function readFolders() {
       || typeof folder.name !== 'string' || !folder.name.trim() || ids.has(folder.id)) return false;
     ids.add(folder.id);
     return true;
-  });
+  }).map(folder => ({ ...folder, icon: getFolderIcon(folder) }));
 }
 try { folders = readFolders(); } catch (error) {
   document.getElementById('folder-message').textContent = 'Không thể đọc các mục đã lưu. Các công việc vẫn được giữ nguyên.';
@@ -44,6 +70,7 @@ function taskFolderId(task) {
 }
 function updateFolderPicker() {
   const selected = folderSelect.value;
+  document.getElementById('folder-selected-icon').textContent = getFolderIcon(folders.find(folder => folder.id === selected));
   document.getElementById('folder-selected-name').textContent = folders.find(folder => folder.id === selected)?.name || 'Chưa phân loại';
   const options = document.getElementById('folder-options');
   options.replaceChildren();
@@ -54,7 +81,7 @@ function updateFolderPicker() {
     button.setAttribute('aria-pressed', String(folder.id === selected));
     const icon = document.createElement('span');
     icon.className = 'folder-option-icon';
-    icon.textContent = '▱';
+    icon.textContent = getFolderIcon(folder);
     icon.setAttribute('aria-hidden', 'true');
     const text = document.createElement('span');
     text.className = 'folder-option-name';
@@ -92,6 +119,10 @@ function renderFolders() {
   }
   folderSelect.value = folders.some(folder => folder.id === selected) ? selected : '';
   updateFolderPicker();
+  const activeFolder = folders.find(folder => folder.id === currentFolder);
+  const deleteFolderButton = document.getElementById('delete-folder');
+  deleteFolderButton.hidden = !activeFolder;
+  deleteFolderButton.textContent = activeFolder ? `Xóa mục “${activeFolder.name}”` : 'Xóa mục này';
   const container = document.getElementById('folder-filters');
   container.replaceChildren();
   for (const folder of [{ id: 'all', name: 'Tất cả mục' }, { id: '', name: 'Chưa phân loại' }, ...folders]) {
@@ -104,7 +135,11 @@ function renderFolders() {
     const count = document.createElement('span');
     count.className = 'folder-count';
     count.textContent = tasks.filter(task => folder.id === 'all' || taskFolderId(task) === folder.id).length;
-    button.append(name, count);
+    const icon = document.createElement('span');
+    icon.className = 'folder-tab-icon';
+    icon.textContent = folder.id === 'all' ? '▦' : getFolderIcon(folder);
+    icon.setAttribute('aria-hidden', 'true');
+    button.append(name, count, icon);
     button.addEventListener('click', () => {
       currentFolder = folder.id;
       renderTasks();
@@ -126,7 +161,7 @@ document.getElementById('folder-form').addEventListener('submit', event => {
   if (['tất cả mục', 'chưa phân loại', ...folders.map(folder => folder.name.toLocaleLowerCase('vi-VN'))].includes(name.toLocaleLowerCase('vi-VN'))) {
     status.textContent = 'Tên mục đã tồn tại. Hãy chọn tên khác.'; nameInput.focus(); return;
   }
-  const folder = { id: 'folder-' + Date.now().toString(36) + Math.random().toString(36).slice(2), name };
+  const folder = { id: 'folder-' + Date.now().toString(36) + Math.random().toString(36).slice(2), name, icon: selectedFolderIcon };
   const nextFolders = [...folders, folder];
   try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); } catch (error) {
     status.textContent = 'Không thể lưu mục mới. Kiểm tra quyền lưu trữ của trình duyệt.'; return;
@@ -139,6 +174,27 @@ document.getElementById('folder-form').addEventListener('submit', event => {
   updateFolderPicker();
   status.textContent = `Đã tạo mục “${name}”. Bạn có thể thêm công việc vào mục này.`;
   input.focus();
+});
+
+// Ghi danh sách mục trước. Nếu ghi task thất bại, tham chiếu mục cũ vẫn tự về Chưa phân loại.
+document.getElementById('delete-folder').addEventListener('click', () => {
+  const folder = folders.find(folder => folder.id === currentFolder);
+  if (!folder) return;
+  const nextFolders = folders.filter(item => item.id !== folder.id);
+  const status = document.getElementById('folder-message');
+  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); } catch (error) {
+    status.textContent = 'Không thể xóa mục vì chưa lưu được dữ liệu. Hãy thử lại.'; return;
+  }
+  folders = nextFolders;
+  const moved = tasks.filter(task => task.folderId === folder.id).length;
+  tasks.forEach(task => { if (task.folderId === folder.id) task.folderId = ''; });
+  if (folderSelect.value === folder.id) folderSelect.value = '';
+  currentFolder = '';
+  const saved = saveTasks();
+  renderTasks();
+  status.textContent = `Đã xóa mục “${folder.name}”. ${moved} task được giữ trong Chưa phân loại.`
+    + (saved ? '' : ' Không lưu được thay đổi task; các task vẫn được hiển thị trong Chưa phân loại.');
+  document.getElementById('folder-name').focus();
 });
 
 function readTasks() {
@@ -264,6 +320,7 @@ function renderTasks() {
     content.append(label, deadline);
     const folderBadge = document.createElement('span');
     folderBadge.className = 'task-folder-badge';
+    folderBadge.setAttribute('data-icon', getFolderIcon(folders.find(folder => folder.id === taskFolderId(task))));
     folderBadge.textContent = folders.find(folder => folder.id === taskFolderId(task))?.name || 'Chưa phân loại';
     content.append(folderBadge);
     const actions = document.createElement('div');

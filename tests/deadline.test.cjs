@@ -533,3 +533,49 @@ test('Toolbar folder selection updates picker and still combines with Active fil
   const toolbar = html.slice(html.indexOf('<div class="toolbar">'), html.indexOf('<ul id="task-list"'));
   assert.ok(toolbar.includes('id="folder-filters"'));
 });
+
+test('Picked folder icon persists and appears in toolbar, menu and selection', () => {
+  const app = boot();
+  app.elements['folder-icons'].children[4].listeners.click();
+  assert.equal(app.run('selectedFolderIcon'), '⚽');
+  app.elements['folder-name'].value = 'Thể thao';
+  app.elements['folder-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(JSON.parse(app.storage.folders)[0].icon, '⚽');
+  assert.equal(app.elements['folder-filters'].children[2].children[2].textContent, '⚽');
+  assert.equal(app.elements['folder-options'].children[1].children[0].textContent, '⚽');
+  assert.equal(app.elements['folder-selected-icon'].textContent, '⚽');
+  const reload = boot([], { storage: app.storage });
+  assert.equal(reload.run('folders[0].icon'), '⚽');
+});
+test('Deleting folder keeps tasks, deadlines, completion and notification states after reload', () => {
+  const original = task({ folderId: 'work', deadline: iso(2*HOUR), completed: true, notifiedDeadline: iso(2*HOUR) });
+  const app = boot([], { storage: { value: JSON.stringify([original]), folders: JSON.stringify([{ id: 'work', name: 'Công việc' }]) } });
+  assert.equal(app.run('folders[0].icon'), '📁');
+  app.elements['folder-filters'].children[2].listeners.click();
+  assert.equal(app.elements['delete-folder'].hidden, false);
+  app.run('startEditing(tasks[0])');
+  app.elements['delete-folder'].listeners.click();
+  assert.equal(app.run('folders.length'), 0);
+  assert.equal(app.run('tasks.length'), 1);
+  assert.equal(app.run('tasks[0].folderId'), '');
+  assert.equal(app.run('tasks[0].deadline'), original.deadline);
+  assert.equal(app.run('tasks[0].completed'), true);
+  assert.equal(app.run('tasks[0].notifiedDeadline'), original.notifiedDeadline);
+  assert.equal(app.elements['task-folder'].value, '');
+  assert.equal(app.elements['delete-folder'].hidden, true);
+  const reload = boot([], { storage: app.storage });
+  assert.equal(reload.run('tasks.length'), 1);
+  assert.equal(reload.run('tasks[0].folderId'), '');
+});
+test('Folder deletion failure preserves folders and tasks; built-in views cannot be deleted', () => {
+  const initial = task({ folderId: 'work' });
+  const app = boot([], { blocked: true, storage: { value: JSON.stringify([initial]), folders: JSON.stringify([{ id:'work', name:'Work' }]) } });
+  app.elements['folder-filters'].children[2].listeners.click();
+  app.elements['delete-folder'].listeners.click();
+  assert.equal(app.run('folders.length'), 1);
+  assert.equal(app.run('tasks[0].folderId'), 'work');
+  assert.match(app.elements['folder-message'].textContent, /Không thể xóa/);
+  app.elements['folder-filters'].children[0].listeners.click();
+  app.elements['delete-folder'].listeners.click();
+  assert.equal(app.run('folders.length'), 1);
+});

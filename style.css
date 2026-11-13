@@ -179,3 +179,16 @@ select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .toolbar .folder-chip > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #task-count { margin-left: auto; flex-shrink: 0; }
 @media (max-width: 520px) { .folder-field { flex-basis: auto; } .toolbar .folder-filters { flex-basis: 100%; order: 3; } .folder-menu { width: 100%; } .toolbar .filters button, .toolbar .folder-chip { min-height: 42px; padding: 8px 10px; } }
+/* Biểu tượng mục và thao tác xóa giữ nguyên task. */
+.icon-label { margin: 14px 0 8px; color: var(--muted); font-size: 11px; }
+.folder-icons { display: flex; flex-wrap: wrap; gap: 6px; }
+.folder-icon-choice { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 9px; background: #ffffff05; font-size: 19px; transition: background .2s, border-color .2s; }
+.folder-icon-choice:hover { background: #a38aff20; }
+.folder-icon-choice[aria-pressed="true"] { background: #a38aff30; border-color: #b59cff; }
+.folder-delete-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.folder-delete-row .help { margin: 0; font-size: 10px; }
+.delete-folder { max-width: 100%; overflow-wrap: anywhere; color: #ffadbd; border-color: #f47c9840; font-size: 11px; }
+.delete-folder:hover { background: #f47c9818; }
+.folder-tab-icon { order: -1; font-size: 14px; }
+.task-folder-badge::before { content: attr(data-icon); margin-right: 5px; }
+@media (max-width: 520px) { .folder-icon-choice { width: 42px; height: 42px; } }
