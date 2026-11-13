@@ -831,3 +831,32 @@ settingsDialog.addEventListener('click', event => {
   const bounds = settingsDialog.getBoundingClientRect();
   if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
 });
+
+// Hiệu ứng bấm/chạm, tách biệt với âm thanh và logic công việc.
+function showClickEffect(x, y, target) {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  const container = target?.closest?.('dialog[open]') || document.getElementById('click-effects');
+  // Tối đa 10 hiệu ứng đang chạy để không tích lũy phần tử khi click nhanh.
+  const effects = container.querySelectorAll('.click-ripple');
+  if (effects.length >= 10) effects[0].remove();
+  const ripple = document.createElement('span');
+  ripple.className = 'click-ripple';
+  ripple.setAttribute('aria-hidden', 'true');
+  ripple.style.setProperty('--click-x', x + 'px');
+  ripple.style.setProperty('--click-y', y + 'px');
+  container.append(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+  setTimeout(() => ripple.remove(), 800); // Dọn cả khi tab bị ẩn giữa hiệu ứng.
+}
+document.addEventListener('pointerup', event => {
+  if (event.button > 0) return;
+  showClickEffect(event.clientX, event.clientY, event.target);
+}, true);
+document.addEventListener('keyup', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const control = event.target.closest?.('button, summary, a');
+  if (!control) return;
+  const bounds = control.getBoundingClientRect();
+  showClickEffect(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2, control);
+});
