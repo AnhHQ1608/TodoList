@@ -115,3 +115,11 @@ form { flex-wrap: wrap; align-items: stretch; }
 .picker-footer .add { min-height: 44px; flex: 1; font-size: 12px; padding: 0 12px; }
 .picker-footer .add span { font-size: 16px; margin-left: 6px; }
 @media (max-width: 380px) { .date-picker { padding: 18px; } .time-controls select { width: 56px; } .calendar-day { border-radius: 9px; } }
+/* Cảnh báo quá hạn nổi bật, vẫn hiện khi chưa cấp quyền thông báo. */
+.overdue-alert { margin: 18px 0; padding: 16px; border: 1px solid #f47c9860; border-left: 4px solid #ff879e; border-radius: 12px; background: linear-gradient(120deg, #a9395128, #a939510c); color: #ffb4c4; }
+.overdue-alert strong { font-size: 14px; }
+.overdue-alert p { margin: 7px 0 0; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.sound-settings { margin-top: 12px; }
+#sound-status { flex: 1; min-width: 150px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+#toggle-sound[aria-pressed="true"] { color: #dfceff; border-color: #b59cff; background: #a38aff25; }
+button:disabled { cursor: default; opacity: .6; }

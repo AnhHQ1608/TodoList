@@ -14,6 +14,10 @@ const hour = 60 * 60 * 1000;
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
+const soundKey = 'focus-list-sound-v1';
+let soundEnabled = false;
+let audioContext = null;
+try { soundEnabled = localStorage.getItem(soundKey) === 'true'; } catch (error) { /* Dùng mặc định tắt. */ }
 
 function readTasks() {
   const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -23,7 +27,10 @@ function readTasks() {
     .map(task => ({ ...task,
       deadline: typeof task.deadline === 'string' && Number.isFinite(Date.parse(task.deadline))
         ? new Date(task.deadline).toISOString() : null,
-      notifiedDeadline: typeof task.notifiedDeadline === 'string' ? task.notifiedDeadline : null
+      notifiedDeadline: typeof task.notifiedDeadline === 'string' ? task.notifiedDeadline : null,
+      overdueNotifiedDeadline: typeof task.overdueNotifiedDeadline === 'string' ? task.overdueNotifiedDeadline : null,
+      overdueSoundedDeadline: typeof task.overdueSoundedDeadline === 'string' ? task.overdueSoundedDeadline : null,
+      reminderSoundedDeadline: typeof task.reminderSoundedDeadline === 'string' ? task.reminderSoundedDeadline : null
     }));
 }
 try { tasks = readTasks(); } catch (error) {
@@ -71,6 +78,11 @@ function updateCountdowns() {
     element.textContent = info.text;
     element.className = 'deadline ' + info.className;
   });
+  const overdue = tasks.filter(task => !task.completed && task.deadline && Date.parse(task.deadline) <= Date.now());
+  document.getElementById('overdue-alert').hidden = overdue.length === 0;
+  const summary = overdue.length ? `${overdue.length} công việc chưa hoàn thành: ${overdue.map(task => task.text).join('; ')}` : '';
+  const summaryElement = document.getElementById('overdue-summary');
+  if (summaryElement.textContent !== summary) summaryElement.textContent = summary;
 }
 function resetEditor() {
   editingId = null;
@@ -175,7 +187,12 @@ form.addEventListener('submit', event => {
   if (editingId) {
     const task = tasks.find(task => task.id === editingId);
     if (!task) { resetEditor(); message.textContent = 'Công việc đã bị xóa ở tab khác.'; return; }
-    if (task.deadline !== deadline) task.notifiedDeadline = null;
+    if (task.deadline !== deadline) {
+      task.notifiedDeadline = null;
+      task.overdueNotifiedDeadline = null;
+      task.overdueSoundedDeadline = null;
+      task.reminderSoundedDeadline = null;
+    }
     task.text = text;
     task.deadline = deadline;
   } else {
@@ -207,7 +224,7 @@ function updateNotificationStatus() {
     notificationButton.textContent = 'Thông báo bị chặn';
     notificationButton.disabled = true;
   } else {
-    notificationStatus.textContent = 'Bật để nhận nhắc trong 1 giờ cuối trước deadline.';
+    notificationStatus.textContent = 'Bật để nhận nhắc sắp đến hạn và thông báo quá hạn.';
     notificationButton.textContent = 'Bật thông báo';
   }
 }
@@ -220,29 +237,108 @@ notificationButton.addEventListener('click', async () => {
   } catch (error) { notificationStatus.textContent = 'Không thể bật thông báo trên trình duyệt này.'; }
 });
 
-// 5. Một lần cho mỗi deadline; lưu dấu nhắc để tải lại trang không gửi trùng.
-function sendDueNotifications() {
-  if (!('Notification' in window) || Notification.permission !== 'granted' || !window.isSecureContext) return;
-  let saved = [];
-  try { saved = readTasks(); } catch (error) { /* Vẫn dùng trạng thái trong bộ nhớ nếu không đọc được. */ }
-  for (const task of tasks) {
-    const stored = saved.find(item => item.id === task.id);
-    if (stored && stored.deadline === task.deadline && stored.notifiedDeadline === task.deadline) {
-      task.notifiedDeadline = stored.notifiedDeadline;
+function updateSoundStatus() {
+  const supported = Boolean(window.AudioContext || window.webkitAudioContext);
+  const active = soundEnabled && audioContext?.state === 'running';
+  const button = document.getElementById('toggle-sound');
+  button.disabled = !supported;
+  button.setAttribute('aria-pressed', String(active));
+  button.textContent = active ? 'Tắt âm báo' : soundEnabled ? 'Kích hoạt lại âm báo' : 'Bật âm báo';
+  document.getElementById('test-sound').disabled = !active;
+  document.getElementById('sound-status').textContent = !supported ? 'Trình duyệt không hỗ trợ âm báo.'
+    : active ? 'Đã bật tiếng nhắc sắp đến hạn và quá hạn.'
+    : soundEnabled ? 'Nhấn kích hoạt lại để cho phép phát âm thanh trong phiên này.' : 'Âm báo đang tắt.';
+}
+function playAlertSound(overdue = false) {
+  if (!soundEnabled || !audioContext || audioContext.state !== 'running') return false;
+  try {
+    const frequencies = overdue ? [660, 520, 660] : [660, 880];
+    frequencies.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const start = audioContext.currentTime + index * 0.22;
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.12, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+      oscillator.start(start);
+      oscillator.stop(start + 0.2);
+    });
+    return true;
+  } catch (error) {
+    document.getElementById('sound-status').textContent = 'Không phát được âm báo. Hãy thử kích hoạt lại.';
+    return false;
+  }
+}
+document.getElementById('toggle-sound').addEventListener('click', async () => {
+  try {
+    if (soundEnabled && audioContext?.state === 'running') {
+      soundEnabled = false;
+      await audioContext.suspend();
+    } else {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) { updateSoundStatus(); return; }
+      if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
+      await audioContext.resume();
+      if (audioContext.state !== 'running') throw new Error('Âm thanh bị chặn');
+      soundEnabled = true;
     }
-    const remaining = task.deadline ? Date.parse(task.deadline) - Date.now() : 0;
-    if (task.completed || remaining <= 0 || remaining > hour || task.notifiedDeadline === task.deadline) continue;
-    try {
-      new Notification('Công việc sắp đến hạn', {
-        body: `${task.text} · ${deadlineInfo(task).text}`,
-        tag: 'focus-deadline-' + task.id + '-' + task.deadline
-      });
-      task.notifiedDeadline = task.deadline;
-      saveTasks();
-    } catch (error) {
-      notificationStatus.textContent = 'Trình duyệt không gửi được thông báo hệ thống. Hãy theo dõi cảnh báo trong danh sách.';
+    updateSoundStatus();
+    try { localStorage.setItem(soundKey, String(soundEnabled)); } catch (error) {
+      document.getElementById('sound-status').textContent += ' Không thể lưu cài đặt âm thanh.';
+    }
+    await checkDeadlines();
+  } catch (error) {
+    document.getElementById('sound-status').textContent = 'Không bật được âm báo. Hãy thử lại trong trình duyệt hỗ trợ.';
+  }
+});
+document.getElementById('test-sound').addEventListener('click', () => playAlertSound(true));
+
+// Lưu riêng dấu nhắc sắp hạn/quá hạn và âm thanh để không báo lặp.
+function sendDueNotifications() {
+  const canNotify = 'Notification' in window && Notification.permission === 'granted' && window.isSecureContext;
+  let saved = [];
+  try { saved = readTasks(); } catch (error) { /* Vẫn dùng trạng thái trong bộ nhớ. */ }
+  let soundPlayed = false;
+  let changed = false;
+  // Ưu tiên tiếng quá hạn nếu nhiều sự kiện xuất hiện cùng lúc.
+  const ordered = [...tasks].sort((a, b) => Date.parse(a.deadline) - Date.parse(b.deadline));
+  for (const task of ordered) {
+    if (task.completed || !task.deadline) continue;
+    const remaining = Date.parse(task.deadline) - Date.now();
+    if (remaining > hour) continue;
+    const overdue = remaining <= 0;
+    const notificationField = overdue ? 'overdueNotifiedDeadline' : 'notifiedDeadline';
+    const soundField = overdue ? 'overdueSoundedDeadline' : 'reminderSoundedDeadline';
+    const stored = saved.find(item => item.id === task.id);
+    if (stored && (stored.completed || stored.deadline !== task.deadline)) continue;
+    for (const field of [notificationField, soundField]) {
+      if (stored && stored[field] === task.deadline) task[field] = task.deadline;
+    }
+    if (canNotify && task[notificationField] !== task.deadline) {
+      try {
+        new Notification(overdue ? 'Công việc đã quá hạn!' : 'Công việc sắp đến hạn', {
+          body: task.text + ' · ' + deadlineInfo(task).text,
+          tag: 'focus-' + (overdue ? 'overdue-' : 'deadline-') + task.id + '-' + task.deadline,
+          silent: true // Dùng âm báo riêng, tránh hai tiếng chồng nhau.
+        });
+        task[notificationField] = task.deadline;
+        changed = true;
+      } catch (error) {
+        notificationStatus.textContent = 'Trình duyệt không gửi được thông báo hệ thống. Hãy theo dõi cảnh báo trong danh sách.';
+      }
+    }
+    if (task[soundField] !== task.deadline && (soundPlayed || playAlertSound(overdue))) {
+      soundPlayed = true;
+      task[soundField] = task.deadline;
+      changed = true;
     }
   }
+  if (changed) saveTasks();
 }
 async function checkDeadlines() {
   updateCountdowns();
@@ -255,12 +351,13 @@ window.addEventListener('storage', event => {
   if (event.key !== storageKey && event.key !== null) return;
   try { tasks = readTasks(); renderTasks(); } catch (error) { message.textContent = 'Không thể đồng bộ dữ liệu từ tab khác.'; }
 });
-window.addEventListener('focus', () => { updateNotificationStatus(); checkDeadlines(); });
+window.addEventListener('focus', () => { updateNotificationStatus(); updateSoundStatus(); checkDeadlines(); });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { updateNotificationStatus(); checkDeadlines(); }
 });
 renderTasks();
 updateNotificationStatus();
+updateSoundStatus();
 checkDeadlines();
 // Bộ hẹn giờ chỉ hoạt động khi trang còn mở; đây không phải push notification.
 setInterval(checkDeadlines, 15000);

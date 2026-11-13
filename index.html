@@ -27,7 +27,9 @@
       </form>
       <p id="deadline-help" class="help">Ngày giờ theo múi giờ thiết bị. Để trống nếu không có deadline.</p>
       <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><p id="notification-status" role="status"></p></div>
-      <p class="help">Nhắc một lần trong 1 giờ cuối trước deadline khi trang đang mở. Tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
+      <div class="notification-settings sound-settings"><button id="toggle-sound" class="secondary" type="button" aria-pressed="false">Bật âm báo</button><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button><p id="sound-status" role="status"></p></div>
+      <p class="help">Nhắc một lần trong 1 giờ cuối và một lần khi quá hạn nếu chưa hoàn thành. Nhấn Bật âm báo để cho phép phát tiếng; sau khi tải lại trang có thể cần kích hoạt lại. Chỉ hoạt động khi trang mở; tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
+      <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p></aside>
       <p id="message" role="status" aria-live="polite"></p>
       <div class="toolbar">
         <div class="filters" role="group" aria-label="Lọc công việc">

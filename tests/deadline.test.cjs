@@ -29,6 +29,14 @@ function boot(initial = [], options = {}) {
   const filters = ['all', 'active', 'completed'].map(filter => { const e = new Element(); e.dataset.filter = filter; return e; });
   const allNodes = () => { const result = []; const visit = e => { result.push(e); e.children.forEach(visit); }; Object.values(elements).forEach(visit); return result; };
   const sent = [];
+  const audio = { created: 0, tones: 0 };
+  class AudioContext {
+    constructor() { audio.created++; this.state = 'suspended'; this.currentTime = 0; this.destination = {}; }
+    async resume() { if (options.audioFails) throw Error('Audio blocked'); this.state = 'running'; }
+    async suspend() { this.state = 'suspended'; }
+    createOscillator() { return { frequency: { setValueAtTime() {} }, connect() {}, disconnect() {}, start() { audio.tones++; }, stop() {} }; }
+    createGain() { return { gain: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, disconnect() {} }; }
+  }
   let requested = 0;
   class Notification {
     static permission = options.permission || 'granted';
@@ -37,14 +45,16 @@ function boot(initial = [], options = {}) {
   }
   class Clock extends Date { static now() { return NOW; } }
   const window = { Notification, isSecureContext: true, addEventListener() {} };
+  if (options.audio) window.AudioContext = AudioContext;
   if (options.unsupported) delete window.Notification;
   const context = vm.createContext({ Date: Clock, window, Notification, navigator: {}, console,
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
       querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(), addEventListener() {} },
-    localStorage: { getItem: () => storage.value, setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); storage.value = value; } },
+    localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : storage.value,
+      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else storage.value = value; } },
     setInterval: () => {} });
   vm.runInContext(code, context);
-  return { elements, filters, storage, sent, requested: () => requested,
+  return { elements, filters, storage, sent, audio, requested: () => requested,
     run: expression => vm.runInContext(expression, context),
     submit(text, deadline = '') { elements['task-input'].value = text; elements['deadline-input'].value = deadline; elements['task-form'].listeners.submit({ preventDefault() {} }); } };
 }
@@ -94,8 +104,8 @@ test('Notify once in final hour; reload and second tab do not duplicate; changed
   assert.equal(app.sent.length, 2);
   assert.equal(JSON.parse(app.storage.value)[0].notifiedDeadline, iso(HOUR/2));
 });
-test('No alerts for completed, overdue, no deadline, >1h, or denied permission', () => {
-  for (const extra of [{ completed: true, deadline: iso(100) }, { deadline: iso(0) }, {}, { deadline: iso(HOUR+1) }]) assert.equal(boot([task(extra)]).sent.length, 0);
+test('No alerts for completed, no deadline, >1h, or denied permission', () => {
+  for (const extra of [{ completed: true, deadline: iso(100) }, {}, { deadline: iso(HOUR+1) }]) assert.equal(boot([task(extra)]).sent.length, 0);
   assert.equal(boot([task({ deadline: iso(100) })], { permission: 'denied' }).sent.length, 0);
 });
 test('Permission requested only on click; unsupported and failing notifications handled', async () => {
@@ -165,4 +175,78 @@ test('Custom picker navigates December to January and quick dates do not apply p
   assert.equal(app.elements['deadline-input'].value, '2026-12-31T00:00');
   app.elements['pick-tomorrow'].listeners.click();
   assert.equal(app.elements['calendar-days'].children.filter(day => day['aria-pressed'] === 'true').length, 1);
+});
+
+test('Overdue alerts are separate from reminders, persist once, and stop after completion', async () => {
+  const app = boot([task({ deadline: iso(100), notifiedDeadline: iso(100) })]);
+  assert.equal(app.sent.length, 0);
+  app.run(`Date.now = () => ${NOW + 101}`);
+  await app.run('checkDeadlines()');
+  assert.equal(app.sent.length, 1);
+  assert.match(app.sent[0].title, /quá hạn/);
+  assert.equal(app.elements['overdue-alert'].hidden, false);
+  assert.match(app.elements['overdue-summary'].textContent, /Học JS/);
+  await app.run('checkDeadlines()');
+  assert.equal(app.sent.length, 1);
+  const reload = boot([], { storage: app.storage });
+  reload.run(`Date.now = () => ${NOW + 101}`);
+  await reload.run('checkDeadlines()');
+  assert.equal(reload.sent.length, 0);
+  const checkbox = app.elements['task-list'].children[0].children[0];
+  checkbox.checked = true; checkbox.listeners.change();
+  assert.equal(app.elements['overdue-alert'].hidden, true);
+});
+test('Overdue in-page warning works without system permission and uses safe text', () => {
+  const app = boot([task({ deadline: iso(-1), text: '<script>alert(1)</script>' })], { permission: 'denied' });
+  assert.equal(app.sent.length, 0);
+  assert.equal(app.elements['overdue-alert'].hidden, false);
+  assert.match(app.elements['overdue-summary'].textContent, /<script>/);
+  assert.equal(boot([task({ completed: true, deadline: iso(-1) })]).elements['overdue-alert'].hidden, true);
+});
+test('Sound requires click, works without Notification, batches overdue and persists deduplication', async () => {
+  const app = boot([task({ deadline: iso(-1) }), task({ id: '2', deadline: iso(-2) })], { audio: true, unsupported: true });
+  assert.equal(app.audio.created, 0);
+  assert.equal(app.audio.tones, 0);
+  await app.elements['toggle-sound'].listeners.click();
+  assert.equal(app.audio.created, 1);
+  assert.equal(app.audio.tones, 3); // Một chuỗi âm cho cả nhóm công việc.
+  assert.equal(app.storage.sound, 'true');
+  await app.run('checkDeadlines()');
+  assert.equal(app.audio.tones, 3);
+  assert.equal(JSON.parse(app.storage.value)[0].overdueSoundedDeadline, iso(-1));
+  app.elements['test-sound'].listeners.click();
+  assert.equal(app.audio.tones, 6);
+  await app.elements['toggle-sound'].listeners.click();
+  assert.equal(app.storage.sound, 'false');
+  assert.equal(app.run('playAlertSound(true)'), false);
+  const reload = boot([], { storage: app.storage, audio: true });
+  await reload.elements['toggle-sound'].listeners.click();
+  assert.equal(reload.audio.tones, 0);
+});
+test('Reminder and overdue each play once; changing deadline resets both sound markers', async () => {
+  const app = boot([task({ deadline: iso(100) })], { audio: true });
+  await app.elements['toggle-sound'].listeners.click();
+  assert.equal(app.audio.tones, 2);
+  app.run(`Date.now = () => ${NOW + 101}`);
+  await app.run('checkDeadlines()');
+  assert.equal(app.audio.tones, 5);
+  await app.run('checkDeadlines()'); assert.equal(app.audio.tones, 5);
+  app.run('startEditing(tasks[0])');
+  app.submit('Đổi deadline', '2026-11-20T10:00');
+  assert.equal(app.run('tasks[0].overdueSoundedDeadline'), null);
+  assert.equal(app.run('tasks[0].reminderSoundedDeadline'), null);
+  assert.equal(app.run('tasks[0].overdueNotifiedDeadline'), null);
+  assert.equal(app.elements['overdue-alert'].hidden, true);
+});
+test('Remembered audio preference needs activation after reload; audio failure is handled', async () => {
+  const storage = { value: '[]', sound: 'true' };
+  const app = boot([], { storage, audio: true });
+  assert.equal(app.audio.created, 0);
+  assert.match(app.elements['toggle-sound'].textContent, /Kích hoạt lại/);
+  await app.elements['toggle-sound'].listeners.click();
+  assert.equal(app.elements['toggle-sound']['aria-pressed'], 'true');
+  const failed = boot([], { audio: true, audioFails: true });
+  await failed.elements['toggle-sound'].listeners.click();
+  assert.match(failed.elements['sound-status'].textContent, /Không bật được/);
+  assert.equal(failed.run('soundEnabled'), false);
 });
