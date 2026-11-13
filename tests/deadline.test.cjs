@@ -262,7 +262,7 @@ test('Remembered audio preference needs activation after reload; audio failure i
   const storage = { value: '[]', sound: 'true' };
   const app = boot([], { storage, audio: true });
   assert.equal(app.audio.created, 0);
-  assert.match(app.elements['toggle-sound'].textContent, /Kích hoạt lại/);
+  assert.match(app.elements['toggle-sound'].textContent, /Âm thanh tự động/);
   await app.elements['toggle-sound'].listeners.click();
   assert.equal(app.elements['toggle-sound']['aria-pressed'], 'true');
   const failed = boot([], { audio: true, audioFails: true, storage: { value: '[]', sound: 'false' } });
@@ -578,4 +578,19 @@ test('Folder deletion failure preserves folders and tasks; built-in views cannot
   app.elements['folder-filters'].children[0].listeners.click();
   app.elements['delete-folder'].listeners.click();
   assert.equal(app.run('folders.length'), 1);
+});
+
+test('Audio automatically activates from background tap or typing, and respects saved mute', async () => {
+  const app = boot([], { audio: true });
+  assert.equal(app.audio.created, 0);
+  await app.documentListeners.pointerdown({ type: 'pointerdown', button: 0, target: { closest: () => null } });
+  assert.equal(app.audio.created, 1);
+  assert.equal(app.run('audioContext.state'), 'running');
+  assert.equal(app.audio.tones, 0);
+  const keyboard = boot([], { audio: true });
+  await keyboard.documentListeners.keydown({ key: 'a', repeat: false });
+  assert.equal(keyboard.run('audioContext.state'), 'running');
+  const muted = boot([], { audio: true, storage: { value: '[]', sound: 'false' } });
+  await muted.documentListeners.keydown({ key: 'a', repeat: false });
+  assert.equal(muted.audio.created, 0);
 });

@@ -518,11 +518,11 @@ function updateSoundStatus() {
   const button = document.getElementById('toggle-sound');
   button.disabled = !supported;
   button.setAttribute('aria-pressed', String(active));
-  button.textContent = active ? 'Tắt âm báo' : soundEnabled ? 'Kích hoạt lại âm báo' : 'Bật âm báo';
+  button.textContent = active ? 'Tắt âm báo' : soundEnabled ? 'Âm thanh tự động' : 'Bật âm báo';
   document.getElementById('test-sound').disabled = !active;
   document.getElementById('sound-status').textContent = !supported ? 'Trình duyệt không hỗ trợ âm báo.'
     : active ? 'Đã bật tiếng click và tiếng nhắc deadline.'
-    : soundEnabled ? 'Âm thanh sẵn sàng. Bấm vào nút hoặc ô nhập để kích hoạt.' : 'Âm báo đang tắt. Nhấn Bật âm báo để nghe tiếng click.';
+    : soundEnabled ? 'Sẽ tự bật khi bạn chạm, bấm hoặc nhấn phím trên trang. Không cần bật thủ công.' : 'Âm báo đang tắt. Nhấn Bật âm báo để nghe tiếng click.';
 }
 function playAlertSound(overdue = false) {
   if (!soundEnabled || !audioContext || audioContext.state !== 'running') return false;
@@ -595,12 +595,28 @@ function playClickSound() {
 }
 let lastPointerControl = null;
 let lastPointerTime = 0;
+async function activateAudioFromGesture() {
+  if (!soundEnabled) return false;
+  try {
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) return false;
+    if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
+    if (audioContext.state !== 'running') await audioContext.resume();
+    updateSoundStatus();
+    return audioContext.state === 'running';
+  } catch (error) {
+    document.getElementById('sound-status').textContent = 'Trình duyệt đang chặn âm thanh. Bạn có thể nhấn nút âm thanh để thử lại.';
+    return false;
+  }
+}
 async function handleInteractionSound(event) {
   if (event.type === 'pointerdown' && event.button > 0) return;
   let control = event.target.closest?.('button, input, select, summary, a, label');
   // Bấm chữ của checkbox cũng chỉ phát một tiếng cho checkbox tương ứng.
   if (control?.tagName === 'LABEL') control = control.control;
-  if (!control || control.disabled || control.matches(':disabled') || control.hidden || !soundEnabled) return;
+  if (!soundEnabled) return;
+  if (!control) { await activateAudioFromGesture(); return; }
+  if (control.disabled || control.matches(':disabled') || control.hidden) return;
   // Nút nghe thử có âm riêng; nút bật/tắt không phát tiếng khi người dùng tắt.
   if (control.id === 'toggle-sound' || control.id === 'test-sound') return;
   if (event.type === 'pointerdown') {
@@ -610,20 +626,13 @@ async function handleInteractionSound(event) {
     lastPointerControl = null;
     return; // pointerdown đã phát tiếng; không phát lần hai khi click tiếp theo đến.
   }
-  try {
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (!Audio) return;
-    // Click thật có thể kích hoạt lại âm thanh đã được bật ở phiên trước.
-    if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
-    if (audioContext.state !== 'running') await audioContext.resume();
-    updateSoundStatus();
-    playClickSound();
-  } catch (error) {
-    document.getElementById('sound-status').textContent = 'Trình duyệt đang chặn âm thanh. Hãy nhấn Kích hoạt lại âm báo.';
-  }
+  if (await activateAudioFromGesture()) playClickSound();
 }
 document.addEventListener('pointerdown', handleInteractionSound, true);
 document.addEventListener('click', handleInteractionSound, true);
+document.addEventListener('keydown', event => {
+  if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) return activateAudioFromGesture();
+});
 
 // Lưu riêng dấu nhắc sắp hạn/quá hạn và âm thanh để không báo lặp.
 async function sendDueNotifications() {
