@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101329">
+  <title>Focus List — Công việc của bạn</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header><a class="brand" href="./index.html"><span aria-hidden="true">✓</span> FOCUS LIST</a><span class="tagline">MỖI NGÀY, MỘT BƯỚC TIẾN</span></header>
+    <section class="intro" aria-labelledby="title">
+      <p class="eyebrow">KHÔNG GIAN LÀM VIỆC CỦA BẠN</p>
+      <h1 id="title">Bớt bận rộn.<br><span>Thêm tập trung.</span></h1>
+      <p>Ghi lại điều cần làm, tập trung vào điều quan trọng.</p>
+    </section>
+    <section class="card" aria-label="Quản lý công việc">
+      <div class="heading"><h2>Công việc hôm nay</h2><span class="badge">LET’S DO THIS</span></div>
+      <form id="task-form" autocomplete="off">
+        <label class="sr-only" for="task-input">Công việc mới</label>
+        <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
+        <button class="add" type="submit"><span aria-hidden="true">＋</span> Add Task</button>
+      </form>
+      <p id="message" role="status" aria-live="polite"></p>
+      <div class="toolbar">
+        <div class="filters" role="group" aria-label="Lọc công việc">
+          <button type="button" data-filter="all" class="selected" aria-pressed="true">All</button>
+          <button type="button" data-filter="active" aria-pressed="false">Active</button>
+          <button type="button" data-filter="completed" aria-pressed="false">Completed</button>
+        </div>
+        <span id="task-count"></span>
+      </div>
+      <ul id="task-list" aria-label="Danh sách công việc"></ul>
+      <div id="empty-state"><div class="empty-icon" aria-hidden="true">✓</div><h3></h3><p></p></div>
+      <footer class="progress-footer">
+        <div class="progress-label"><span id="completed-count" aria-live="polite"></span><strong id="percentage"></strong></div>
+        <div id="progress" role="progressbar" aria-label="Tiến độ hoàn thành" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
+      </footer>
+    </section>
+    <p class="footnote">Một việc nhỏ hoàn thành. Một bước tiến lớn hơn.<br><span>Dữ liệu được lưu trên trình duyệt của bạn.</span></p>
+  </main>
+</body>
+</html>

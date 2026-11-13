@@ -1,0 +1,59 @@
+﻿/* 1. Màu sắc và bố cục chung */
+:root { color-scheme: dark; --muted: #a5a7c4; --line: #343650; --purple: #b59cff; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; color: #f5f3ff; font-family: "Segoe UI", Arial, sans-serif; background: radial-gradient(ellipse at 10% 0%, #47296665, transparent 52%), radial-gradient(ellipse at 100% 80%, #17425b45, transparent 50%), #101329; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--purple); outline-offset: 4px; }
+.app { width: min(740px, calc(100% - 40px)); margin: auto; padding: 34px 0; }
+header, .brand, .heading, .toolbar, .progress-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { justify-content: flex-start; color: #f5f3ff; text-decoration: none; font-size: 13px; font-weight: 800; letter-spacing: 2px; }
+.brand span { display: grid; place-items: center; background: #9c7bf8; width: 30px; height: 30px; border-radius: 9px; font-size: 20px; }
+.tagline { font-size: 9px; letter-spacing: 1.5px; color: var(--muted); }
+.intro { margin: 60px 0 32px; }
+.eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--purple); }
+h1 { margin: 16px 0; font-size: clamp(36px, 7vw, 52px); letter-spacing: -2px; line-height: 1.18; }
+h1 span { color: var(--purple); }
+.intro > p:last-child { color: var(--muted); font-size: 14px; line-height: 1.7; }
+.card { background: linear-gradient(130deg, #23223e, #191d37); border: 1px solid #3a3754; border-radius: 22px; padding: 28px; box-shadow: 0 24px 70px #0003; }
+h2 { font-size: 18px; margin: 0; }
+.badge { font-size: 9px; letter-spacing: 1.5px; color: #bca9ed; }
+/* 2. Ô nhập, nút thêm và bộ lọc */
+form { display: flex; gap: 10px; margin-top: 24px; }
+#task-input { min-width: 0; flex: 1; padding: 15px; border: 1px solid #41425e; border-radius: 10px; background: #12162d; color: white; font-size: 14px; }
+#task-input::placeholder { color: #9699b5; }
+.add { flex-shrink: 0; padding: 0 19px; border: 0; border-radius: 10px; background: #ad91ff; color: #1c1533; font-weight: 700; transition: background .2s, transform .2s; }
+.add:hover { background: #c3afff; transform: translateY(-2px); }
+.add span { font-size: 21px; }
+#message { min-height: 17px; margin: 8px 0; font-size: 12px; color: #ffc0cf; }
+.toolbar { padding-bottom: 17px; border-bottom: 1px solid var(--line); }
+.filters { display: flex; gap: 5px; }
+.filters button { border: 0; padding: 8px 13px; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; transition: background .2s; }
+.filters button:hover { background: #ffffff0d; color: white; }
+.filters .selected { background: #a38aff25; color: #cebdff; }
+#task-count { color: var(--muted); font-size: 11px; }
+/* 3. Công việc và tiến độ */
+#task-list { list-style: none; padding: 0; margin: 0; }
+.task { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); animation: appear .25s ease-out; }
+.task input { flex-shrink: 0; width: 20px; height: 20px; accent-color: #ae90ff; cursor: pointer; }
+.task label { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; cursor: pointer; }
+.task.completed label { text-decoration: line-through; color: #9699b3; }
+.delete { flex-shrink: 0; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: #a7a9c3; font-size: 24px; transition: background .2s; }
+.delete:hover { color: #ffb4c6; background: #ed789525; }
+#empty-state { text-align: center; padding: 38px 8px; }
+#empty-state[hidden] { display: none; }
+.empty-icon { display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 18px; border: 1px solid #a38aff40; border-radius: 16px; background: #a38aff10; color: var(--purple); font-size: 26px; transform: rotate(-7deg); }
+h3 { font-size: 15px; font-weight: 600; }
+#empty-state p { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.progress-footer { padding-top: 22px; }
+.progress-label { color: var(--muted); font-size: 11px; }
+.progress-label strong { color: var(--purple); }
+#progress { height: 5px; overflow: hidden; margin-top: 12px; background: #35364f; border-radius: 10px; }
+#progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a17bf9, #7bcce9); transition: width .3s; }
+.footnote { margin-top: 26px; text-align: center; font-size: 12px; color: #aaa7c4; line-height: 2; }
+.footnote span { font-size: 11px; color: #8a8eae; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* 4. Điều chỉnh cho điện thoại và người dùng hạn chế chuyển động */
+@media (max-width: 520px) { .app { width: calc(100% - 28px); padding-top: 24px; } .tagline { display: none; } .intro { margin-top: 44px; } .card { padding: 20px 16px; } form { flex-direction: column; } .add { min-height: 46px; } .filters button { padding: 8px 10px; } #task-count { font-size: 10px; } .badge { font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
