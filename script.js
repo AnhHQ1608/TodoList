@@ -10,6 +10,9 @@ const list = document.getElementById('task-list');
 const message = document.getElementById('message');
 const filters = document.querySelectorAll('[data-filter]');
 const storageKey = 'focus-list-tasks-v1';
+function recordActivity(action) {
+  try { window.todoActivity?.track(action)?.catch(() => {}); } catch { /* Ghi lịch sử không được làm gián đoạn công việc. */ }
+}
 const foldersKey = 'focus-list-folders-v1';
 const folderSelect = document.getElementById('task-folder');
 let folders = [];
@@ -168,6 +171,7 @@ document.getElementById('folder-form').addEventListener('submit', event => {
     status.textContent = 'Không thể lưu mục mới. Kiểm tra quyền lưu trữ của trình duyệt.'; return;
   }
   folders = nextFolders;
+  recordActivity('folder_created');
   currentFolder = folder.id;
   nameInput.value = '';
   renderTasks();
@@ -193,6 +197,7 @@ document.getElementById('delete-folder').addEventListener('click', () => {
   currentFolder = '';
   const saved = saveTasks();
   renderTasks();
+  recordActivity('folder_deleted');
   status.textContent = `Đã xóa mục “${folder.name}”. ${moved} task được giữ trong Chưa phân loại.`
     + (saved ? '' : ' Không lưu được thay đổi task; các task vẫn được hiển thị trong Chưa phân loại.');
   document.getElementById('folder-name').focus();
@@ -246,6 +251,7 @@ function cleanupCompletedTasks(now = Date.now()) {
     try { source = readTasks(); } catch (error) { return; }
   }
   let changed = false;
+  let deleted = false;
   const remaining = [];
   for (const task of source) {
     if (task.completed && !task.completedAt) {
@@ -254,6 +260,7 @@ function cleanupCompletedTasks(now = Date.now()) {
     }
     if (task.completed && now - task.completedAt >= 2 * hour) {
       changed = true;
+      deleted = true;
       continue;
     }
     remaining.push(task);
@@ -261,7 +268,8 @@ function cleanupCompletedTasks(now = Date.now()) {
   if (!changed) return;
   tasks = remaining;
   if (editingId && !tasks.some(task => task.id === editingId)) resetEditor();
-  saveTasks();
+  const saved = saveTasks();
+  if (saved && deleted) recordActivity('task_auto_deleted');
   renderTasks();
 }
 
@@ -346,7 +354,7 @@ function renderTasks() {
     checkbox.addEventListener('change', () => {
       task.completed = checkbox.checked;
       task.completedAt = task.completed ? Date.now() : null;
-      saveTasks();
+      if (saveTasks()) recordActivity(task.completed ? 'task_completed' : 'task_reopened');
       renderTasks();
       (document.getElementById(checkbox.id) || document.querySelector('.filters .selected')).focus();
       checkDeadlines();
@@ -386,7 +394,7 @@ function renderTasks() {
     deleteButton.addEventListener('click', () => {
       tasks = tasks.filter(existing => existing.id !== task.id);
       if (editingId === task.id) resetEditor();
-      saveTasks();
+      if (saveTasks()) recordActivity('task_deleted');
       renderTasks();
       input.focus();
     });
@@ -429,6 +437,7 @@ form.addEventListener('submit', event => {
     return;
   }
   const folderId = folders.some(folder => folder.id === folderSelect.value) ? folderSelect.value : '';
+  const activity = editingId ? 'task_updated' : 'task_created';
   if (editingId) {
     const task = tasks.find(task => task.id === editingId);
     if (!task) { resetEditor(); message.textContent = 'Công việc đã bị xóa ở tab khác.'; return; }
@@ -447,7 +456,7 @@ form.addEventListener('submit', event => {
     setFilter('all');
   }
   if (currentFolder !== 'all') currentFolder = folderId;
-  saveTasks();
+  if (saveTasks()) recordActivity(activity);
   resetEditor();
   renderTasks();
   input.focus();

@@ -1,0 +1,20 @@
+name = "focus-list-activity"
+main = "worker.mjs"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://anhhq1608.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "focus-list-activity"
+# Thay UUID bên dưới bằng database_id do lệnh d1 create trả về.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+# Tắt log ứng dụng; không ghi password, IP hay nội dung request.
+[observability]
+enabled = false

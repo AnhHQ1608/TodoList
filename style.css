@@ -301,3 +301,9 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 #submit-task { min-width: 122px; padding: 0 18px; align-self: end; font-size: 14px; }
 #cancel-edit { grid-column: 1 / -1; justify-self: end; min-height: 40px; }
 @media (max-width: 520px) { #task-form { grid-template-columns: minmax(0, 1fr); gap: 14px; } #submit-task, #cancel-edit { width: 100%; } }
+/* Lựa chọn ghi nhận hoạt động, chỉ hiện sau khi kết nối backend. */
+.activity-notice { margin-top: 24px; padding: 15px; border: 1px solid #b59cff30; border-radius: 12px; background: #a38aff0d; }
+.activity-notice p { margin: 0 0 12px; color: #c4bad8; font-size: 12px; line-height: 1.7; }
+.activity-notice > div { display: flex; justify-content: flex-end; gap: 8px; }
+.activity-notice button { font-size: 12px; }
+#activity-consent { width: 34px; height: 20px; accent-color: #b59cff; cursor: pointer; }

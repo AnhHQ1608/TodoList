@@ -12,8 +12,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=task-form-alignment-1">
-  <script src="script.js?v=chevrons-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=activity-admin-1">
+  <script src="telemetry-config.js" defer></script>
+  <script src="activity.js" defer></script>
+  <script src="script.js?v=activity-admin-1" defer></script>
 </head>
 <body>
   <div class="ambient-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -62,6 +64,7 @@
         <div id="progress" role="progressbar" aria-label="Tiến độ hoàn thành" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
       </footer>
     </section>
+    <aside id="activity-notice" class="activity-notice" aria-label="Lựa chọn ghi nhận hoạt động" hidden><p>Cho phép ghi nhận mã khách ngẫu nhiên, nhóm thiết bị/trình duyệt, loại thao tác và thời gian trong 30 ngày? Không gửi nội dung task. Bạn vẫn dùng đầy đủ chức năng nếu từ chối.</p><div><button id="activity-decline" class="secondary" type="button">Không</button><button id="activity-accept" class="secondary" type="button">Đồng ý</button></div></aside>
     <footer class="site-footer" aria-label="Thông tin và liên hệ">
       <div class="footer-identity"><a class="footer-brand" href="./index.html" aria-label="Focus List — Trang chủ"><img src="logo.svg" alt="" width="34" height="34"><span>FOCUS LIST</span></a><p>Sắp xếp hôm nay, chạm tới ngày mai.</p></div>
       <a class="facebook-contact" href="https://www.facebook.com/quocanhhoang1608" target="_blank" rel="noopener noreferrer" aria-label="Liên hệ Quốc Anh trên Facebook (mở tab mới)"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.62.77-1.62 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12Z"/></svg><span>Liên hệ Facebook</span><span class="contact-arrow" aria-hidden="true">↗</span></a>
@@ -73,6 +76,7 @@
         <div id="menu-settings-panel" class="settings-content" role="tabpanel" aria-labelledby="menu-settings-tab">
           <div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div>
           <p id="sound-status" class="help" role="status"></p>
+          <div class="sound-preference"><label for="activity-consent">Chia sẻ lịch sử ẩn danh</label><input id="activity-consent" type="checkbox" role="switch"></div><p id="activity-status" class="help" role="status"></p>
           <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
           <details class="notification-help"><summary>Trợ giúp thông báo <span class="ui-chevron" aria-hidden="true"></span></summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details>
         </div>

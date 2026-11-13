@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https:; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Quản trị hoạt động · Focus List</title>
+  <link rel="icon" href="logo.svg">
+  <link rel="stylesheet" href="style.css?v=activity-admin-1">
+  <link rel="stylesheet" href="admin.css">
+  <script src="telemetry-config.js" defer></script>
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <main class="admin-app">
+    <header><a class="footer-brand" href="index.html"><img src="logo.svg" width="36" height="36" alt="">FOCUS LIST</a><span>Quản trị hoạt động</span></header>
+    <h1>Phiên truy cập &amp; thao tác</h1>
+    <p class="help">Chỉ gồm khách đã đồng ý. Không hiển thị nội dung task hoặc danh tính thật. Dữ liệu lưu tối đa 30 ngày.</p>
+    <p id="admin-message" role="status" aria-live="polite"></p>
+    <section id="admin-login" class="card">
+      <h2>Đăng nhập quản trị</h2>
+      <form id="admin-login-form"><label for="admin-password">Mật khẩu quản trị</label><input id="admin-password" type="password" autocomplete="current-password" required maxlength="256"><button id="admin-login-button" class="add" type="submit">Đăng nhập</button></form>
+      <p class="help">Phiên đăng nhập hết hạn sau 30 phút. Token chỉ giữ trong bộ nhớ của tab này.</p>
+    </section>
+    <section id="admin-dashboard" hidden>
+      <div class="admin-toolbar"><button id="admin-refresh" class="secondary" type="button">Làm mới</button><label for="session-filter">Lọc phiên</label><select id="session-filter"><option value="">Tất cả phiên</option></select><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></div>
+      <h2>100 phiên gần nhất</h2>
+      <div class="table-scroll"><table><thead><tr><th>Phiên / Khách</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
+      <h2>Lịch sử thao tác</h2>
+      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Phiên</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
+      <div class="admin-toolbar"><button id="events-previous" class="secondary" type="button">Trang trước</button><span id="events-page"></span><button id="events-next" class="secondary" type="button">Trang sau</button></div>
+    </section>
+  </main>
+</body>
+</html>

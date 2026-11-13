@@ -1,0 +1,20 @@
+.admin-app { width: min(1100px, calc(100% - 32px)); margin: auto; padding: 30px 0; }
+.admin-app header > span { color: var(--muted); font-size: 12px; }
+.admin-app h1 { font-size: clamp(26px, 5vw, 36px); margin-top: 45px; }
+.admin-app h2 { margin: 24px 0 14px; }
+#admin-message { color: #dbb9ff; font-size: 13px; min-height: 20px; }
+#admin-login { max-width: 520px; margin-top: 28px; }
+#admin-login-form { display: grid; gap: 12px; }
+#admin-login-form label { font-size: 13px; color: var(--muted); }
+#admin-password, #session-filter { min-width: 0; padding: 12px; border: 1px solid #555074; border-radius: 9px; background: #14172e; color: white; }
+#admin-login-button { min-height: 45px; }
+.admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; font-size: 13px; }
+#session-filter { flex: 1; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #181b36; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+th, td { padding: 14px; border-bottom: 1px solid var(--line); line-height: 1.7; }
+th { color: #bba6e9; white-space: nowrap; }
+td { color: #d3cde4; }
+td small { display: block; color: var(--muted); }
+.session-link { border: 0; padding: 0; background: transparent; color: #d2baff; font: inherit; }
+@media (max-width: 520px) { .admin-toolbar { gap: 8px; } #session-filter { flex-basis: 100%; } }

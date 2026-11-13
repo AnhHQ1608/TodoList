@@ -52,6 +52,7 @@ function boot(initial = [], options = {}) {
   }
   class Clock extends Date { static now() { return NOW; } }
   const window = { Notification, isSecureContext: true, addEventListener() {}, focus() { focusCount++; } };
+  if (options.activity) window.todoActivity = { track: options.activity };
   if (options.audio) window.AudioContext = AudioContext;
   if (options.unsupported) delete window.Notification;
   const navigator = {};
@@ -767,4 +768,21 @@ test('Time inputs sanitize typing, pad on blur, and step with buttons or arrow k
   app.elements['picker-minute'].value = '00';
   app.elements['minute-down'].listeners.click();
   assert.equal(app.elements['picker-minute'].value, '00');
+});
+
+test('Task and folder history hooks send only action names, never private contents', () => {
+  const recorded = [];
+  const app = boot([], { activity: (...args) => { recorded.push(args); } });
+  app.submit('PRIVATE-TASK-CONTENT');
+  app.run('startEditing(tasks[0])');
+  app.submit('PRIVATE-UPDATED-CONTENT');
+  const checkbox = app.elements['task-list'].children[0].children[0];
+  checkbox.checked = true; checkbox.listeners.change();
+  app.elements['task-list'].children[0].children[2].children[1].listeners.click();
+  app.elements['folder-name'].value = 'PRIVATE-FOLDER-NAME';
+  app.elements['folder-form'].listeners.submit({ preventDefault() {} });
+  app.elements['delete-folder'].listeners.click();
+  assert.deepEqual(recorded.map(args => args[0]), ['task_created','task_updated','task_completed','task_deleted','folder_created','folder_deleted']);
+  assert.ok(recorded.every(args => args.length === 1 && typeof args[0] === 'string'));
+  assert.equal(JSON.stringify(recorded).includes('PRIVATE'), false);
 });
