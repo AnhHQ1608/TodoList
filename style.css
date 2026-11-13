@@ -50,8 +50,14 @@ h3 { font-size: 15px; font-weight: 600; }
 .progress-label strong { color: var(--purple); }
 #progress { height: 5px; overflow: hidden; margin-top: 12px; background: #35364f; border-radius: 10px; }
 #progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a17bf9, #7bcce9); transition: width .3s; }
-.footnote { margin-top: 26px; text-align: center; font-size: 12px; color: #aaa7c4; line-height: 2; }
-.footnote span { font-size: 11px; color: #8a8eae; }
+.site-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 36px; padding: 26px 0 8px; border-top: 1px solid #b59cff20; }
+.footer-brand { display: inline-flex; align-items: center; gap: 10px; color: #eee5ff; text-decoration: none; font-size: 12px; font-weight: 800; letter-spacing: 2px; }
+.footer-brand img { display: block; flex-shrink: 0; }
+.footer-identity p { margin: 10px 0 0; color: #a49bb9; font-size: 12px; line-height: 1.7; }
+.facebook-contact { display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0; padding: 11px 14px; border: 1px solid #b59cff30; border-radius: 11px; background: #a38aff0a; color: #cdbdec; text-decoration: none; font-size: 12px; transition: background .2s, border-color .2s, transform .2s; }
+.facebook-contact:hover { background: #a38aff20; border-color: #b59cff70; color: #f1eaff; transform: translateY(-2px); }
+.contact-arrow { margin-left: 6px; color: #a9cbdc; }
+@media (max-width: 520px) { .site-footer { flex-direction: column; align-items: flex-start; gap: 18px; margin-top: 28px; padding-top: 22px; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 /* 4. Điều chỉnh cho điện thoại và người dùng hạn chế chuyển động */
