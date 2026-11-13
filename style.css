@@ -7,7 +7,7 @@ button { cursor: pointer; }
 button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--purple); outline-offset: 4px; }
 .app { width: min(740px, calc(100% - 40px)); margin: auto; padding: 34px 0; }
 header, .brand, .heading, .toolbar, .progress-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand { justify-content: flex-start; color: #f5f3ff; text-decoration: none; font-size: 13px; font-weight: 800; letter-spacing: 2px; transform-origin: left center; animation: brand-breathe 3s ease-in-out infinite; }
+.brand { justify-content: flex-start; color: #f5f3ff; text-decoration: none; font-size: 13px; font-weight: 800; letter-spacing: 2px; }
 .brand-logo { display: block; width: 40px; height: 40px; flex-shrink: 0; filter: drop-shadow(0 4px 12px #a079f52b); }
 .tagline { font-size: 9px; letter-spacing: 1.5px; color: var(--muted); }
 .intro { margin: 60px 0 32px; }
@@ -226,8 +226,7 @@ body { isolation: isolate; }
 .ambient-bubbles span:nth-child(3) { left: 16%; bottom: -100px; width: 300px; height: 300px; animation-delay: -15s; }
 .ambient-bubbles span:nth-child(4) { right: 20%; top: -55px; width: 145px; height: 145px; animation-delay: -5s; animation-duration: 19s; }
 .ambient-bubbles span:nth-child(5) { left: 8%; top: 58%; width: 70px; height: 70px; animation-delay: -12s; animation-duration: 17s; }
-.brand-name { color: #f4edff; background: linear-gradient(105deg, #f4edff 15%, #cbb4ff 35%, #96ece4 47%, #fff 54%, #f4edff 70%); background-size: 260% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: brand-shimmer 7s ease-in-out infinite; }
-.brand-logo { animation: logo-glow 5s ease-in-out infinite; }
+.brand-name { display: inline-block; flex-shrink: 0; white-space: nowrap; font-family: Consolas, "Courier New", monospace; color: #f4edff; animation: brand-type 7s steps(10, end) infinite; }
 .brand:hover .brand-name { text-shadow: 0 0 18px #b59cff40; }
 .card { box-shadow: 0 24px 70px #0003, 0 0 50px #9b6cff06; }
 button { transition: background .2s, color .2s, box-shadow .2s, transform .15s; }
@@ -236,9 +235,8 @@ button:active { transform: scale(.97); }
 .click-ripple { position: fixed; width: 54px; height: 54px; left: var(--click-x); top: var(--click-y); margin: -27px 0 0 -27px; pointer-events: none; border-radius: 50%; border: 1px solid #c6a4ff90; background: radial-gradient(circle, #d7bcff25, #9ce8e314 45%, transparent 70%); box-shadow: 0 0 18px #b48aff25; animation: click-bloom .65s ease-out forwards; }
 .click-ripple::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid #b2f0eb80; }
 @keyframes bubble-drift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(30px, -45px, 0); } }
-@keyframes brand-shimmer { 0%, 20% { background-position: 100% 50%; } 70%, 100% { background-position: 0% 50%; } }
-@keyframes logo-glow { 0%, 100% { filter: drop-shadow(0 4px 10px #a079f530); } 50% { filter: drop-shadow(0 4px 18px #a079f570); } }
-@keyframes brand-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.055); } }
+/* Giữ nguyên khoảng trống của chữ để logo và thanh đầu trang không xê dịch. */
+@keyframes brand-type { 0% { clip-path: inset(0 100% 0 0); } 45%, 100% { clip-path: inset(0 0 0 0); } }
 @keyframes click-bloom { from { transform: scale(.25); opacity: .9; } to { transform: scale(1.8); opacity: 0; } }
 @media (max-width: 520px) { .ambient-bubbles span { opacity: .65; } }
 @media (prefers-reduced-motion: reduce) { .ambient-bubbles span, .brand-name, .brand-logo { animation: none !important; } .click-effects, .click-ripple { display: none; } button:active { transform: none; } }
