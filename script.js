@@ -917,3 +917,18 @@ document.addEventListener('keyup', event => {
   const bounds = control.getBoundingClientRect();
   showClickEffect(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2, control);
 });
+
+// Đồng hồ dùng múi giờ của thiết bị và luôn tính lại từ thời gian thật.
+function updateHeaderClock(now = Date.now()) {
+  const date = new Date(now);
+  const pad = value => String(value).padStart(2, '0');
+  const time = document.getElementById('current-time');
+  time.textContent = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  time.setAttribute('datetime', date.toISOString());
+  const daytime = date.getHours() >= 6 && date.getHours() < 18;
+  const icon = document.getElementById('time-period-icon');
+  icon.textContent = daytime ? '☀' : '☾';
+  icon.setAttribute('aria-label', daytime ? 'Ban ngày' : 'Ban đêm');
+}
+updateHeaderClock();
+setInterval(updateHeaderClock, 1000);

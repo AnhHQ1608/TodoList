@@ -664,3 +664,13 @@ test('Completed task shows exact HH:MM:SS deletion countdown', () => {
   app.run(`Date.now = () => ${NOW + 2*HOUR}; cleanupCompletedTasks()`);
   assert.equal(app.run('tasks.length'), 0);
 });
+
+test('Header clock shows local HH:MM:SS and day/night icon', () => {
+  const app = boot();
+  app.run('updateHeaderClock(new Date(2026, 10, 14, 2, 18, 1).getTime())');
+  assert.equal(app.elements['current-time'].textContent, '02:18:01');
+  assert.equal(app.elements['time-period-icon']['aria-label'], 'Ban đêm');
+  app.run('updateHeaderClock(new Date(2026, 10, 14, 12, 0, 5).getTime())');
+  assert.equal(app.elements['current-time'].textContent, '12:00:05');
+  assert.equal(app.elements['time-period-icon']['aria-label'], 'Ban ngày');
+});
