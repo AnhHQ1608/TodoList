@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>Focus List</title>
+  <defs>
+    <linearGradient id="tile" x1="6" y1="3" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BA9AFF"/>
+      <stop offset="1" stop-color="#7050D5"/>
+    </linearGradient>
+    <linearGradient id="folder" x1="16" y1="21" x2="48" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF"/>
+      <stop offset="1" stop-color="#D8CCFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tile)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="17.5" stroke="#FFF" stroke-opacity=".24"/>
+  <path d="M15 24a4 4 0 0 1 4-4h9l5 5h12a4 4 0 0 1 4 4v15a4 4 0 0 1-4 4H19a4 4 0 0 1-4-4V24Z" fill="#3E246B" fill-opacity=".23"/>
+  <path d="M15 22a4 4 0 0 1 4-4h8l5 5h13a4 4 0 0 1 4 4v15a4 4 0 0 1-4 4H19a4 4 0 0 1-4-4V22Z" fill="url(#folder)"/>
+  <path d="m24 33 6 6 12-13" stroke="#7954D6" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="17" r="4" fill="#9EF0E5"/>
+</svg>
