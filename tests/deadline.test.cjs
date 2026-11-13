@@ -31,6 +31,8 @@ function boot(initial = [], options = {}) {
   const allNodes = () => { const result = []; const visit = e => { result.push(e); e.children.forEach(visit); }; Object.values(elements).forEach(visit); return result; };
   const sent = [];
   const notifications = [];
+  const workerSent = [];
+  const registrations = [];
   const timers = [];
   let focusCount = 0;
   const audio = { created: 0, tones: 0 };
@@ -52,15 +54,27 @@ function boot(initial = [], options = {}) {
   const window = { Notification, isSecureContext: true, addEventListener() {}, focus() { focusCount++; } };
   if (options.audio) window.AudioContext = AudioContext;
   if (options.unsupported) delete window.Notification;
-  const context = vm.createContext({ Date: Clock, window, Notification, navigator: {}, console,
+  const navigator = {};
+  if (options.worker) {
+    const registration = { active: {}, async showNotification(title, data) {
+      if (options.workerFails) throw new Error('System notifications blocked');
+      workerSent.push({ title, ...data });
+    } };
+    navigator.serviceWorker = { async register(url, config) {
+      registrations.push({ url, config });
+      if (options.registrationFails) throw new Error('Worker registration failed');
+      return registration;
+    }, ready: Promise.resolve(registration) };
+  }
+  const context = vm.createContext({ Date: Clock, window, Notification, navigator, console,
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
       querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(),
       addEventListener: (type, listener) => { documentListeners[type] = listener; } },
     localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : storage.value,
       setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else storage.value = value; } },
-    setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); } });
+    setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); }, clearTimeout() {} });
   vm.runInContext(code, context);
-  return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, focusCount: () => focusCount, requested: () => requested,
+  return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, workerSent, registrations, focusCount: () => focusCount, requested: () => requested,
     run: expression => vm.runInContext(expression, context),
     submit(text, deadline = '') { elements['task-input'].value = text; elements['deadline-input'].value = deadline; elements['task-form'].listeners.submit({ preventDefault() {} }); } };
 }
@@ -362,4 +376,56 @@ test('Asynchronous system notification errors reset marker; hidden deadline chec
   await app.run('checkDeadlines()');
   assert.equal(app.sent.length, 2);
   assert.match(app.elements['notification-status'].textContent, /Không hiển thị/);
+});
+
+test('Immediate test uses service worker, fresh tag and never calls desktop constructor', async () => {
+  const app = boot([], { worker: true });
+  await app.elements['test-notification-now'].listeners.click();
+  assert.equal(app.workerSent.length, 1);
+  assert.equal(app.sent.length, 0);
+  assert.equal(app.registrations[0].url, './sw.js');
+  assert.equal(app.registrations[0].config.scope, './');
+  assert.equal(app.workerSent[0].renotify, true);
+  assert.match(app.elements['notification-diagnostics'].textContent, /service worker/);
+  assert.equal(app.elements['test-notification-now'].disabled, false);
+});
+test('Worker show and registration failures show diagnostics and leave buttons usable', async () => {
+  for (const flags of [{ workerFails: true }, { registrationFails: true }]) {
+    const app = boot([], { worker: true, ...flags });
+    await app.elements['test-notification-now'].listeners.click();
+    assert.equal(app.workerSent.length, 0);
+    assert.match(app.elements['notification-diagnostics'].textContent, /Lỗi: Error/);
+    assert.equal(app.elements['test-notification-now'].disabled, false);
+    assert.equal(app.run('notificationTestPending'), false);
+  }
+});
+test('Deadline marker saved only after successful service worker delivery', async () => {
+  const app = boot([], { worker: true });
+  app.run(`tasks = [{id:'sw-task', text:'Deadline', completed:false, deadline:'${iso(-1)}'}]`);
+  await app.run('checkDeadlines()');
+  assert.equal(app.workerSent.length, 1);
+  assert.equal(app.run('tasks[0].overdueNotifiedDeadline'), iso(-1));
+  await app.run('checkDeadlines()');
+  assert.equal(app.workerSent.length, 1);
+  const failed = boot([], { worker: true, workerFails: true });
+  failed.run(`tasks = [{id:'sw-task', text:'Deadline', completed:false, deadline:'${iso(-1)}'}]`);
+  await failed.run('checkDeadlines()');
+  assert.equal(failed.run('Boolean(tasks[0].overdueNotifiedDeadline)'), false);
+});
+test('Service worker click focuses existing TodoList or opens its own scope', async () => {
+  const handlers = {};
+  let focused = 0;
+  let opened = '';
+  let tabs = [{ url: 'https://anhhq1608.github.io/TodoList/', focus: async () => { focused++; } }];
+  const self = { location: { href: 'https://anhhq1608.github.io/TodoList/sw.js' },
+    addEventListener: (name, handler) => { handlers[name] = handler; },
+    clients: { matchAll: async () => tabs, openWindow: async url => { opened = url; } } };
+  vm.runInNewContext(fs.readFileSync('sw.js', 'utf8'), { self, URL });
+  let pending;
+  const event = { notification: { close() {} }, waitUntil: promise => { pending = promise; } };
+  handlers.notificationclick(event); await pending;
+  assert.equal(focused, 1);
+  tabs = [];
+  handlers.notificationclick(event); await pending;
+  assert.equal(opened, 'https://anhhq1608.github.io/TodoList/');
 });

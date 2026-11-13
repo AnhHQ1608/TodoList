@@ -215,6 +215,11 @@ function updateNotificationStatus() {
   notificationButton.disabled = false;
   document.getElementById('test-notification').disabled = notificationTestPending
     || !('Notification' in window) || !window.isSecureContext || Notification.permission === 'denied';
+  document.getElementById('test-notification-now').disabled = document.getElementById('test-notification').disabled;
+  document.getElementById('notification-diagnostics').textContent = 'Quyền thông báo: '
+    + (!('Notification' in window) ? 'không hỗ trợ' : Notification.permission)
+    + ' · Kết nối an toàn: ' + (window.isSecureContext ? 'có' : 'không')
+    + ' · Service worker: ' + ('serviceWorker' in navigator ? 'có hỗ trợ' : 'không hỗ trợ');
   if (!('Notification' in window) || !window.isSecureContext) {
     notificationStatus.textContent = 'Thông báo không khả dụng. Hãy dùng trình duyệt hỗ trợ trên HTTPS hoặc localhost.';
     notificationButton.disabled = true;
@@ -240,8 +245,34 @@ notificationButton.addEventListener('click', async () => {
   } catch (error) { notificationStatus.textContent = 'Không thể bật thông báo trên trình duyệt này.'; }
 });
 
-// Thông báo hệ thống do trình duyệt/hệ điều hành hiển thị bên ngoài website.
+let notificationRegistration = null;
+function getNotificationRegistration() {
+  if (!notificationRegistration) {
+    notificationRegistration = (async () => {
+      let timeout;
+      try {
+        return await Promise.race([
+          (async () => {
+            const registration = await navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' });
+            return registration.active ? registration : await navigator.serviceWorker.ready;
+          })(),
+          new Promise((resolve, reject) => {
+            timeout = setTimeout(() => reject(new Error('Service worker chưa sẵn sàng sau 10 giây. Hãy tải lại trang và thử lại.')), 10000);
+          })
+        ]);
+      } finally { clearTimeout(timeout); }
+    })().catch(error => { notificationRegistration = null; throw error; });
+  }
+  return notificationRegistration;
+}
+// Ưu tiên thông báo bền vững của service worker, hỗ trợ nhiều trình duyệt hơn.
 function sendDesktopNotification(title, options, onFailure) {
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    return getNotificationRegistration().then(async registration => {
+      await registration.showNotification(title, { ...options, requireInteraction: true, renotify: Boolean(options.tag) });
+      document.getElementById('notification-diagnostics').textContent = 'Trình duyệt đã chấp nhận thông báo qua service worker. Không thể xác nhận Windows có hiện banner hay không. Nếu không thấy, nhấn Win + N để kiểm tra trung tâm thông báo.';
+    });
+  }
   const notification = new Notification(title, { ...options, requireInteraction: true });
   notification.onclick = event => {
     event.preventDefault();
@@ -254,7 +285,7 @@ function sendDesktopNotification(title, options, onFailure) {
   };
   return notification;
 }
-document.getElementById('test-notification').addEventListener('click', async () => {
+async function runNotificationTest(delay = 5000) {
   if (notificationTestPending || !('Notification' in window) || !window.isSecureContext) return;
   try {
     if (Notification.permission === 'default') await Notification.requestPermission();
@@ -262,23 +293,31 @@ document.getElementById('test-notification').addEventListener('click', async () 
     if (Notification.permission !== 'granted') return;
     notificationTestPending = true;
     document.getElementById('test-notification').disabled = true;
+    document.getElementById('test-notification-now').disabled = true;
     notificationStatus.textContent = 'Sẽ gửi sau 5 giây. Bây giờ hãy chuyển sang tab hoặc ứng dụng khác.';
-    setTimeout(() => {
-      notificationTestPending = false;
-      updateNotificationStatus();
+    const sendTest = async () => {
       try {
         if (Notification.permission !== 'granted') return;
-        sendDesktopNotification('Focus List · Thông báo thử', {
+        await sendDesktopNotification('Focus List · Thông báo thử', {
           body: 'Bạn vẫn nhận được thông báo khi dùng tab hoặc app khác. Bấm thông báo để quay lại TodoList.',
-          tag: 'focus-desktop-test', silent: !soundEnabled
+          tag: 'focus-desktop-test-' + Date.now(), silent: !soundEnabled
         });
         notificationStatus.textContent = 'Đã gửi yêu cầu thông báo thử. Nếu không thấy banner, kiểm tra cài đặt thông báo của hệ điều hành và trình duyệt.';
       } catch (error) {
         notificationStatus.textContent = 'Trình duyệt không gửi được thông báo hệ thống. Hãy thử Chrome hoặc Edge trên máy tính và kiểm tra quyền thông báo.';
+        document.getElementById('notification-diagnostics').textContent = `Lỗi: ${error.name || 'Error'} · ${error.message || 'Không rõ nguyên nhân'}`;
+      } finally {
+        notificationTestPending = false;
+        document.getElementById('test-notification').disabled = Notification.permission === 'denied';
+        document.getElementById('test-notification-now').disabled = Notification.permission === 'denied';
       }
-    }, 5000);
+    };
+    if (delay) setTimeout(sendTest, delay);
+    else { notificationStatus.textContent = 'Đang gửi thông báo hệ thống…'; await sendTest(); }
   } catch (error) { notificationStatus.textContent = 'Không thể xin quyền thông báo. Hãy kiểm tra cài đặt trang của trình duyệt.'; }
-});
+}
+document.getElementById('test-notification').addEventListener('click', () => runNotificationTest(5000));
+document.getElementById('test-notification-now').addEventListener('click', () => runNotificationTest(0));
 
 function updateSoundStatus() {
   const supported = Boolean(window.AudioContext || window.webkitAudioContext);
@@ -394,7 +433,7 @@ document.addEventListener('pointerdown', handleInteractionSound, true);
 document.addEventListener('click', handleInteractionSound, true);
 
 // Lưu riêng dấu nhắc sắp hạn/quá hạn và âm thanh để không báo lặp.
-function sendDueNotifications() {
+async function sendDueNotifications() {
   const canNotify = 'Notification' in window && Notification.permission === 'granted' && window.isSecureContext;
   let saved = [];
   try { saved = readTasks(); } catch (error) { /* Vẫn dùng trạng thái trong bộ nhớ. */ }
@@ -417,7 +456,7 @@ function sendDueNotifications() {
     if (canNotify && task[notificationField] !== task.deadline) {
       try {
         const notificationDeadline = task.deadline;
-        sendDesktopNotification(overdue ? 'Công việc đã quá hạn!' : 'Công việc sắp đến hạn', {
+        const delivery = sendDesktopNotification(overdue ? 'Công việc đã quá hạn!' : 'Công việc sắp đến hạn', {
           body: task.text + ' · ' + deadlineInfo(task).text,
           tag: 'focus-' + (overdue ? 'overdue-' : 'deadline-') + task.id + '-' + task.deadline,
           silent: true // Dùng âm báo riêng, tránh hai tiếng chồng nhau.
@@ -428,6 +467,7 @@ function sendDueNotifications() {
             saveTasks();
           }
         });
+        if (delivery && typeof delivery.then === 'function') await delivery;
         task[notificationField] = task.deadline;
         changed = true;
       } catch (error) {
@@ -447,7 +487,7 @@ async function checkDeadlines() {
   // Web Locks tuần tự hóa kiểm tra giữa các tab trên trình duyệt hỗ trợ.
   if (navigator.locks) {
     await navigator.locks.request('focus-list-deadline-check', sendDueNotifications);
-  } else sendDueNotifications();
+  } else await sendDueNotifications();
 }
 window.addEventListener('storage', event => {
   if (event.key !== storageKey && event.key !== null) return;
