@@ -167,10 +167,15 @@ select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .folder-option-icon { display: grid; place-items: center; width: 27px; height: 27px; flex-shrink: 0; border-radius: 7px; background: #a38aff12; color: #c2a3ff; font-size: 21px; }
 .folder-option-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* Các mục nằm ngay trên thanh All / Active / Completed. */
-.toolbar { flex-wrap: wrap; justify-content: flex-start; gap: 10px; padding: 12px 0 16px; }
+.toolbar { flex-wrap: wrap; justify-content: flex-start; gap: 5px; padding: 12px 0 16px; }
 .toolbar .filters { flex-shrink: 0; }
-.toolbar .folder-filters { flex: 1 1 230px; display: flex; flex-wrap: nowrap; min-width: 0; gap: 6px; margin: 0; padding: 3px 0 6px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #63507e transparent; }
-.toolbar .folder-chip { flex-shrink: 0; min-height: 34px; max-width: 190px; padding: 7px 10px; border-radius: 8px; font-size: 11px; }
+.toolbar .folder-filters { flex: 1 1 230px; display: flex; flex-wrap: nowrap; align-items: center; min-width: 0; gap: 5px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #63507e transparent; }
+/* Mọi tab trên thanh dùng chung kích thước, nền và trạng thái chọn. */
+.toolbar .filters button, .toolbar .folder-chip { min-height: 38px; padding: 8px 13px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.4; transition: background .2s, color .2s; }
+.toolbar .folder-chip { flex-shrink: 0; max-width: 190px; gap: 6px; }
+.toolbar .filters button:hover, .toolbar .folder-chip:hover { background: #ffffff0d; color: white; }
+.toolbar .filters .selected, .toolbar .folder-chip.chosen-folder { background: #a38aff25; color: #cebdff; }
+.toolbar .folder-count { min-width: 0; padding: 0; border-radius: 0; background: transparent; color: inherit; font-size: 10px; opacity: .65; }
 .toolbar .folder-chip > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #task-count { margin-left: auto; flex-shrink: 0; }
-@media (max-width: 520px) { .folder-field { flex-basis: auto; } .toolbar .folder-filters { flex-basis: 100%; order: 3; } .folder-menu { width: 100%; } .toolbar .folder-chip { min-height: 42px; } }
+@media (max-width: 520px) { .folder-field { flex-basis: auto; } .toolbar .folder-filters { flex-basis: 100%; order: 3; } .folder-menu { width: 100%; } .toolbar .filters button, .toolbar .folder-chip { min-height: 42px; padding: 8px 10px; } }
