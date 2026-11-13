@@ -13,7 +13,7 @@
   let consent = false;
   let sessionId = null;
   let pending = 0;
-  try { consent = localStorage.getItem(consentKey) === 'yes'; } catch { /* Mặc định không thu thập. */ }
+  try { consent = localStorage.getItem(consentKey) !== 'no'; } catch { /* Không truy cập được storage thì không thu thập. */ }
   const browser = navigator.userAgent || '';
   const device = /iPad|Tablet/i.test(browser) ? 'tablet' : /Mobi|Android|iPhone/i.test(browser) ? 'mobile' : 'desktop';
   const browserName = /coc_coc|coccoc/i.test(browser) ? 'CocCoc' : /Edg/i.test(browser) ? 'Edge'
@@ -27,9 +27,7 @@
     checkbox.disabled = !endpoint || privacySignal;
     document.getElementById('activity-status').textContent = !endpoint ? 'Chưa kết nối máy chủ hoạt động.'
       : privacySignal ? 'Đã tắt theo tín hiệu bảo mật của trình duyệt.' : consent ? 'Đang chia sẻ loại thao tác, không chia sẻ nội dung task.' : 'Không ghi nhận hoạt động.';
-    let decided = false;
-    try { decided = ['yes', 'no'].includes(localStorage.getItem(consentKey)); } catch { decided = true; }
-    document.getElementById('activity-notice').hidden = !endpoint || privacySignal || decided;
+    document.getElementById('activity-notice').hidden = !endpoint || privacySignal || !consent;
   }
   async function track(action) {
     if (!allowed.has(action) || !canTrack() || pending >= 10) return;
@@ -67,12 +65,10 @@
     if (value) track('visit');
   }
   window.todoActivity = Object.freeze({ track });
-  document.getElementById('activity-accept').addEventListener('click', () => setConsent(true));
-  document.getElementById('activity-decline').addEventListener('click', () => setConsent(false));
   document.getElementById('activity-consent').addEventListener('change', event => setConsent(event.target.checked));
   window.addEventListener('storage', event => {
     if (event.key === consentKey || event.key === null) {
-      try { consent = localStorage.getItem(consentKey) === 'yes'; } catch { consent = false; }
+      try { consent = localStorage.getItem(consentKey) !== 'no'; } catch { consent = false; }
       if (!consent) sessionId = null;
       updateControls();
     }

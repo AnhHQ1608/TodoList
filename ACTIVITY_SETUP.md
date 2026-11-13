@@ -2,7 +2,7 @@
 
 ## Trạng thái hiện tại
 
-Backend đã triển khai tại `https://focus-list-activity.quocanh0918106.workers.dev`, database D1 đã tạo và secret quản trị đã cấu hình. Frontend kết nối bằng URL công khai trong `telemetry-config.js`. Chỉ thu thập sau khi khách đồng ý.
+Backend đã triển khai tại `https://focus-list-activity.quocanh0918106.workers.dev`, database D1 đã tạo và secret quản trị đã cấu hình. Frontend kết nối bằng URL công khai trong `telemetry-config.js`. Ghi nhận ẩn danh mặc định khi mở trang, có thông báo ngắn và tùy chọn tắt trong Cài đặt.
 
 Trang quản trị: `https://anhhq1608.github.io/TodoList/admin.html`. Mật khẩu ban đầu được tạo ngẫu nhiên và lưu trong tệp riêng `%USERPROFILE%\.focus-list\admin-access.txt`, bên ngoài project/Git, chỉ tài khoản Windows hiện tại có quyền đọc. Không đưa tệp đó vào Git hoặc chia sẻ cho người khác. Nên chuyển mật khẩu vào trình quản lý mật khẩu. Không cần nhập tên đăng nhập, chỉ cần mật khẩu.
 
@@ -12,11 +12,11 @@ Người dùng vẫn dùng TodoList không cần tài khoản. Mỗi trình duy�
 
 ## Dữ liệu được ghi nhận
 
-- Khi người dùng đồng ý: mở trang; trang còn hoạt động (heartbeat khi tab hiện); thêm/sửa/xóa/hoàn thành/mở lại task; tạo/xóa thư mục; đợt tự dọn task hoàn thành.
+- Khi ghi nhận đang bật: mở trang; trang còn hoạt động (heartbeat khi tab hiện); thêm/sửa/xóa/hoàn thành/mở lại task; tạo/xóa thư mục; đợt tự dọn task hoàn thành.
 - Chỉ gửi mã sự kiện, mã khách, mã phiên, tên thao tác và nhóm trình duyệt/hệ điều hành/thiết bị. Thời gian do máy chủ ghi nhận.
 - Không gửi nội dung task, tên thư mục, deadline, phím gõ, ảnh màn hình, URL đang mở, mật khẩu hay tên người dùng.
 - Không ghi IP gốc vào D1. IP hạ tầng cung cấp chỉ được băm HMAC theo cửa sổ thời gian để giới hạn tốc độ. Khóa chống spam hết hạn sẽ được dọn mỗi ngày. Nhà cung cấp hạ tầng có thể xử lý dữ liệu mạng theo chính sách riêng.
-- Chỉ bắt đầu sau khi đồng ý; có thể tắt trong Cài đặt. Do Not Track / Global Privacy Control được tôn trọng. Từ chối không ảnh hưởng tính năng TodoList.
+- Mặc định ghi nhận mà không cần bấm Đồng ý; có thể tắt trong Cài đặt. Lựa chọn từ chối trước đây và Do Not Track / Global Privacy Control vẫn được tôn trọng. Tắt ghi nhận không ảnh hưởng tính năng TodoList.
 - Lịch sử cũ hết 30 ngày bị dọn hằng ngày, API không trả dữ liệu quá 30 ngày. Tắt chia sẻ dừng gửi sự kiện mới, không tự xóa lịch sử đã lưu trước đó.
 - Lịch sử là dữ liệu do client tự khai báo, không phải bằng chứng kiểm toán hay bảo mật. Trình chặn quảng cáo, offline, quota hoặc giới hạn tốc độ có thể làm thiếu sự kiện. “Vừa hoạt động” nghĩa là nhận sự kiện trong 2 phút gần đây, không chứng minh thiết bị đang online.
 
@@ -69,11 +69,11 @@ Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Cá
 
    Commit/push thay đổi cấu hình công khai để GitHub Pages cập nhật. File này tuyệt đối không có secret.
 
-7. Mở TodoList, chọn Đồng ý cho ghi nhận. Mở `/TodoList/admin.html`, đăng nhập bằng `ADMIN_PASSWORD`. Kiểm tra:
-   - Một phiên mới xuất hiện sau khi đồng ý.
+7. Mở TodoList bằng trình duyệt chưa tắt ghi nhận. Mở `/TodoList/admin.html`, đăng nhập bằng `ADMIN_PASSWORD`. Kiểm tra:
+   - Một phiên mới tự xuất hiện khi mở trang, không có nút Đồng ý.
    - Tạo/sửa/hoàn thành/xóa task chỉ hiện **tên thao tác**, không có nội dung task.
    - Lọc theo phiên, chuyển trang lịch sử và đăng xuất.
-   - Tab ẩn không gửi heartbeat. Đang thao tác vẫn có thể gửi sự kiện đã đồng ý.
+   - Tab ẩn không gửi heartbeat. Đang thao tác vẫn có thể gửi sự kiện khi ghi nhận đang bật.
    - Tắt chia sẻ trong Cài đặt: không gửi thêm sự kiện.
    - Truy cập API `/admin/events` không có token phải trả 401.
 

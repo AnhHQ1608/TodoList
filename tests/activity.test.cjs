@@ -97,7 +97,7 @@ function client({ apiUrl = 'https://activity.example', consent, dnt, fail = fals
   const storage = new Map();
   if (consent) storage.set('focus-activity-consent-v1', consent);
   const sent = [], elements = {};
-  for (const id of ['activity-consent', 'activity-status', 'activity-notice', 'activity-accept', 'activity-decline'])
+  for (const id of ['activity-consent', 'activity-status', 'activity-notice'])
     elements[id] = { listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } };
   const context = { window: { TODO_ANALYTICS: { apiUrl }, crypto, addEventListener() {} }, crypto, URL, AbortController,
     navigator: { userAgent: 'Windows Chrome coc_coc', doNotTrack: dnt }, document: { visibilityState: 'visible', getElementById: id => elements[id] },
@@ -107,23 +107,22 @@ function client({ apiUrl = 'https://activity.example', consent, dnt, fail = fals
   vm.runInNewContext(fs.readFileSync('activity.js', 'utf8'), context);
   return { ...context, sent, elements, storage };
 }
-test('Client sends nothing without configuration/consent or with Do Not Track', async () => {
-  for (const options of [{ apiUrl: '', consent: 'yes' }, {}, { consent: 'no' }, { consent: 'yes', dnt: '1' }]) {
+test('Client sends nothing without configuration, after opt-out or with Do Not Track', async () => {
+  for (const options of [{ apiUrl: '', consent: 'yes' }, { consent: 'no' }, { consent: 'yes', dnt: '1' }]) {
     const app = client(options);
     await app.window.todoActivity.track('task_created');
     assert.equal(app.sent.length, 0);
     assert.equal(app.storage.has('focus-activity-visitor-v1'), false);
   }
 });
-test('Client consent creates random IDs, rejects arbitrary events and revocation stops collection', async () => {
+test('Client automatically creates visit, rejects arbitrary events and opt-out stops collection', async () => {
   const app = client();
-  app.elements['activity-accept'].listeners.click();
   assert.equal(app.sent[0].body.action, 'visit');
   await app.window.todoActivity.track('task_completed');
   assert.deepEqual(Object.keys(app.sent[1].body).sort(), ['action', 'browser', 'device', 'eventId', 'os', 'sessionId', 'visitorId'].sort());
   await app.window.todoActivity.track('secret task text');
   assert.equal(app.sent.length, 2);
-  app.elements['activity-decline'].listeners.click();
+  app.elements['activity-consent'].listeners.change({ target: { checked: false } });
   await app.window.todoActivity.track('task_deleted');
   assert.equal(app.sent.length, 2);
   assert.equal(app.storage.has('focus-activity-visitor-v1'), false);
