@@ -854,6 +854,7 @@ function openDatePicker() {
   minuteInput.value = padDate(selectedDate.getMinutes());
   renderCalendar();
   picker.showModal(); // dialog hỗ trợ Escape, giữ focus và chặn tương tác phía sau.
+  document.getElementById('open-picker').setAttribute('aria-expanded', 'true');
 }
 for (const [field, max, name] of [[hourInput, 23, 'hour'], [minuteInput, 59, 'minute']]) {
   field.addEventListener('input', () => {
@@ -881,7 +882,8 @@ for (const [field, max, name] of [[hourInput, 23, 'hour'], [minuteInput, 59, 'mi
   });
 }
 document.getElementById('open-picker').addEventListener('click', openDatePicker);
-function closeDatePicker() { picker.close(); document.getElementById('open-picker').focus(); }
+function closeDatePicker() { picker.close(); document.getElementById('open-picker').setAttribute('aria-expanded', 'false'); document.getElementById('open-picker').focus(); }
+picker.addEventListener('close', () => document.getElementById('open-picker').setAttribute('aria-expanded', 'false'));
 document.getElementById('close-picker').addEventListener('click', closeDatePicker);
 document.getElementById('cancel-picker').addEventListener('click', closeDatePicker);
 picker.addEventListener('click', event => { if (event.target === picker) {
