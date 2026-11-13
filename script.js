@@ -246,7 +246,7 @@ function updateSoundStatus() {
   button.textContent = active ? 'Tắt âm báo' : soundEnabled ? 'Kích hoạt lại âm báo' : 'Bật âm báo';
   document.getElementById('test-sound').disabled = !active;
   document.getElementById('sound-status').textContent = !supported ? 'Trình duyệt không hỗ trợ âm báo.'
-    : active ? 'Đã bật tiếng nhắc sắp đến hạn và quá hạn.'
+    : active ? 'Đã bật tiếng click và tiếng nhắc deadline.'
     : soundEnabled ? 'Nhấn kích hoạt lại để cho phép phát âm thanh trong phiên này.' : 'Âm báo đang tắt.';
 }
 function playAlertSound(overdue = false) {
@@ -297,6 +297,43 @@ document.getElementById('toggle-sound').addEventListener('click', async () => {
   }
 });
 document.getElementById('test-sound').addEventListener('click', () => playAlertSound(true));
+
+// Bắt click ở document để các nút vừa tạo (công việc, lịch) cũng có tiếng.
+function playClickSound() {
+  if (!soundEnabled || audioContext?.state !== 'running') return false;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(1100, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.035, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    oscillator.start(now);
+    oscillator.stop(now + 0.05);
+    return true;
+  } catch (error) { return false; } // Lỗi âm thanh không cản thao tác trên trang.
+}
+async function handleInteractionSound(event) {
+  const control = event.target.closest?.('button, input, select, a');
+  if (!control || control.disabled || control.matches(':disabled') || control.hidden || !soundEnabled) return;
+  // Nút nghe thử có âm riêng; nút bật/tắt không phát tiếng khi người dùng tắt.
+  if (control.id === 'toggle-sound' || control.id === 'test-sound') return;
+  try {
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) return;
+    // Click thật có thể kích hoạt lại âm thanh đã được bật ở phiên trước.
+    if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
+    if (audioContext.state !== 'running') await audioContext.resume();
+    updateSoundStatus();
+    playClickSound();
+  } catch (error) { /* Không chặn click nếu trình duyệt không cho phát tiếng. */ }
+}
+document.addEventListener('click', handleInteractionSound, true);
 
 // Lưu riêng dấu nhắc sắp hạn/quá hạn và âm thanh để không báo lặp.
 function sendDueNotifications() {

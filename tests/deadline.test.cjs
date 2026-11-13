@@ -250,3 +250,41 @@ test('Remembered audio preference needs activation after reload; audio failure i
   assert.match(failed.elements['sound-status'].textContent, /Không bật được/);
   assert.equal(failed.run('soundEnabled'), false);
 });
+
+test('Click sounds cover dynamic controls, respect mute and do not create audio on load', async () => {
+  const app = boot([], { audio: true });
+  const control = { id: 'add-task', disabled: false, hidden: false, matches: () => false };
+  const event = { target: { closest: () => control } };
+  // Chưa bật âm thanh: click không tạo AudioContext.
+  await app.run('handleInteractionSound') (event);
+  assert.equal(app.audio.created, 0);
+  await app.elements['toggle-sound'].listeners.click();
+  for (const id of ['submit-task', 'task-input', 'filter-active', 'calendar-day', 'picker-hour', 'delete-task', 'checkbox']) {
+    control.id = id;
+    await app.run('handleInteractionSound')(event);
+  }
+  assert.equal(app.audio.tones, 7);
+  control.disabled = true;
+  await app.run('handleInteractionSound')(event);
+  control.disabled = false;
+  for (const id of ['toggle-sound', 'test-sound']) {
+    control.id = id;
+    await app.run('handleInteractionSound')(event);
+  }
+  await app.run('handleInteractionSound')({ target: { closest: () => null } });
+  assert.equal(app.audio.tones, 7);
+  await app.elements['toggle-sound'].listeners.click();
+  control.id = 'submit-task';
+  await app.run('handleInteractionSound')(event);
+  assert.equal(app.audio.tones, 7);
+});
+test('Click restores saved sound preference after reload and handles blocked audio', async () => {
+  const event = { target: { closest: () => ({ id: 'open-picker', matches: () => false }) } };
+  const app = boot([], { audio: true, storage: { value: '[]', sound: 'true' } });
+  assert.equal(app.audio.created, 0);
+  await app.run('handleInteractionSound')(event);
+  assert.equal(app.audio.tones, 1);
+  const failed = boot([], { audio: true, audioFails: true, storage: { value: '[]', sound: 'true' } });
+  await failed.run('handleInteractionSound')(event);
+  assert.equal(failed.audio.tones, 0);
+});
