@@ -653,3 +653,14 @@ test('Cleanup respects latest storage from another tab and keeps its unrelated n
   assert.equal(app.run('tasks.length'), 1);
   assert.equal(app.run('tasks[0].id'), 'new');
 });
+
+test('Completed task shows exact HH:MM:SS deletion countdown', () => {
+  const app = boot([task({ completed: true, completedAt: NOW })]);
+  assert.equal(app.run("document.getElementById('cleanup-1').textContent"), 'Tự xóa sau 02:00:00');
+  app.run(`Date.now = () => ${NOW + 1000}; updateCountdowns()`);
+  assert.equal(app.run("document.getElementById('cleanup-1').textContent"), 'Tự xóa sau 01:59:59');
+  app.run(`Date.now = () => ${NOW + 2*HOUR - 1000}; updateCountdowns()`);
+  assert.equal(app.run("document.getElementById('cleanup-1').textContent"), 'Tự xóa sau 00:00:01');
+  app.run(`Date.now = () => ${NOW + 2*HOUR}; cleanupCompletedTasks()`);
+  assert.equal(app.run('tasks.length'), 0);
+});

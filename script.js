@@ -284,9 +284,12 @@ function updateCountdowns() {
   tasks.forEach(task => {
     const cleanupLabel = document.getElementById('cleanup-' + task.id);
     if (cleanupLabel && task.completedAt) {
-      const minutes = Math.max(0, Math.ceil((task.completedAt + 2 * hour - Date.now()) / 60000));
-      const hours = Math.floor(minutes / 60);
-      cleanupLabel.textContent = minutes === 0 ? 'Đang chờ tự xóa' : `Tự xóa sau ${hours ? hours + ' giờ ' : ''}${minutes % 60 ? minutes % 60 + ' phút' : ''}`;
+      const seconds = Math.max(0, Math.ceil((task.completedAt + 2 * hour - Date.now()) / 1000));
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const pad = value => String(value).padStart(2, '0');
+      cleanupLabel.textContent = seconds === 0 ? 'Đang tự xóa…'
+        : `Tự xóa sau ${pad(hours)}:${pad(minutes)}:${pad(seconds % 60)}`;
     }
     const element = document.getElementById('deadline-' + task.id);
     if (!element) return;
@@ -757,6 +760,12 @@ updateSoundStatus();
 checkDeadlines();
 // Bộ hẹn giờ chỉ hoạt động khi trang còn mở; đây không phải push notification.
 setInterval(checkDeadlines, 15000);
+// Đồng hồ cập nhật từng giây; chỉ dọn dữ liệu khi có task thực sự hết hạn.
+setInterval(() => {
+  if (tasks.some(task => task.completed && task.completedAt && Date.now() - task.completedAt >= 2 * hour)) {
+    checkDeadlines();
+  } else updateCountdowns();
+}, 1000);
 
 // 6. Bộ chọn lịch riêng. Chỉ ghi vào deadline thật khi nhấn Xác nhận.
 const picker = document.getElementById('date-picker');

@@ -38,7 +38,7 @@ form { display: flex; gap: 10px; margin-top: 24px; }
 .task input { flex-shrink: 0; width: 20px; height: 20px; accent-color: #ae90ff; cursor: pointer; }
 .task label { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; cursor: pointer; }
 .task.completed label { text-decoration: line-through; color: #9699b3; }
-.cleanup-label { margin: 6px 0 0; color: #a69abc; font-size: 10px; line-height: 1.5; }
+.cleanup-label { display: inline-block; margin: 8px 0 0; padding: 4px 8px; border: 1px solid #b59cff25; border-radius: 6px; background: #a38aff12; color: #cebbef; font-size: 11px; font-weight: 600; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .delete { flex-shrink: 0; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: #a7a9c3; font-size: 24px; transition: background .2s; }
 .delete:hover { color: #ffb4c6; background: #ed789525; }
 #empty-state { text-align: center; padding: 38px 8px; }
