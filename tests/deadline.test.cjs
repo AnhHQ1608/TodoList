@@ -595,3 +595,14 @@ test('Audio automatically activates from background tap or typing, and respects 
   await muted.documentListeners.keydown({ key: 'a', repeat: false });
   assert.equal(muted.audio.created, 0);
 });
+
+test('Header settings button opens dialog; close button hides it', () => {
+  const app = boot();
+  app.elements['open-settings'].listeners.click();
+  assert.equal(app.elements['settings-dialog'].open, true);
+  app.elements['close-settings'].listeners.click();
+  assert.equal(app.elements['settings-dialog'].open, false);
+  const header = html.slice(html.indexOf('<header>'), html.indexOf('</header>'));
+  assert.ok(header.includes('id="open-settings"'));
+  assert.equal(html.includes('<details class="app-settings">'), false);
+});

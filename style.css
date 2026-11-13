@@ -208,3 +208,12 @@ select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .folder-manager > summary { color: #d7c6f4; font-size: 13px; }
 .folder-manager > summary span { color: #a298b8; font-size: 11px; }
 .folder-manager[open] > summary { margin-bottom: 4px; }
+/* Nút cài đặt trên thanh đầu trang. */
+.header-actions { display: flex; align-items: center; gap: 20px; }
+.settings-button { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; padding: 0; border: 1px solid #b59cff30; border-radius: 12px; background: #a38aff0d; color: #c6b5ed; transition: background .2s, border-color .2s; }
+.settings-button:hover { background: #a38aff25; border-color: #b59cff80; color: #f0e7ff; }
+.settings-dialog { width: min(460px, calc(100% - 28px)); }
+.settings-dialog .settings-content { padding-top: 24px; }
+.settings-dialog .notification-settings { padding-top: 16px; border-top: 1px solid var(--line); }
+.settings-dialog .notification-settings button, .settings-dialog #test-sound { font-size: 12px; }
+.settings-dialog #notification-status { flex-basis: 100%; margin-top: 4px; }

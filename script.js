@@ -815,3 +815,19 @@ document.getElementById('clear-deadline').addEventListener('click', () => {
   closeDatePicker();
 });
 updateDeadlineDisplay();
+
+// Cài đặt được mở từ nút bánh răng trên đầu trang.
+const settingsDialog = document.getElementById('settings-dialog');
+const settingsButton = document.getElementById('open-settings');
+settingsButton.addEventListener('click', () => {
+  updateNotificationStatus();
+  updateSoundStatus();
+  settingsDialog.showModal();
+});
+function closeSettings() { settingsDialog.close(); settingsButton.focus(); }
+document.getElementById('close-settings').addEventListener('click', closeSettings);
+settingsDialog.addEventListener('click', event => {
+  if (event.target !== settingsDialog) return;
+  const bounds = settingsDialog.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
+});

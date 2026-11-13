@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#101329">
   <title>Focus List — Công việc của bạn</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg?v=1">
-  <link rel="stylesheet" href="style.css?v=clean-ui-1">
-  <script src="script.js?v=clean-ui-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=header-settings-1">
+  <script src="script.js?v=header-settings-1" defer></script>
 </head>
 <body>
   <main class="app">
-    <header><a class="brand" href="./index.html" aria-label="Focus List — Trang chủ"><img class="brand-logo" src="logo.svg" alt="" width="40" height="40"> FOCUS LIST</a><span class="tagline">MỖI NGÀY, MỘT BƯỚC TIẾN</span></header>
+    <header><a class="brand" href="./index.html" aria-label="Focus List — Trang chủ"><img class="brand-logo" src="logo.svg" alt="" width="40" height="40"> FOCUS LIST</a><div class="header-actions"><span class="tagline">MỖI NGÀY, MỘT BƯỚC TIẾN</span><button id="open-settings" class="settings-button" type="button" aria-label="Mở cài đặt" aria-haspopup="dialog" aria-controls="settings-dialog" title="Cài đặt"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-1 1-3 3-1 2-3-2-2 1-3-2-3-3 1-3-2-3 1Z"/><circle cx="12" cy="11" r="3"/></svg></button></div></header>
     <section class="intro" aria-labelledby="title">
       <p class="eyebrow">KHÔNG GIAN LÀM VIỆC CỦA BẠN</p>
       <h1 id="title">Bớt bận rộn.<br><span>Thêm tập trung.</span></h1>
@@ -28,15 +28,6 @@
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
       <span id="deadline-help" class="sr-only">Giờ địa phương, không bắt buộc.</span>
-      <details class="app-settings">
-        <summary>Cài đặt <span aria-hidden="true">⌄</span></summary>
-        <div class="settings-content">
-          <div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div>
-          <p id="sound-status" class="help" role="status"></p>
-          <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
-          <details class="notification-help"><summary>Trợ giúp thông báo</summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details>
-        </div>
-      </details>
       <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p></aside>
       <p id="message" role="status" aria-live="polite"></p>
       <details class="folder-section folder-manager">
@@ -64,6 +55,15 @@
     </section>
     <p class="footnote">Tự động lưu trên trình duyệt.</p>
   </main>
+  <dialog id="settings-dialog" class="date-picker settings-dialog" aria-labelledby="settings-title">
+    <div class="picker-heading"><h2 id="settings-title">Cài đặt</h2><button id="close-settings" class="icon-button" type="button" aria-label="Đóng cài đặt">×</button></div>
+        <div class="settings-content">
+          <div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div>
+          <p id="sound-status" class="help" role="status"></p>
+          <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
+          <details class="notification-help"><summary>Trợ giúp thông báo</summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details>
+        </div>
+  </dialog>
   <dialog id="date-picker" class="date-picker" aria-labelledby="picker-title">
     <div class="picker-heading"><div><p class="eyebrow">LÊN LỊCH HOÀN THÀNH</p><h2 id="picker-title">Chọn deadline</h2></div><button id="close-picker" class="icon-button" type="button" aria-label="Đóng bộ chọn">×</button></div>
     <div class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="Tháng trước">‹</button><h3 id="calendar-month" aria-live="polite"></h3><button id="next-month" class="icon-button" type="button" aria-label="Tháng sau">›</button></div>
