@@ -30,6 +30,9 @@ function boot(initial = [], options = {}) {
   const filters = ['all', 'active', 'completed'].map(filter => { const e = new Element(); e.dataset.filter = filter; return e; });
   const allNodes = () => { const result = []; const visit = e => { result.push(e); e.children.forEach(visit); }; Object.values(elements).forEach(visit); return result; };
   const sent = [];
+  const notifications = [];
+  const timers = [];
+  let focusCount = 0;
   const audio = { created: 0, tones: 0 };
   class AudioContext {
     constructor() { audio.created++; this.state = 'suspended'; this.currentTime = 0; this.destination = {}; }
@@ -42,10 +45,11 @@ function boot(initial = [], options = {}) {
   class Notification {
     static permission = options.permission || 'granted';
     static async requestPermission() { requested++; return this.permission; }
-    constructor(title, data) { if (options.notificationFails) throw Error('Unsupported'); sent.push({ title, ...data }); }
+    constructor(title, data) { if (options.notificationFails) throw Error('Unsupported'); sent.push({ title, ...data }); notifications.push(this); }
+    close() { this.closed = true; }
   }
   class Clock extends Date { static now() { return NOW; } }
-  const window = { Notification, isSecureContext: true, addEventListener() {} };
+  const window = { Notification, isSecureContext: true, addEventListener() {}, focus() { focusCount++; } };
   if (options.audio) window.AudioContext = AudioContext;
   if (options.unsupported) delete window.Notification;
   const context = vm.createContext({ Date: Clock, window, Notification, navigator: {}, console,
@@ -54,9 +58,9 @@ function boot(initial = [], options = {}) {
       addEventListener: (type, listener) => { documentListeners[type] = listener; } },
     localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : storage.value,
       setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else storage.value = value; } },
-    setInterval: () => {} });
+    setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); } });
   vm.runInContext(code, context);
-  return { elements, filters, storage, sent, audio, documentListeners, requested: () => requested,
+  return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, focusCount: () => focusCount, requested: () => requested,
     run: expression => vm.runInContext(expression, context),
     submit(text, deadline = '') { elements['task-input'].value = text; elements['deadline-input'].value = deadline; elements['task-form'].listeners.submit({ preventDefault() {} }); } };
 }
@@ -316,4 +320,46 @@ test('Label interaction plays once, right clicks stay silent, stored mute is res
   const muted = boot([], { audio: true, storage: { value: '[]', sound: 'false' } });
   await muted.documentListeners.pointerdown({ type: 'pointerdown', button: 0, target: { closest: () => checkbox } });
   assert.equal(muted.audio.created, 0);
+});
+
+test('Desktop test waits five seconds, sends while hidden and focuses TodoList on click', async () => {
+  const app = boot();
+  await app.elements['test-notification'].listeners.click();
+  assert.equal(app.sent.length, 0);
+  assert.equal(app.timers.length, 1);
+  assert.equal(app.timers[0].delay, 5000);
+  await app.elements['test-notification'].listeners.click();
+  assert.equal(app.timers.length, 1);
+  app.run('document.hidden = true');
+  app.timers[0].callback();
+  assert.equal(app.sent.length, 1);
+  assert.equal(app.sent[0].requireInteraction, true);
+  let prevented = false;
+  app.notifications[0].onclick({ preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(app.focusCount(), 1);
+  assert.equal(app.notifications[0].closed, true);
+});
+test('Denied or unsupported desktop notifications never schedule; default permission only asked on click', async () => {
+  for (const options of [{ permission: 'denied' }, { unsupported: true }]) {
+    const app = boot([], options);
+    await app.elements['test-notification'].listeners.click();
+    assert.equal(app.timers.length, 0);
+    assert.equal(app.sent.length, 0);
+  }
+  const app = boot([], { permission: 'default' });
+  assert.equal(app.requested(), 0);
+  await app.elements['test-notification'].listeners.click();
+  assert.equal(app.requested(), 1);
+  assert.equal(app.timers.length, 0);
+});
+test('Asynchronous system notification errors reset marker; hidden deadline checks still notify', async () => {
+  const app = boot([task({ deadline: iso(-1) })]);
+  assert.equal(app.run('tasks[0].overdueNotifiedDeadline'), iso(-1));
+  app.notifications[0].onerror();
+  assert.equal(app.run('tasks[0].overdueNotifiedDeadline'), null);
+  app.run('document.hidden = true');
+  await app.run('checkDeadlines()');
+  assert.equal(app.sent.length, 2);
+  assert.match(app.elements['notification-status'].textContent, /Không hiển thị/);
 });

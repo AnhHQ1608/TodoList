@@ -14,6 +14,7 @@ const hour = 60 * 60 * 1000;
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
+let notificationTestPending = false;
 const soundKey = 'focus-list-sound-v1';
 let soundEnabled = true;
 let audioContext = null;
@@ -212,11 +213,13 @@ filters.forEach(button => button.addEventListener('click', () => { setFilter(but
 // 4. Chỉ yêu cầu quyền khi người dùng nhấn nút, không hỏi khi tải trang.
 function updateNotificationStatus() {
   notificationButton.disabled = false;
+  document.getElementById('test-notification').disabled = notificationTestPending
+    || !('Notification' in window) || !window.isSecureContext || Notification.permission === 'denied';
   if (!('Notification' in window) || !window.isSecureContext) {
     notificationStatus.textContent = 'Thông báo không khả dụng. Hãy dùng trình duyệt hỗ trợ trên HTTPS hoặc localhost.';
     notificationButton.disabled = true;
   } else if (Notification.permission === 'granted') {
-    notificationStatus.textContent = 'Đã cấp quyền. Nhắc deadline khi trang đang mở (tùy hỗ trợ trình duyệt).';
+    notificationStatus.textContent = 'Đã cấp quyền thông báo hệ thống, kể cả khi bạn ở tab/app khác. Giữ trang mở và thử nút gửi thử.';
     notificationButton.textContent = 'Đã bật thông báo';
     notificationButton.disabled = true;
   } else if (Notification.permission === 'denied') {
@@ -235,6 +238,46 @@ notificationButton.addEventListener('click', async () => {
     updateNotificationStatus();
     await checkDeadlines();
   } catch (error) { notificationStatus.textContent = 'Không thể bật thông báo trên trình duyệt này.'; }
+});
+
+// Thông báo hệ thống do trình duyệt/hệ điều hành hiển thị bên ngoài website.
+function sendDesktopNotification(title, options, onFailure) {
+  const notification = new Notification(title, { ...options, requireInteraction: true });
+  notification.onclick = event => {
+    event.preventDefault();
+    window.focus();
+    notification.close();
+  };
+  notification.onerror = () => {
+    if (onFailure) onFailure();
+    notificationStatus.textContent = 'Không hiển thị được thông báo hệ thống. Kiểm tra quyền trang, cài đặt thông báo của trình duyệt và chế độ Không làm phiền.';
+  };
+  return notification;
+}
+document.getElementById('test-notification').addEventListener('click', async () => {
+  if (notificationTestPending || !('Notification' in window) || !window.isSecureContext) return;
+  try {
+    if (Notification.permission === 'default') await Notification.requestPermission();
+    updateNotificationStatus();
+    if (Notification.permission !== 'granted') return;
+    notificationTestPending = true;
+    document.getElementById('test-notification').disabled = true;
+    notificationStatus.textContent = 'Sẽ gửi sau 5 giây. Bây giờ hãy chuyển sang tab hoặc ứng dụng khác.';
+    setTimeout(() => {
+      notificationTestPending = false;
+      updateNotificationStatus();
+      try {
+        if (Notification.permission !== 'granted') return;
+        sendDesktopNotification('Focus List · Thông báo thử', {
+          body: 'Bạn vẫn nhận được thông báo khi dùng tab hoặc app khác. Bấm thông báo để quay lại TodoList.',
+          tag: 'focus-desktop-test', silent: !soundEnabled
+        });
+        notificationStatus.textContent = 'Đã gửi yêu cầu thông báo thử. Nếu không thấy banner, kiểm tra cài đặt thông báo của hệ điều hành và trình duyệt.';
+      } catch (error) {
+        notificationStatus.textContent = 'Trình duyệt không gửi được thông báo hệ thống. Hãy thử Chrome hoặc Edge trên máy tính và kiểm tra quyền thông báo.';
+      }
+    }, 5000);
+  } catch (error) { notificationStatus.textContent = 'Không thể xin quyền thông báo. Hãy kiểm tra cài đặt trang của trình duyệt.'; }
 });
 
 function updateSoundStatus() {
@@ -373,10 +416,17 @@ function sendDueNotifications() {
     }
     if (canNotify && task[notificationField] !== task.deadline) {
       try {
-        new Notification(overdue ? 'Công việc đã quá hạn!' : 'Công việc sắp đến hạn', {
+        const notificationDeadline = task.deadline;
+        sendDesktopNotification(overdue ? 'Công việc đã quá hạn!' : 'Công việc sắp đến hạn', {
           body: task.text + ' · ' + deadlineInfo(task).text,
           tag: 'focus-' + (overdue ? 'overdue-' : 'deadline-') + task.id + '-' + task.deadline,
           silent: true // Dùng âm báo riêng, tránh hai tiếng chồng nhau.
+        }, () => {
+          // Lỗi bất đồng bộ: cho phép thử lại ở lần kiểm tra kế tiếp.
+          if (task.deadline === notificationDeadline && task[notificationField] === notificationDeadline) {
+            task[notificationField] = null;
+            saveTasks();
+          }
         });
         task[notificationField] = task.deadline;
         changed = true;

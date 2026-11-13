@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101329">
   <title>Focus List — Công việc của bạn</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js?v=click-audio-2" defer></script>
+  <script src="script.js?v=desktop-notifications-1" defer></script>
 </head>
 <body>
   <main class="app">
@@ -26,7 +26,8 @@
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
       <p id="deadline-help" class="help">Ngày giờ theo múi giờ thiết bị. Để trống nếu không có deadline.</p>
-      <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><p id="notification-status" role="status"></p></div>
+      <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification" class="secondary" type="button">Gửi thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
+      <p class="help">Thông báo hệ thống có thể hiện khi bạn dùng tab hoặc app khác. Nhấn Bật thông báo → Cho phép. Dùng nút gửi thử rồi chuyển sang app khác để kiểm tra. Trên Windows, bật thông báo cho trình duyệt và tắt Không làm phiền nếu muốn thấy banner. Giữ tab TodoList mở; tab ngủ có thể làm nhắc trễ. Trên một số trình duyệt điện thoại, thông báo hệ thống chưa được hỗ trợ ở phiên bản này.</p>
       <div class="notification-settings sound-settings"><button id="toggle-sound" class="secondary" type="button" aria-pressed="false">Bật âm báo</button><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button><p id="sound-status" role="status"></p></div>
       <p class="help">Tiếng click được kích hoạt từ lần bấm đầu tiên vào nút, ô nhập hoặc lịch. Nếu đã tắt âm báo, nhấn Bật âm báo để mở lại. Tắt âm báo sẽ tắt cả tiếng click và tiếng nhắc deadline.</p>
       <p class="help">Nhắc một lần trong 1 giờ cuối và một lần khi quá hạn nếu chưa hoàn thành. Nhấn Bật âm báo để cho phép phát tiếng; sau khi tải lại trang có thể cần kích hoạt lại. Chỉ hoạt động khi trang mở; tab ngủ hoặc thiết bị nghỉ có thể làm nhắc trễ. Thông báo khi đóng website cần push notification với service worker và backend gửi nhắc; JavaScript của trang không chạy khi trang đã đóng.</p>
