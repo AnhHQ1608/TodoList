@@ -168,6 +168,7 @@ function matchesDay(task) {
   return selectedDay==='all' || (selectedDay==='unscheduled'?!task.scheduledDate:selectedDay==='week'?weekDates(visibleWeek).includes(task.scheduledDate):task.scheduledDate===selectedDay);
 }
 function selectDay(value) {
+  if(validDay(value) && value<dayKey(new Date(Date.now())))return;
   selectedDay=value;
   if(!editingId){taskDateInput.value=validDay(value)?value:'';syncDeadlineWithSchedule();}
   renderTasks();
@@ -192,6 +193,7 @@ function updateTaskOptionsSummary() {
   document.getElementById('task-options-summary').textContent=parts.join(' · ') || 'Không bắt buộc';
 }
 function handleScheduleChange() {
+  if(validDay(taskDateInput.value) && taskDateInput.value<dayKey(new Date(Date.now()))){message.textContent='Không thể chọn ngày trong quá khứ.';return;}
   updateScheduleDisplay();
   syncDeadlineWithSchedule();
   if(!editingId && validDay(selectedDay)){
@@ -202,13 +204,17 @@ function handleScheduleChange() {
 }
 taskDateInput.addEventListener('change',handleScheduleChange);
 function renderWeekPlanner() {
+  const today=dayKey(new Date(Date.now()));
+  taskDateInput.min=today;
+  document.getElementById('week-previous').disabled=visibleWeek.getTime()<=weekStart(new Date(Date.now())).getTime();
   updateScheduleDisplay();
   const dates=weekDates(visibleWeek);
   document.getElementById('week-range').textContent=new Date(dates[0]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit'})+' – '+new Date(dates[6]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit',year:'numeric'});
   const container=document.getElementById('week-days');container.replaceChildren();
   dates.forEach((date,index)=>{
     const button=document.createElement('button');button.type='button';button.className='week-day';button.id='week-day-'+date;button.setAttribute('aria-pressed',String(selectedDay===date));button.setAttribute('aria-label',weekdayNames[index]+', '+date);
-    if(date===dayKey(new Date(Date.now())))button.className+=' is-today';
+    button.disabled=date<today;
+    if(date===today)button.className+=' is-today';
     const label=document.createElement('span');label.textContent=index===6?'CN':'T'+(index+2);
     const number=document.createElement('strong');number.textContent=String(Number(date.slice(-2)));
     const count=document.createElement('small');count.textContent=String(tasks.filter(task=>task.scheduledDate===date&&(currentFolder==='all'||taskFolderId(task)===currentFolder)&&(currentFilter==='active'?!task.completed:currentFilter==='completed'?task.completed:true)).length);
@@ -237,7 +243,7 @@ repeatInput.addEventListener('change',()=>{
   updateRepeatEditor();
 });
 for(const [id,value] of [['week-all','all'],['week-whole','week'],['week-unscheduled','unscheduled']])document.getElementById(id).addEventListener('click',()=>selectDay(value));
-for(const [id,direction] of [['week-previous',-1],['week-next',1]])document.getElementById(id).addEventListener('click',()=>{visibleWeek.setDate(visibleWeek.getDate()+7*direction);selectDay('week');});
+for(const [id,direction] of [['week-previous',-1],['week-next',1]])document.getElementById(id).addEventListener('click',()=>{const target=new Date(visibleWeek);target.setDate(target.getDate()+7*direction);if(target<weekStart(new Date(Date.now())))return;visibleWeek=target;selectDay('week');});
 document.getElementById('week-current').addEventListener('click',()=>{visibleWeek=weekStart(new Date());selectDay('week');});
 renderRepeatDays();
 let notificationTestPending = false;
@@ -644,6 +650,12 @@ form.addEventListener('submit', event => {
   if (!text) { message.textContent = 'Vui lòng nhập nội dung công việc.'; input.focus(); return; }
   const scheduledDate=taskDateInput.value || null;
   if(scheduledDate && !validDay(scheduledDate)){message.textContent='Ngày thực hiện không hợp lệ.';return;}
+  const originalTask=tasks.find(task=>task.id===editingId);
+  const originalRoutine=routines.find(item=>item.id===originalTask?.routineId);
+  const originalDay=repeatInput.checked?originalRoutine?.startDate:originalTask?.scheduledDate;
+  if(scheduledDate && scheduledDate<dayKey(new Date(Date.now())) && (restoringHistoryId || scheduledDate!==originalDay)){
+    document.getElementById('task-options').open=true;message.textContent='Ngày thực hiện không được ở quá khứ. Chọn hôm nay hoặc ngày sau.';return;
+  }
   if(restoringHistoryId && (repeatInput.checked || !deadlineInput.value)){message.textContent='Chọn deadline mới để khôi phục riêng công việc này.';return;}
   if(repeatInput.checked){submitRepeatingTask(text,scheduledDate);return;}
   const date = deadlineInput.value ? new Date(deadlineInput.value) : null;
@@ -1110,8 +1122,9 @@ function readPickerTime() {
 }
 function updatePickerPreview() {
   if(pickerMode==='schedule'){
-    document.getElementById('apply-deadline').disabled=false;
-    document.getElementById('picker-error').textContent='';
+    const past=dayKey(selectedDate)<dayKey(new Date(Date.now()));
+    document.getElementById('apply-deadline').disabled=past;
+    document.getElementById('picker-error').textContent=past?'Ngày thực hiện không được ở quá khứ.':'';
     document.getElementById('picker-preview').textContent=selectedDate.toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
     return;
   }
@@ -1147,7 +1160,7 @@ function renderCalendar() {
     button.type = 'button';
     button.textContent = date.getDate();
     button.className = 'calendar-day';
-    button.disabled = pickerMode==='deadline' && (date.getTime() < todayStart || (validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value));
+    button.disabled = date.getTime() < todayStart || (pickerMode==='deadline' && validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value);
     if (date.getMonth() !== calendarMonth.getMonth()) button.className += ' outside';
     if (sameDay(date, now)) { button.className += ' today'; button.setAttribute('aria-current', 'date'); }
     const chosen = sameDay(date, selectedDate);
@@ -1176,7 +1189,7 @@ function openDatePicker(mode='deadline') {
     const time=existing && Number.isFinite(existing.getTime()) ? existing : selectedDate;
     selectedDate=new Date(taskDateInput.value+'T'+padDate(time.getHours())+':'+padDate(time.getMinutes()));
   }
-  if(pickerMode==='schedule')selectedDate=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00'):new Date(Date.now());
+  if(pickerMode==='schedule')selectedDate=validDay(taskDateInput.value) && taskDateInput.value>=dayKey(new Date(Date.now()))?new Date(taskDateInput.value+'T12:00:00'):new Date(Date.now());
   document.getElementById('picker-title').textContent=pickerMode==='schedule'?'Ngày thực hiện':'Chọn deadline';
   document.getElementById('picker-time-section').hidden=pickerMode==='schedule';
   document.getElementById('apply-deadline').textContent=pickerMode==='schedule'?'Chọn ngày này':'Xác nhận deadline';
@@ -1251,6 +1264,7 @@ for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
 }
 document.getElementById('apply-deadline').addEventListener('click', () => {
   if(pickerMode==='schedule'){
+    if(dayKey(selectedDate)<dayKey(new Date(Date.now()))){updatePickerPreview();return;}
     taskDateInput.value=dayKey(selectedDate);handleScheduleChange();closeDatePicker();return;
   }
   const time = readPickerTime();

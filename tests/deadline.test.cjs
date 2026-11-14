@@ -168,7 +168,7 @@ test('Editing a legacy mismatched deadline aligns only the editor until saved; p
   assert.equal(app.run('tasks[0].deadline'),original);
   app.submit('Corrected',app.elements['deadline-input'].value);
   assert.equal(app.run('dayKey(new Date(tasks[0].deadline))'),'2026-11-16');
-  app.run("selectDay('2026-11-13')");app.elements['open-picker'].listeners.click();
+  app.elements['task-date'].value='2026-11-13';app.elements['open-picker'].listeners.click();
   assert.equal(app.run('dayKey(selectedDate)'),'2026-11-13');
   assert.equal(app.elements['apply-deadline'].disabled,true);
 });
@@ -215,6 +215,21 @@ test('Custom schedule calendar selects or clears a day, preserves time and cance
   assert.equal(app.elements['task-date'].value,'2026-11-18');
   app.elements['open-picker'].listeners.click();assert.equal(app.elements['picker-time-section'].hidden,false);assert.equal(app.elements['next-month'].disabled,true);
   app.elements['cancel-picker'].listeners.click();app.elements['open-schedule-picker'].listeners.click();app.elements['clear-deadline'].listeners.click();assert.equal(app.elements['task-date'].value,'');
+});
+test('Past days are blocked in week planner, calendar and task submission while existing old tasks remain editable',()=>{
+  const app=boot();const today=app.run('dayKey(new Date(Date.now()))');
+  assert.ok(app.elements['week-days'].children.filter(day=>day.disabled).length>0);
+  assert.equal(app.elements['week-previous'].disabled,true);
+  const week=app.run('dayKey(visibleWeek)');app.elements['week-previous'].listeners.click();assert.equal(app.run('dayKey(visibleWeek)'),week);
+  app.run("selectDay('2026-11-13')");assert.equal(app.run('selectedDay'),'all');
+  app.elements['task-date'].value='2026-11-13';app.submit('Past task');assert.equal(app.run('tasks.length'),0);
+  app.elements['task-repeat'].checked=true;app.run('repeatWeekdays=new Set([1])');app.submit('Past repeat');assert.equal(app.run('routines.length'),0);
+  app.elements['open-schedule-picker'].listeners.click();assert.equal(app.run('dayKey(selectedDate)'),today);
+  app.run("selectedDate=new Date('2026-11-13T12:00:00');renderCalendar()");
+  assert.equal(app.elements['apply-deadline'].disabled,true);
+  app.elements['apply-deadline'].listeners.click();assert.equal(app.elements['date-picker'].open,true);
+  app.elements['cancel-picker'].listeners.click();
+  const old=boot([task({scheduledDate:'2026-11-13'})]);old.run('startEditing(tasks[0])');old.submit('Rename existing past task');assert.equal(old.run('tasks[0].text'),'Rename existing past task');
 });
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });

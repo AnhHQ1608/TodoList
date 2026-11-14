@@ -444,6 +444,9 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 .week-day small { display: grid; place-items: center; min-width: 19px; height: 17px; border-radius: 5px; background: #a78bfa12; font-size: 9px; }
 .week-day.is-today { border-color: #a78bfa40; }
 .week-day:hover { background: #a78bfa15; }
+.week-day:disabled { opacity: .3; cursor: not-allowed; box-shadow: none; }
+.week-day:disabled:hover { background: #ffffff04; }
+.week-navigation button:disabled { opacity: .3; cursor: not-allowed; }
 .week-day[aria-pressed="true"] { color: #faf5ff; background: linear-gradient(145deg,#9b78e5,#7653bf); box-shadow: 0 6px 18px #9b78e525; }
 .week-day[aria-pressed="true"] strong { color: white; }
 .week-views { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 13px; }

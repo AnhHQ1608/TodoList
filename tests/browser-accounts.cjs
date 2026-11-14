@@ -68,6 +68,8 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     await until("!!window.todoAccount && !document.documentElement.classList.contains('account-loading')");
     assert.equal(await evaluate("document.getElementById('account-name').textContent"),'Hoàng Quốc Anh');
     assert.equal(await evaluate("document.getElementById('task-options').open"),false);
+    assert.equal(await evaluate("[...document.querySelectorAll('#week-days button')].every(button=>button.disabled===(button.id.slice(-10)<dayKey(new Date(Date.now()))))"),true);
+    assert.equal(await evaluate("document.getElementById('week-previous').disabled"),true);
     assert.equal(await evaluate("Math.abs(document.getElementById('task-input').getBoundingClientRect().top-document.getElementById('submit-task').getBoundingClientRect().top)<2"),true);
     assert.equal(await evaluate("Boolean(document.querySelector('.task-management').compareDocumentPosition(document.getElementById('task-list')) & Node.DOCUMENT_POSITION_PRECEDING)"),true);
     await evaluate("document.querySelector('#task-options > summary').click()");
