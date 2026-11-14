@@ -1,0 +1,36 @@
+.auth-page { min-height: 100dvh; background: radial-gradient(ellipse at 15% 10%, #6d28d92b, transparent 50%), var(--bg, #101329); }
+.auth-shell { width: min(480px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 24px; }
+.auth-brand { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 30px; font-size: 20px; letter-spacing: .13em; font-weight: 900; color: inherit; text-decoration: none; }
+.auth-card { padding: clamp(24px, 5vw, 40px); border: 1px solid var(--line); border-radius: 26px; background: #ffffff05; box-shadow: 0 24px 80px #0002; }
+.auth-card h1 { font-size: clamp(26px, 6vw, 34px); margin: 12px 0; }
+.auth-intro, .auth-note, .auth-slogan { color: var(--muted); line-height: 1.7; }
+.auth-intro { font-size: 14px; }
+.auth-tabs { display: flex; padding: 5px; border-radius: 12px; background: #0002; margin: 26px 0; }
+.auth-tabs button { flex: 1; padding: 12px 8px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; }
+.auth-tabs [aria-selected="true"] { background: #a78bfa30; color: #dacdff; }
+#auth-form { display: grid; gap: 10px; }
+#auth-form label { font-size: 13px; font-weight: 600; }
+#auth-form input { width: 100%; box-sizing: border-box; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #101329; color: #f4efff; font: inherit; }
+#auth-form input:focus { outline: 2px solid #a78bfa; outline-offset: 2px; }
+#auth-form .help { font-size: 11px; margin: 0 0 12px; }
+.password-field { display: flex; position: relative; }
+.password-field input { padding-right: 64px !important; }
+.password-field button { position: absolute; right: 8px; top: 6px; bottom: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #bda6f4; }
+#auth-confirm-field label { display: block; margin: 8px 0 10px; }
+#auth-message { min-height: 20px; margin: 5px 0; color: #d4b8ff; font-size: 13px; }
+#auth-submit { min-height: 48px; width: 100%; }
+.auth-note { font-size: 11px; margin: 18px 0 0; }
+.auth-slogan { text-align: center; font-size: 12px; letter-spacing: .08em; }
+[data-theme="light"] .auth-page { background: radial-gradient(ellipse at 15% 10%, #ede9fe, transparent 60%), #f8fafc; }
+.account-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 20px 0; font-size: 13px; }
+.account-bar strong { color: #c4b5fd; }
+.account-bar .secondary { font-size: 12px; padding: 8px 12px; }
+#account-sync { flex: 1; color: var(--muted); font-size: 12px; }
+#account-gate { width: min(560px, calc(100% - 32px)); margin: 80px auto; padding: 26px; box-sizing: border-box; text-align: center; }
+html.account-loading .app, html.account-loading .settings-dialog, html.account-loading .site-footer { display: none; }
+[data-theme="light"] .auth-card { background: #fff; }
+[data-theme="light"] #auth-form input { background: #f8fafc; color: #1e293b; }
+[data-theme="light"] .auth-tabs { background: #f1f5f9; }
+[data-theme="light"] .auth-tabs [aria-selected="true"] { background: #ede9fe; color: #6d28d9; }
+[data-theme="light"] #auth-message, [data-theme="light"] .account-bar strong { color: #6d28d9; }
+@media(max-width:480px) { .auth-shell { padding-top: 28px; } #account-sync { flex-basis: 100%; } }

@@ -21,7 +21,7 @@ function environment() {
     return statement;
   }
   return { DB: { prepare, batch: statements => Promise.all(statements.map(item => item.run())) }, sqlite,
-    ALLOWED_ORIGIN: origin, ADMIN_PASSWORD: 'test-only-password-at-least-sixteen', AUTH_SECRET: 'test-only-signing-key-at-least-thirty-two-characters' };
+    REQUIRE_ACCOUNT: 'false', ALLOWED_ORIGIN: origin, ADMIN_PASSWORD: 'test-only-password-at-least-sixteen', AUTH_SECRET: 'test-only-signing-key-at-least-thirty-two-characters' };
 }
 function request(path, { method = 'GET', data, token, source = origin } = {}) {
   return new Request('https://activity.example' + path, { method, headers: {
@@ -151,7 +151,7 @@ function adminClient(configured = true, sessions = [], visitorId = '', storage =
     fetch: async (url, options) => {
       requests.push({ url, options });
       const data = url.endsWith('/admin/login') ? { token: 'test-token', expiresIn: 10 * 86400 }
-        : url.endsWith('/admin/sessions') ? { sessions } : { events: [], hasMore: false };
+        : url.endsWith('/admin/users') ? { users: [] } : url.endsWith('/admin/sessions') ? { sessions } : { events: [], hasMore: false };
       return { ok: true, status: 200, json: async () => data };
     }
   };
@@ -220,8 +220,8 @@ test('Admin names only this browser visitor admin, leaving other devices unchang
   const app = adminClient(true, sessions, ownId);
   app.elements['admin-password'].value = 'test-only';
   await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
-  assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'admin · desktop');
-  assert.equal(app.elements['sessions-body'].children[1].children[1].textContent, 'desktop');
+  assert.equal(app.elements['sessions-body'].children[0].children[2].textContent, 'admin · desktop');
+  assert.equal(app.elements['sessions-body'].children[1].children[2].textContent, 'desktop');
   assert.equal(app.elements['session-filter'], undefined);
 });
 

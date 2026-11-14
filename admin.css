@@ -5,7 +5,7 @@
 @media (max-width: 420px) { .admin-app header { flex-wrap: wrap; } .admin-back { padding: 9px 10px; font-size: 11px; } }
 .admin-app h1 { font-size: clamp(26px, 5vw, 36px); margin-top: 45px; }
 .admin-app h2 { margin: 24px 0 14px; }
-#admin-alert-form { margin: 20px 0; }
+#admin-alert-form { display: grid; gap: 12px; margin: 20px 0; }
 #admin-alert-message { display: block; width: 100%; box-sizing: border-box; margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; resize: vertical; }
 .device-code + button { display: block; margin-top: 8px; font-size: 12px; }
 #admin-message { color: #dbb9ff; font-size: 13px; min-height: 20px; }
@@ -19,6 +19,7 @@
 #device-filter { flex: 1; min-width: 0; padding: 12px; border: 1px solid #555074; border-radius: 9px; background: #14172e; color: white; }
 .admin-navigation { position: sticky; top: 10px; z-index: 5; display: flex; align-items: center; gap: 10px; margin: 24px 0 16px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: #181b36f5; box-shadow: 0 6px 20px #0001; }
 .admin-tabs { display: flex; gap: 5px; flex: 1; }
+.admin-tabs { flex-wrap: wrap; }
 .admin-tabs button { min-height: 42px; border: 0; padding: 10px 15px; border-radius: 9px; background: transparent; color: var(--muted); font-size: 13px; }
 .admin-tabs button[aria-selected="true"] { background: #a38aff25; color: #dfceff; }
 .admin-tabs button:hover { background: #a38aff15; }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101329">
+  <meta name="referrer" content="no-referrer">
+  <title>Đăng nhập · Focus List</title>
+  <link rel="icon" href="logo.svg">
+  <script src="theme.js?v=3"></script>
+  <link rel="stylesheet" href="style.css?v=accounts-1">
+  <link rel="stylesheet" href="account.css?v=1">
+  <script src="telemetry-config.js?v=live-activity-1" defer></script>
+  <script src="account.js?v=1" defer></script>
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <a class="auth-brand" href="index.html"><img src="logo.svg" width="48" height="48" alt="">FOCUS LIST</a>
+    <section class="auth-card">
+      <p class="eyebrow">KHÔNG GIAN CỦA RIÊNG BẠN</p>
+      <h1 id="auth-title">Chào mừng trở lại.</h1>
+      <p class="auth-intro">Một tài khoản. Công việc của bạn, trên mọi thiết bị.</p>
+      <div class="auth-tabs" role="tablist" aria-label="Tài khoản">
+        <button id="auth-login-tab" role="tab" aria-selected="true" aria-controls="auth-form" type="button">Đăng nhập</button>
+        <button id="auth-register-tab" role="tab" aria-selected="false" aria-controls="auth-form" type="button">Đăng ký</button>
+      </div>
+      <form id="auth-form">
+        <label for="auth-username">Tên đăng nhập</label>
+        <input id="auth-username" autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.]{3,32}" placeholder="Ví dụ: quocanh1608" required aria-describedby="username-help">
+        <span id="username-help" class="help">3–32 chữ không dấu, số, dấu chấm hoặc gạch dưới.</span>
+        <label for="auth-password">Mật khẩu</label>
+        <div class="password-field"><input id="auth-password" type="password" autocomplete="current-password" minlength="10" maxlength="128" required placeholder="Ít nhất 10 ký tự"><button id="auth-show-password" type="button" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button></div>
+        <div id="auth-confirm-field" hidden><label for="auth-confirm">Nhập lại mật khẩu</label><input id="auth-confirm" type="password" autocomplete="new-password" maxlength="128"></div>
+        <p id="auth-message" role="status" aria-live="polite"></p>
+        <button id="auth-submit" class="add" type="submit">Đăng nhập</button>
+      </form>
+      <p class="auth-note">Giữ đăng nhập 10 ngày. Không dùng chung mật khẩu với tài khoản khác.</p>
+      <p class="auth-note">Website ghi nhận loại thao tác và thiết bị để quản trị. Nội dung task thuộc tài khoản của bạn.</p>
+    </section>
+    <p class="auth-slogan">Mỗi ngày, một bước tiến.</p>
+  </main>
+</body>
+</html>

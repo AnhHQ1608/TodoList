@@ -11,11 +11,11 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https:; base-uri 'none'; form-action 'none'; object-src 'none'">
   <title>Quản trị hoạt động · Focus List</title>
   <link rel="icon" href="logo.svg">
-  <link rel="stylesheet" href="style.css?v=device-alerts-1">
-  <link rel="stylesheet" href="admin.css?v=device-alerts-1">
+  <link rel="stylesheet" href="style.css?v=accounts-1">
+  <link rel="stylesheet" href="admin.css?v=accounts-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=device-alerts-1" defer></script>
-  <script src="device-alerts.js?v=2" defer></script>
+  <script src="admin.js?v=accounts-1" defer></script>
+  <script src="device-alerts.js?v=accounts-1" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -36,15 +36,19 @@
         <button id="admin-alert-send" class="secondary" type="submit">Gửi cảnh báo</button>
         <button id="admin-alert-cancel" class="secondary" type="button">Hủy</button>
       </form>
-      <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>
+      <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button><button id="admin-users-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-users-panel" tabindex="-1">Tài khoản</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>
       <div id="admin-sessions-panel" role="tabpanel" aria-labelledby="admin-sessions-tab">
       <p class="help">100 thiết bị gần nhất · Mỗi mã TB chỉ một dòng, cập nhật lần truy cập cuối.</p>
-      <div class="table-scroll"><table><thead><tr><th>Mã thiết bị</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Mã thiết bị</th><th>Tài khoản</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
       </div>
       <div id="admin-events-panel" role="tabpanel" aria-labelledby="admin-events-tab" hidden>
       <p class="help">100 thao tác mới nhất.</p>
       <div class="admin-toolbar"><label for="device-filter">Thiết bị</label><select id="device-filter"><option value="">Tất cả thiết bị</option></select></div>
-      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã thiết bị</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Tài khoản</th><th>Mã thiết bị</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
+      </div>
+      <div id="admin-users-panel" role="tabpanel" aria-labelledby="admin-users-tab" hidden>
+        <p class="help">100 tài khoản mới nhất.</p>
+        <div class="table-scroll"><table><thead><tr><th>Tên đăng nhập</th><th>Ngày tạo</th><th>Số thiết bị</th><th>Lần cuối</th></tr></thead><tbody id="users-body"></tbody></table></div>
       </div>
     </section>
   </main>

@@ -8,9 +8,17 @@ Trang quản trị: `https://anhhq1608.github.io/TodoList/admin.html`. Mật kh�
 
 **Để ngừng ghi nhận:** đổi `apiUrl` thành `''` và push. GitHub Pages chỉ phục vụ frontend; push lên GitHub không tự triển khai Worker. Khi sửa `backend/worker.mjs`, cần chạy lại lệnh Wrangler deploy bên dưới. Các bước triển khai lần đầu dưới đây dùng khi chuyển sang tài khoản/database mới; không tạo lại database đang dùng.
 
-Người dùng vẫn dùng TodoList không cần tài khoản. Mỗi trình duyệt có mã khách ngẫu nhiên, mỗi lần mở/tải trang có mã phiên mới. Đây không phải danh tính hoặc mã phần cứng thật. Chế độ ẩn danh, đổi trình duyệt hoặc xóa storage sẽ tạo khách khác.
+TodoList bắt buộc đăng nhập bằng tài khoản tên đăng nhập/mật khẩu. Đăng ký tại `login.html`, tên 3–32 ký tự chữ không dấu/số/./_, mật khẩu 10–128 ký tự. Phiên người dùng có hạn cố định 10 ngày, tách hoàn toàn quyền quản trị. Một người có thể đăng nhập nhiều thiết bị, mỗi thiết bị có mã khách riêng theo tài khoản; đây không phải mã phần cứng thật. Chế độ ẩn danh, đổi trình duyệt hoặc xóa storage tạo mã thiết bị khác.
 
-Trang quản trị có hai tab **Phiên gần nhất** và **Lịch sử thao tác**. Thiết bị được cấp mã số chung như **TB-000001** theo mã khách. Tab Phiên gần nhất chỉ có một dòng cho mỗi thiết bị: truy cập lại cập nhật thời gian Lần cuối, không thêm dòng theo phiên. Thông tin thiết bị lấy từ sự kiện đầu tiên còn trong thời gian lưu; bảng hiển thị tối đa 100 thiết bị hoạt động gần nhất. Bấm mã thiết bị để lọc lịch sử thao tác; lịch sử vẫn giữ từng thao tác riêng và hiển thị tối đa 100 dòng mới nhất, không có cột hay bộ lọc phiên. Mã không tái sử dụng cho thiết bị khác; sau 30 ngày không còn lịch sử, bản ghi thiết bị được dọn và lần truy cập sau có thể được cấp mã mới.
+Task và thư mục được lưu riêng theo tài khoản trong D1 qua `/account/data`; máy chủ xác thực token ở mọi lần đọc/ghi. Đồng bộ sau thay đổi khoảng 0,7 giây, tải dữ liệu mới nhất khi mở lại trang. Hai thiết bị sửa cùng lúc dùng số phiên bản để phát hiện xung đột, không âm thầm ghi đè. Bản chưa đồng bộ vẫn giữ trên máy; khi tải lại có thể tải bản đó ra JSON trước khi mở bản máy chủ. Mỗi tài khoản tối đa 2.000 task, 200 thư mục và 256 KB mỗi lần lưu. Dọn task hoàn thành vẫn theo cơ chế cũ khi ứng dụng đang chạy.
+
+Task cũ chưa có tài khoản vẫn giữ trong các khóa localStorage cũ. Sau đăng nhập, nút **Nhập task cũ trên máy** gộp task/thư mục chưa có ID vào tài khoản đang dùng, không xóa bản cũ. Chỉ bấm nút này trên tài khoản muốn nhận dữ liệu cũ. Đăng xuất giữ dữ liệu riêng trên máy để tránh mất bản chưa đồng bộ; trình duyệt dùng chung nên dùng hồ sơ riêng.
+
+Mật khẩu người dùng băm PBKDF2-SHA256 100.000 vòng, salt ngẫu nhiên riêng và HMAC pepper ở secret `PASSWORD_PEPPER` của Worker. Token phiên 256-bit ngẫu nhiên; D1 chỉ lưu SHA-256 của token. Không ghi mật khẩu/token gốc vào database hay Git. `PASSWORD_PEPPER` phải giữ nguyên sau khi tạo tài khoản; đổi pepper sẽ làm mật khẩu cũ không xác thực được. `AUTH_SECRET` vẫn độc lập cho phiên admin và chống spam. Chưa có khôi phục mật khẩu qua email vì đăng ký không yêu cầu email.
+
+Trang quản trị thêm tab **Tài khoản** (100 tài khoản mới nhất, ngày tạo, số thiết bị, lần cuối). Hai bảng thiết bị và lịch sử có cột Tài khoản; bản ghi cũ chưa gắn tài khoản hiện là Khách cũ. Không hiển thị hash mật khẩu hay nội dung task trong API admin.
+
+Trang quản trị có ba tab **Phiên gần nhất**, **Lịch sử thao tác**, **Tài khoản**. Thiết bị được cấp mã số chung như **TB-000001** theo mã khách. Tab Phiên gần nhất chỉ có một dòng cho mỗi thiết bị: truy cập lại cập nhật thời gian Lần cuối, không thêm dòng theo phiên. Thông tin thiết bị lấy từ sự kiện đầu tiên còn trong thời gian lưu; bảng hiển thị tối đa 100 thiết bị hoạt động gần nhất. Bấm mã thiết bị để lọc lịch sử thao tác; lịch sử vẫn giữ từng thao tác riêng và hiển thị tối đa 100 dòng mới nhất, không có cột hay bộ lọc phiên. Mã không tái sử dụng cho thiết bị khác; sau 30 ngày không còn lịch sử, bản ghi thiết bị được dọn và lần truy cập sau có thể được cấp mã mới.
 
 Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schema.sql` bằng lệnh D1 execute bên dưới **trước** khi deploy Worker. Schema bổ sung bảng mã thiết bị và cấp mã cho lịch sử có sẵn, không xóa sự kiện cũ.
 
@@ -18,13 +26,15 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 - Khi ghi nhận đang bật: mở trang; trang còn hoạt động (heartbeat khi tab hiện); thêm/sửa/xóa/hoàn thành/mở lại task; tạo/xóa thư mục; đợt tự dọn task hoàn thành.
 - Chỉ gửi mã sự kiện, mã khách, mã phiên, tên thao tác và nhóm trình duyệt/hệ điều hành/thiết bị. Thời gian do máy chủ ghi nhận.
-- Không gửi nội dung task, tên thư mục, deadline, phím gõ, ảnh màn hình, URL đang mở, mật khẩu hay tên người dùng.
+- API lịch sử không gửi nội dung task, tên thư mục, deadline, phím gõ, ảnh màn hình hoặc URL đang mở. API tài khoản riêng nhận tên đăng nhập/mật khẩu qua HTTPS để xác thực và nhận task/thư mục/deadline để đồng bộ. Tên tài khoản gắn với thiết bị và lịch sử từ phiên đã xác thực trên máy chủ.
 - Không ghi IP gốc vào D1. IP hạ tầng cung cấp chỉ được băm HMAC theo cửa sổ thời gian để giới hạn tốc độ. Khóa chống spam hết hạn sẽ được dọn mỗi ngày. Nhà cung cấp hạ tầng có thể xử lý dữ liệu mạng theo chính sách riêng.
 - Ghi nhận tự động, không còn công tắc hay lựa chọn cũ trong localStorage. Do Not Track / Global Privacy Control của trình duyệt vẫn được tôn trọng. Không thể bảo đảm ghi nhận mọi lượt truy cập khi trình duyệt chặn mạng hoặc tắt JavaScript.
 - Lịch sử cũ hết 30 ngày bị dọn hằng ngày, API không trả dữ liệu quá 30 ngày.
 - Lịch sử là dữ liệu do client tự khai báo, không phải bằng chứng kiểm toán hay bảo mật. Trình chặn quảng cáo, offline, quota hoặc giới hạn tốc độ có thể làm thiếu sự kiện. “Vừa hoạt động” nghĩa là nhận sự kiện trong 2 phút gần đây, không chứng minh thiết bị đang online.
 
 ## Triển khai lần đầu trên Cloudflare
+
+Khi nâng cấp tài khoản: chạy lại schema idempotent, thêm secret `PASSWORD_PEPPER` bằng `npx.cmd --yes wrangler@4.162.0 secret put PASSWORD_PEPPER --config backend/wrangler.toml` (chuỗi ngẫu nhiên tối thiểu 32 ký tự, chỉ tạo một lần), rồi deploy Worker và push frontend. `REQUIRE_ACCOUNT = "true"` trong wrangler.toml yêu cầu đăng nhập cho API sự kiện/cảnh báo. Giữ nguyên toàn bộ secret quản trị hiện có.
 
 ### Cảnh báo thiết bị
 

@@ -4,6 +4,7 @@ compatibility_date = "2026-01-01"
 workers_dev = true
 
 [vars]
+REQUIRE_ACCOUNT = "true"
 ALLOWED_ORIGIN = "https://anhhq1608.github.io"
 
 [[d1_databases]]

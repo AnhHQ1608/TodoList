@@ -9,11 +9,11 @@ const notificationStatus = document.getElementById('notification-status');
 const list = document.getElementById('task-list');
 const message = document.getElementById('message');
 const filters = document.querySelectorAll('[data-filter]');
-const storageKey = 'focus-list-tasks-v1';
+const storageKey = window.todoAccount?.storageKey || 'focus-list-tasks-v1';
 function recordActivity(action) {
   try { window.todoActivity?.track(action)?.catch(() => {}); } catch { /* Ghi lịch sử không được làm gián đoạn công việc. */ }
 }
-const foldersKey = 'focus-list-folders-v1';
+const foldersKey = window.todoAccount?.foldersKey || 'focus-list-folders-v1';
 const folderSelect = document.getElementById('task-folder');
 let folders = [];
 let currentFolder = 'all';
@@ -167,7 +167,7 @@ document.getElementById('folder-form').addEventListener('submit', event => {
   }
   const folder = { id: 'folder-' + Date.now().toString(36) + Math.random().toString(36).slice(2), name, icon: selectedFolderIcon };
   const nextFolders = [...folders, folder];
-  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); } catch (error) {
+  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); window.todoAccount?.save(); } catch (error) {
     status.textContent = 'Không thể lưu mục mới. Kiểm tra quyền lưu trữ của trình duyệt.'; return;
   }
   folders = nextFolders;
@@ -187,7 +187,7 @@ document.getElementById('delete-folder').addEventListener('click', () => {
   if (!folder) return;
   const nextFolders = folders.filter(item => item.id !== folder.id);
   const status = document.getElementById('folder-message');
-  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); } catch (error) {
+  try { localStorage.setItem(foldersKey, JSON.stringify(nextFolders)); window.todoAccount?.save(); } catch (error) {
     status.textContent = 'Không thể xóa mục vì chưa lưu được dữ liệu. Hãy thử lại.'; return;
   }
   folders = nextFolders;
@@ -225,6 +225,7 @@ try { tasks = readTasks(); } catch (error) {
 function saveTasks() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(tasks));
+    window.todoAccount?.save();
     tasksNeedSaving = false;
     message.textContent = '';
     return true;

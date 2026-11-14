@@ -1,4 +1,5 @@
-// API độc lập: không nhận tên task, deadline, tên thư mục, email hay IP trong payload.
+import { accountRoute, currentUser } from './accounts.mjs';
+// Lịch sử chỉ nhận loại thao tác; API tài khoản riêng lưu dữ liệu TodoList.
 export const ACTIONS = ['visit', 'heartbeat', 'task_created', 'task_updated', 'task_deleted', 'task_completed', 'task_reopened', 'task_auto_deleted', 'folder_created', 'folder_deleted'];
 const BROWSERS = ['CocCoc', 'Edge', 'Chrome', 'Firefox', 'Safari', 'Other'];
 const SYSTEMS = ['Windows', 'Android', 'iOS', 'macOS', 'Linux', 'Other'];
@@ -92,6 +93,8 @@ export default {
     const path = new URL(request.url).pathname;
     const now = Math.floor(Date.now() / 1000);
     try {
+      const accountResponse = await accountRoute(request, env, path, now, reply, limited);
+      if (accountResponse) return accountResponse;
       if (path === '/health' && request.method === 'GET') return reply({ ready: true });
       if (path === '/device/alerts' && request.method === 'POST') {
         if (origin !== env.ALLOWED_ORIGIN) return reply({ error: 'Origin không hợp lệ.' }, 403);
@@ -99,6 +102,12 @@ export default {
         let data;
         try { data = await readBody(request); } catch { return reply({ error: 'Dữ liệu không hợp lệ.' }, 400); }
         if (!uuid.test(data?.visitorId || '')) return reply({ error: 'Thiết bị không hợp lệ.' }, 400);
+        if (env.REQUIRE_ACCOUNT !== 'false') {
+          const user = await currentUser(request, env, now);
+          if (!user) return reply({error:'Vui lòng đăng nhập.'},401);
+          const device = await env.DB.prepare('SELECT user_id FROM account_devices WHERE visitor_id=?1').bind(data.visitorId).first();
+          if (!device || device.user_id !== user.id) return reply({error:'Thiết bị không thuộc tài khoản này.'},403);
+        }
         const rows = await env.DB.prepare('SELECT id,message,created_at FROM device_alerts WHERE visitor_id=?1 AND created_at>=?2 ORDER BY created_at DESC,id DESC LIMIT 20').bind(data.visitorId, now - 7 * 86400).all();
         return reply({ alerts: rows.results });
       }
@@ -108,10 +117,20 @@ export default {
         let data;
         try { data = await readBody(request); } catch { return reply({ error: 'Payload không hợp lệ.' }, 400); }
         if (!validEvent(data)) return reply({ error: 'Chỉ được gửi dữ liệu thao tác đã cho phép.' }, 400);
+        const user = await currentUser(request, env, now);
+        if (env.REQUIRE_ACCOUNT !== 'false' && !user) return reply({error:'Vui lòng đăng nhập.'},401);
+        if(user){
+          const owner=await env.DB.prepare('SELECT user_id FROM account_devices WHERE visitor_id=?1').bind(data.visitorId).first();
+          if(owner && owner.user_id!==user.id)return reply({error:'Mã thiết bị thuộc tài khoản khác.'},403);
+        }
         await env.DB.batch([
           env.DB.prepare('INSERT OR IGNORE INTO devices(visitor_id) VALUES(?1)').bind(data.visitorId),
           env.DB.prepare('INSERT OR IGNORE INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)')
             .bind(data.eventId, data.visitorId, data.sessionId, data.action, data.browser, data.os, data.device, now)
+        ]);
+        if (user) await env.DB.batch([
+          env.DB.prepare('INSERT INTO account_devices(visitor_id,user_id,last_seen) VALUES(?1,?2,?3) ON CONFLICT(visitor_id) DO UPDATE SET user_id=excluded.user_id,last_seen=excluded.last_seen').bind(data.visitorId,user.id,now),
+          env.DB.prepare('INSERT OR IGNORE INTO event_accounts(event_id,user_id) VALUES(?1,?2)').bind(data.eventId,user.id)
         ]);
         return reply({ accepted: true }, 202);
       }
@@ -123,7 +142,7 @@ export default {
           return reply({ error: 'Mật khẩu không đúng.' }, 401);
         return reply({ token: await makeToken(env.AUTH_SECRET), expiresIn: SESSION_SECONDS, expiresAt: (now + SESSION_SECONDS) * 1000 });
       }
-      if (['/admin/sessions', '/admin/events', '/admin/logout', '/admin/alerts'].includes(path)) {
+      if (['/admin/sessions', '/admin/events', '/admin/logout', '/admin/alerts', '/admin/users'].includes(path)) {
         if (request.method !== (['/admin/logout', '/admin/alerts'].includes(path) ? 'POST' : 'GET')) return reply({ error: 'Method không hợp lệ.' }, 405);
         const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
         if (!await validToken(token, env.AUTH_SECRET)) return reply({ error: 'Hãy đăng nhập lại.' }, 401);
@@ -131,12 +150,20 @@ export default {
         const revokeKey = 'revoked:' + hash;
         const revoked = await env.DB.prepare('SELECT expires_at FROM rate_limits WHERE key=?1').bind(revokeKey).first();
         if (revoked && revoked.expires_at > now) return reply({ error: 'Phiên đã đăng xuất. Hãy đăng nhập lại.' }, 401);
+        if(path === '/admin/users'){
+          const rows=await env.DB.prepare('SELECT u.id,u.username,u.created_at,COUNT(a.visitor_id) device_count,MAX(a.last_seen) last_seen FROM users u LEFT JOIN account_devices a ON a.user_id=u.id GROUP BY u.id,u.username,u.created_at ORDER BY u.created_at DESC,u.id DESC LIMIT 100').all();
+          return reply({users:rows.results});
+        }
         if (path === '/admin/alerts') {
           let data;
           try { data = await readBody(request); } catch { return reply({ error: 'Dữ liệu không hợp lệ.' }, 400); }
           if (!Number.isSafeInteger(data?.deviceNo) || data.deviceNo <= 0 || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 500) return reply({ error: 'Nhập ghi chú từ 1 đến 500 ký tự.' }, 400);
           const device = await env.DB.prepare('SELECT visitor_id FROM devices WHERE device_no=?1').bind(data.deviceNo).first();
           if (!device) return reply({ error: 'Thiết bị không còn tồn tại.' }, 404);
+          if(env.REQUIRE_ACCOUNT !== 'false'){
+            const account=await env.DB.prepare('SELECT user_id FROM account_devices WHERE visitor_id=?1').bind(device.visitor_id).first();
+            if(!account)return reply({error:'Thiết bị cũ cần đăng nhập TodoList trước khi nhận cảnh báo.'},409);
+          }
           if (await limited(request, env, 'alerts-send', 20, 300, now)) return reply({ error: 'Gửi quá nhiều cảnh báo. Thử lại sau.' }, 429);
           await env.DB.prepare('INSERT INTO device_alerts(id,visitor_id,message,created_at) VALUES(?1,?2,?3,?4)').bind(crypto.randomUUID(), device.visitor_id, data.message.trim(), now).run();
           return reply({ queued: true }, 202);
@@ -150,7 +177,9 @@ export default {
           // Mỗi trình duyệt chỉ có một dòng; phiên truy cập mới cập nhật last_seen.
           const rows = await env.DB.prepare('WITH ranked AS (SELECT e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) OVER (PARTITION BY e.visitor_id) first_seen,MAX(e.created_at) OVER (PARTITION BY e.visitor_id) last_seen,COUNT(*) OVER (PARTITION BY e.visitor_id) event_count,ROW_NUMBER() OVER (PARTITION BY e.visitor_id ORDER BY e.created_at,e.id) position FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1) SELECT visitor_id,device_no,browser,os,device,first_seen,last_seen,event_count FROM ranked WHERE position=1 ORDER BY last_seen DESC,device_no DESC LIMIT 100')
             .bind(now - retention).all();
-          return reply({ sessions: rows.results });
+          const accounts = await env.DB.prepare('SELECT a.visitor_id,u.username FROM account_devices a JOIN users u ON u.id=a.user_id WHERE a.visitor_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.visitor_id))).all();
+          const names = new Map(accounts.results.map(a => [a.visitor_id,a.username]));
+          return reply({ sessions: rows.results.map(row => ({...row,username:names.get(row.visitor_id) || null})) });
         }
         const url = new URL(request.url);
         const session = url.searchParams.get('session');
@@ -162,7 +191,9 @@ export default {
         if (!Number.isSafeInteger(cursor) || cursor !== 0) return reply({ error: 'Trang không hợp lệ.' }, 400);
         const rows = await env.DB.prepare('SELECT e.id,e.session_id,e.visitor_id,d.device_no,e.action,e.browser,e.os,e.device,e.created_at FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 AND (?2 IS NULL OR e.session_id=?2) AND (?4 IS NULL OR d.device_no=?4) ORDER BY e.created_at DESC,e.id DESC LIMIT 100 OFFSET ?3')
           .bind(now - retention, session || null, cursor, deviceNo).all();
-        return reply({ events: rows.results.slice(0, 100), hasMore: false });
+        const accounts = await env.DB.prepare('SELECT a.event_id,u.username FROM event_accounts a JOIN users u ON u.id=a.user_id WHERE a.event_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.id))).all();
+        const names = new Map(accounts.results.map(a => [a.event_id,a.username]));
+        return reply({ events: rows.results.slice(0, 100).map(row=>({...row,username:names.get(row.id) || null})), hasMore: false });
       }
       return reply({ error: 'Không tìm thấy.' }, 404);
     } catch { return reply({ error: 'Không xử lý được yêu cầu. Hãy thử lại.' }, 500); }
@@ -171,6 +202,8 @@ export default {
     const now = Math.floor(Date.now() / 1000);
     await env.DB.batch([
       env.DB.prepare('DELETE FROM events WHERE created_at<?1').bind(now - retention),
+      env.DB.prepare('DELETE FROM event_accounts WHERE NOT EXISTS(SELECT 1 FROM events WHERE events.id=event_accounts.event_id)'),
+      env.DB.prepare('DELETE FROM user_sessions WHERE expires_at<=?1').bind(now),
       env.DB.prepare('DELETE FROM device_alerts WHERE created_at<?1').bind(now - 7 * 86400),
       env.DB.prepare('DELETE FROM devices WHERE NOT EXISTS(SELECT 1 FROM events WHERE events.visitor_id=devices.visitor_id)'),
       env.DB.prepare('DELETE FROM rate_limits WHERE expires_at<?1').bind(now)

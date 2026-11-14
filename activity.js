@@ -37,7 +37,7 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      await fetch(endpoint + '/events', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await fetch(endpoint + '/events', { method: 'POST', headers: { 'Content-Type': 'application/json', ...window.todoAccount?.headers() },
         body: JSON.stringify(payload), signal: controller.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
     } catch { /* Backend lỗi hoặc chặn mạng không ảnh hưởng TodoList. Không lưu hàng đợi nội dung. */ }
     finally { clearTimeout(timeout); pending--; }

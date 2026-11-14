@@ -13,7 +13,7 @@
   let sessionRows = [];
   let alertDevice = null;
   function selectAdminPanel(name) {
-    for (const item of ['sessions', 'events']) {
+    for (const item of ['sessions', 'events', 'users']) {
       $('admin-' + item + '-panel').hidden = item !== name;
       $('admin-' + item + '-tab').setAttribute('aria-selected', String(item === name));
       $('admin-' + item + '-tab').setAttribute('tabindex', item === name ? '0' : '-1');
@@ -33,6 +33,7 @@
     $('admin-login').hidden = false;
     $('sessions-body').replaceChildren();
     $('events-body').replaceChildren();
+    $('users-body').replaceChildren();
     $('device-filter').replaceChildren();
     sessionRows = [];
     alertDevice = null;
@@ -87,7 +88,7 @@
     $('events-body').replaceChildren();
     data.events.forEach(event => {
       const row = document.createElement('tr');
-      cell(row, date(event.created_at)); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, labels[event.action] || 'Thao tác khác');
+      cell(row, date(event.created_at)); cell(row, event.username || 'Khách cũ'); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, labels[event.action] || 'Thao tác khác');
       $('events-body').append(row);
     });
     if (!data.events.length) { const row = document.createElement('tr'); cell(row, 'Chưa có thao tác phù hợp.'); $('events-body').append(row); }
@@ -120,6 +121,8 @@
         button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); selectAdminPanel('events'); loadEvents().catch(showError); });
         identity.append(button); row.append(identity);
         const warn = document.createElement('button'); warn.type = 'button'; warn.className = 'secondary'; warn.textContent = 'Cảnh báo';
+        warn.disabled = !session.username;
+        if(!session.username) warn.title = 'Thiết bị cũ cần đăng nhập TodoList để nhận cảnh báo.';
         warn.addEventListener('click', () => {
           alertDevice = session.device_no;
           $('admin-alert-label').textContent = 'Ghi chú gửi đến ' + deviceCode(alertDevice);
@@ -128,11 +131,19 @@
           $('admin-alert-message').focus();
         });
         identity.append(warn);
-        cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
+        cell(row, session.username || 'Khách cũ'); cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
         cell(row, Date.now() / 1000 - session.last_seen < 120 ? 'Vừa hoạt động' : 'Không hoạt động gần đây');
         $('sessions-body').append(row);
       });
       await loadEvents();
+      const accounts = await api('/admin/users');
+      if(!token) return;
+      $('users-body').replaceChildren();
+      accounts.users.forEach(user => {
+        const row=document.createElement('tr');
+        cell(row,user.username); cell(row,date(user.created_at)); cell(row,String(user.device_count)); cell(row,user.last_seen ? date(user.last_seen) : 'Chưa hoạt động');
+        $('users-body').append(row);
+      });
       if (token) $('admin-message').textContent = 'Đã cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN');
     } catch (error) { showError(error); }
     finally { busy = false; $('admin-refresh').disabled = false; }
@@ -172,13 +183,14 @@
   });
   $('admin-logout').addEventListener('click', () => logout());
   $('device-filter').addEventListener('change', () => { loadEvents().catch(showError); });
-  for (const name of ['sessions', 'events']) {
+  const adminPanels = ['sessions', 'events', 'users'];
+  for (const name of adminPanels) {
     const tab = $('admin-' + name + '-tab');
     tab.addEventListener('click', () => selectAdminPanel(name));
     tab.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const next = event.key === 'Home' ? 'sessions' : event.key === 'End' ? 'events' : name === 'sessions' ? 'events' : 'sessions';
+      const next = event.key === 'Home' ? adminPanels[0] : event.key === 'End' ? adminPanels.at(-1) : adminPanels[(adminPanels.indexOf(name) + (event.key === 'ArrowRight' ? 1 : -1) + adminPanels.length) % adminPanels.length];
       selectAdminPanel(next);
       $('admin-' + next + '-tab').focus();
     });

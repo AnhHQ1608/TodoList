@@ -57,7 +57,11 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch(endpoint + '/device/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      let authHeaders = window.todoAccount?.headers() || {};
+      if(!authHeaders.Authorization){
+        try {const saved=JSON.parse(localStorage.getItem('focus-user-session-v1') || 'null');if(saved?.endpoint===endpoint && saved.expiresAt>Date.now())authHeaders={Authorization:'Bearer '+saved.token};}catch { /* Chưa có phiên người dùng. */ }
+      }
+      const response = await fetch(endpoint + '/device/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ visitorId }), credentials: 'omit', referrerPolicy: 'no-referrer', signal: controller.signal });
       if (!response.ok) return;
       const data = await response.json();

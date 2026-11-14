@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="account-loading">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,18 +14,22 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=device-alerts-1">
+  <link rel="stylesheet" href="style.css?v=accounts-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="activity.js?v=required-activity-2" defer></script>
-  <script src="device-alerts.js?v=2" defer></script>
-  <script src="script.js?v=drawer-alerts-1" defer></script>
+  <link rel="stylesheet" href="account.css?v=1">
+  <script src="auth.js?v=1" defer></script>
 </head>
 <body>
+  <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
+    <div id="account-conflict" hidden><p>Có bản sửa chưa đồng bộ trên máy và bản mới trên máy chủ. Bạn có thể tải bản trên máy để giữ lại trước khi mở bản máy chủ.</p><button id="account-conflict-download" type="button" class="secondary">Tải bản chưa đồng bộ</button><button id="account-use-server" type="button" class="secondary">Mở bản máy chủ (giữ bản sao trên máy)</button></div>
+  </section>
+  <noscript>Bạn cần bật JavaScript để đăng nhập và dùng TodoList.</noscript>
   <div class="ambient-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
   <div id="click-effects" class="click-effects" aria-hidden="true"></div>
   <main class="app">
     <header><a class="brand" href="./index.html" aria-label="Focus List — Trang chủ"><img class="brand-logo" src="logo.svg" alt="" width="40" height="40"><span class="brand-name">FOCUS LIST</span></a><div class="header-actions"><span class="tagline">MỖI NGÀY, MỘT BƯỚC TIẾN</span><button id="open-settings" class="settings-button" type="button" aria-label="Mở menu" aria-expanded="false" aria-haspopup="dialog" aria-controls="settings-dialog" title="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div></header>
     <div class="header-clock" aria-label="Giờ hiện tại trên thiết bị"><time id="current-time">--:--:--</time><span id="time-period-icon" class="time-period-icon" role="img" aria-label="Ban đêm">☾</span></div>
+    <div class="account-bar"><strong id="account-name"></strong><span id="account-sync" role="status" aria-live="polite"></span><button id="account-retry" class="secondary" type="button" hidden>Thử lại</button><button id="account-import" class="secondary" type="button" hidden>Nhập task cũ trên máy</button><button id="account-logout" class="secondary" type="button">Đăng xuất</button></div>
     <section class="intro" aria-labelledby="title">
       <p class="eyebrow">KHÔNG GIAN LÀM VIỆC CỦA BẠN</p>
       <h1 id="title">Bớt bận rộn.<br><span>Thêm tập trung.</span></h1>

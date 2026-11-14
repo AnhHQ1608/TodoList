@@ -34,8 +34,10 @@ test('Device alerts render notes as text, deduplicate reloads and keep a single 
 });
 
 test('Both TodoList and admin load the receiver after backend configuration',()=>{
-  for(const name of ['index.html','admin.html']){
+  for(const name of ['admin.html']){
     const html=fs.readFileSync(name,'utf8');
     assert.ok(html.indexOf('device-alerts.js')>html.indexOf('telemetry-config.js'));
   }
+  assert.ok(fs.readFileSync('index.html','utf8').includes('auth.js'));
+  assert.ok(fs.readFileSync('auth.js','utf8').includes("loadScript('device-alerts.js"));
 });
