@@ -139,10 +139,10 @@ export default {
         const deviceParam = url.searchParams.get('device');
         const deviceNo = deviceParam === null ? null : Number(deviceParam);
         if (deviceParam !== null && (!/^\d+$/.test(deviceParam) || !Number.isSafeInteger(deviceNo) || deviceNo <= 0)) return reply({ error: 'Mã thiết bị không hợp lệ.' }, 400);
-        if (!Number.isSafeInteger(cursor) || cursor < 0 || cursor > 10000) return reply({ error: 'Trang không hợp lệ.' }, 400);
-        const rows = await env.DB.prepare('SELECT e.id,e.session_id,e.visitor_id,d.device_no,e.action,e.browser,e.os,e.device,e.created_at FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 AND (?2 IS NULL OR e.session_id=?2) AND (?4 IS NULL OR d.device_no=?4) ORDER BY e.created_at DESC,e.id DESC LIMIT 101 OFFSET ?3')
+        if (!Number.isSafeInteger(cursor) || cursor !== 0) return reply({ error: 'Trang không hợp lệ.' }, 400);
+        const rows = await env.DB.prepare('SELECT e.id,e.session_id,e.visitor_id,d.device_no,e.action,e.browser,e.os,e.device,e.created_at FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 AND (?2 IS NULL OR e.session_id=?2) AND (?4 IS NULL OR d.device_no=?4) ORDER BY e.created_at DESC,e.id DESC LIMIT 100 OFFSET ?3')
           .bind(now - retention, session || null, cursor, deviceNo).all();
-        return reply({ events: rows.results.slice(0, 100), hasMore: rows.results.length > 100 });
+        return reply({ events: rows.results.slice(0, 100), hasMore: false });
       }
       return reply({ error: 'Không tìm thấy.' }, 404);
     } catch { return reply({ error: 'Không xử lý được yêu cầu. Hãy thử lại.' }, 500); }

@@ -76,7 +76,7 @@ Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Cá
 7. Mở TodoList bằng trình duyệt chưa tắt ghi nhận. Mở `/TodoList/admin.html`, đăng nhập bằng `ADMIN_PASSWORD`. Kiểm tra:
    - Một phiên mới tự xuất hiện khi mở trang, không có nút Đồng ý.
    - Tạo/sửa/hoàn thành/xóa task chỉ hiện **tên thao tác**, không có nội dung task.
-   - Lọc theo phiên, chuyển trang lịch sử và đăng xuất.
+   - Lọc theo thiết bị và đăng xuất. Hai bảng chỉ hiển thị tối đa 100 dòng mới nhất; lịch sử không có phân trang.
    - Tab ẩn không gửi heartbeat. Đang thao tác vẫn có thể gửi sự kiện khi ghi nhận đang bật.
    - Tắt chia sẻ trong Cài đặt: không gửi thêm sự kiện.
    - Truy cập API `/admin/events` không có token phải trả 401.

@@ -245,6 +245,24 @@ test('Device number is shared across sessions from the same visitor and filters 
   assert.ok(history.events.every(item => item.visitor_id === visitor && item.device_no === same[0].device_no));
   assert.equal((await worker.fetch(request('/admin/events?device=-1', { token }), env)).status, 400);
 });
+test('Admin lists only the latest 100 sessions and actions without older pages', async () => {
+  const {default:worker,makeToken}=await workerModule;
+  const env=environment();
+  const visitor=crypto.randomUUID();
+  env.sqlite.prepare('INSERT INTO devices(visitor_id) VALUES(?)').run(visitor);
+  const insert=env.sqlite.prepare('INSERT INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?,?,?,?,?,?,?,?)');
+  const now=Math.floor(Date.now()/1000);
+  for(let i=0;i<105;i++) insert.run(crypto.randomUUID(),visitor,crypto.randomUUID(),'visit','Other','Other','desktop',now-i);
+  const token=await makeToken(env.AUTH_SECRET);
+  const sessions=await (await worker.fetch(request('/admin/sessions',{token}),env)).json();
+  const history=await (await worker.fetch(request('/admin/events',{token}),env)).json();
+  assert.equal(sessions.sessions.length,100);
+  assert.equal(history.events.length,100);
+  assert.equal(history.hasMore,false);
+  assert.equal(history.events[99].created_at,now-99);
+  assert.equal((await worker.fetch(request('/admin/events?offset=100',{token}),env)).status,400);
+});
+
 test('Existing events receive device numbers without losing history on idempotent schema update', async () => {
   const env = environment();
   const sample = event();

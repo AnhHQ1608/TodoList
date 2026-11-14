@@ -8,7 +8,6 @@
   const sessionKey = 'focus-admin-session-v1';
   const sessionLifetime = 10 * 24 * 60 * 60 * 1000;
   let expiresAt = 0;
-  let offset = 0;
   let expiresTimer;
   let busy = false;
   let sessionRows = [];
@@ -55,7 +54,6 @@
     expiresTimer = setTimeout(() => logout('Phiên đăng nhập hết hạn.', false), Math.max(0, expiresAt - Date.now()));
     $('admin-login').hidden = true;
     $('admin-dashboard').hidden = false;
-    offset = 0;
     selectAdminPanel('sessions');
   }
   function restoreSession() {
@@ -81,7 +79,7 @@
   function cell(row, text) { const td = document.createElement('td'); td.textContent = text; row.append(td); return td; }
   async function loadEvents() {
     const device = $('device-filter').value;
-    const data = await api('/admin/events?offset=' + offset + (device ? '&device=' + encodeURIComponent(device) : ''));
+    const data = await api('/admin/events?offset=0' + (device ? '&device=' + encodeURIComponent(device) : ''));
     if (!token) return;
     $('events-body').replaceChildren();
     data.events.forEach(event => {
@@ -90,9 +88,6 @@
       $('events-body').append(row);
     });
     if (!data.events.length) { const row = document.createElement('tr'); cell(row, 'Chưa có thao tác phù hợp.'); $('events-body').append(row); }
-    $('events-page').textContent = 'Trang ' + (offset / 100 + 1);
-    $('events-previous').disabled = offset === 0;
-    $('events-next').disabled = !data.hasMore;
   }
   async function refresh() {
     if (busy || !token) return;
@@ -119,7 +114,7 @@
         const row = document.createElement('tr');
         const identity = document.createElement('td');
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link device-code'; button.textContent = deviceCode(session.device_no); button.title = 'Xem lịch sử thiết bị ' + deviceCode(session.device_no);
-        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); offset = 0; selectAdminPanel('events'); loadEvents().catch(showError); });
+        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); selectAdminPanel('events'); loadEvents().catch(showError); });
         const visitor = document.createElement('small'); visitor.textContent = 'Phiên ' + short(session.session_id) + (own ? ' · admin' : '');
         identity.append(button, visitor); row.append(identity);
         cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
@@ -150,7 +145,7 @@
   });
   $('admin-refresh').addEventListener('click', refresh);
   $('admin-logout').addEventListener('click', () => logout());
-  $('device-filter').addEventListener('change', () => { offset = 0; loadEvents().catch(showError); });
+  $('device-filter').addEventListener('change', () => { loadEvents().catch(showError); });
   for (const name of ['sessions', 'events']) {
     const tab = $('admin-' + name + '-tab');
     tab.addEventListener('click', () => selectAdminPanel(name));
@@ -162,8 +157,6 @@
       $('admin-' + next + '-tab').focus();
     });
   }
-  $('events-previous').addEventListener('click', () => { offset = Math.max(0, offset - 100); loadEvents().catch(showError); });
-  $('events-next').addEventListener('click', () => { offset += 100; loadEvents().catch(showError); });
   if (!endpoint) {
     $('admin-login-button').disabled = true;
     $('admin-message').textContent = 'Chưa kết nối backend. Xem ACTIVITY_SETUP.md để triển khai; hiện chưa có dữ liệu được thu thập.';
