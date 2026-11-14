@@ -30,6 +30,8 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 Trong Phiên gần nhất, bấm **Cảnh báo** dưới mã thiết bị, nhập ghi chú 1–500 ký tự và gửi. Chỉ admin đã đăng nhập mới được gửi (tối đa 20 lần/5 phút). Nội dung hiển thị dưới dạng văn bản, không thực thi HTML. Cảnh báo lưu tối đa 7 ngày; trình duyệt đích kiểm tra 15 giây/lần khi tab hiện, mở hộp thoại và lưu mã đã nhận để tránh lặp sau tải lại. Đây là trạng thái xếp hàng, không xác nhận người dùng đã đọc. Tối đa 20 cảnh báo gần nhất được trả về mỗi lần. Khóa nhận là UUID khách ngẫu nhiên của trình duyệt; không công khai hoặc chia sẻ khóa này. Xóa storage tạo thiết bị khác và không nhận cảnh báo của mã cũ. Khi website đóng, cần Web Push và service worker với quyền thông báo; polling JavaScript hiện tại không chạy lúc đóng trang.
 
+Cả TodoList và trang quản trị đều nhận cảnh báo, kể cả khi admin gửi cho chính thiết bị của mình. Tab nền vẫn thử kiểm tra (trình duyệt có thể trì hoãn); nếu đã cấp quyền Notification thì thử hiện thông báo hệ thống. Khi quay lại tab, hộp thoại trong trang sẽ hiện. Chỉ đánh dấu đã nhận sau khi hộp thoại hiển thị thành công, tránh mất cảnh báo khi trình duyệt không mở được hộp thoại.
+
 Chạy lại schema trước khi deploy Worker để thêm bảng `device_alerts`, giữ nguyên lịch sử hiện có.
 
 Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Các lệnh chạy ở thư mục project bằng Terminal của VS Code. Dùng `npx.cmd` / `npm.cmd` trên Windows nếu PowerShell chặn script.
