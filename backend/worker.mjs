@@ -201,6 +201,8 @@ export default {
   async scheduled(event, env) {
     const now = Math.floor(Date.now() / 1000);
     await env.DB.batch([
+      // Dọn lịch sử quá hạn ngay cả khi người dùng không mở web. Giữ nguyên task.
+      env.DB.prepare("UPDATE user_data SET data=json_set(data,'$.overdueHistory',json((SELECT json_group_array(json(value)) FROM json_each(user_data.data,'$.overdueHistory') WHERE julianday(json_extract(value,'$.task.deadline'))>julianday(?1,'unixepoch')-10))),version=version+1,updated_at=?1 WHERE EXISTS(SELECT 1 FROM json_each(user_data.data,'$.overdueHistory') WHERE julianday(json_extract(value,'$.task.deadline'))<=julianday(?1,'unixepoch')-10)").bind(now),
       env.DB.prepare('DELETE FROM events WHERE created_at<?1').bind(now - retention),
       env.DB.prepare('DELETE FROM event_accounts WHERE NOT EXISTS(SELECT 1 FROM events WHERE events.id=event_accounts.event_id)'),
       env.DB.prepare('DELETE FROM user_sessions WHERE expires_at<=?1').bind(now),

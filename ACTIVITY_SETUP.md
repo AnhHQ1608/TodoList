@@ -26,6 +26,8 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 ### Lịch sử quá hạn và khôi phục
 
+Lịch sử tự hết hạn sau **10 ngày kể từ deadline cũ** (không tính lại từ ngày khôi phục). Trình duyệt dọn khi mở trang và kiểm tra định kỳ; API đọc/ghi luôn loại bản hết hạn. Cron Worker dọn dữ liệu tài khoản hằng ngày kể cả khi đóng web, tăng phiên bản để tránh tab cũ ghi đè. Task hiện tại và task đã khôi phục không bị xóa bởi việc dọn lịch sử.
+
 Task quá hạn vẫn ở danh sách hiện tại, đồng thời được lưu bản chụp vào **Lịch sử quá hạn**, kể cả khi bộ lọc ngày/mục đang ẩn task. Mỗi task + deadline chỉ có một bản ghi; lưu tối đa 500 bản gần nhất trong `data.overdueHistory` của tài khoản. Lịch sử được đồng bộ riêng theo tài khoản, giữ cả khi task bị xóa hoặc task hoàn thành muộn được tự dọn sau 2 giờ. Task đã bị xóa trước khi có tính năng này không thể lấy lại nếu không còn bản lưu.
 
 Bấm **Khôi phục** để điền lại form, chọn ngày và deadline mới trong tương lai rồi xác nhận. Task còn đang quá hạn được cập nhật tại chỗ, task không còn trong danh sách tạo thành task mới. Chỉ đánh dấu lịch sử đã khôi phục sau khi lưu task thành công. Khôi phục một lần lặp chỉ tách riêng lần đó thành task một lần, không dừng lịch tuần. Lịch sử không bị mất nếu tab chạy phiên bản cũ lưu dữ liệu thiếu trường này; vẫn áp dụng kiểm tra phiên bản để chống ghi đè.

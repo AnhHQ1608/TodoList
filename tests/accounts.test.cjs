@@ -167,7 +167,7 @@ test('Pending edits from an old app preserve cloud recurring schedules during up
 });
 test('Overdue history is private, validated, synchronized and preserved for older clients',async()=>{
   const {call,register}=await setup();const a=await register('historyuser'),b=await register('otherhistory');
-  const entry={id:'task1:old',task:{id:'task1',text:'Recover me',completed:false,deadline:'2026-11-13T10:00:00.000Z'},recordedAt:Date.now(),restoredAt:null};
+  const entry={id:'task1:old',task:{id:'task1',text:'Recover me',completed:false,deadline:new Date(Date.now()-86400000).toISOString()},recordedAt:Date.now(),restoredAt:null};
   const data={tasks:[],folders:[],overdueHistory:[entry]};
   assert.equal((await call('/account/data',{version:0,data},a.token)).status,200);
   assert.deepEqual((await (await call('/account/data',null,a.token)).json()).data.overdueHistory,[entry]);
@@ -177,10 +177,26 @@ test('Overdue history is private, validated, synchronized and preserved for olde
   assert.deepEqual((await (await call('/account/data',null,a.token)).json()).data.overdueHistory,[entry]);
 });
 test('Upgrading pending edits preserves overdue history fetched from the account',async()=>{
-  const entry={id:'old',task:{id:'one',text:'Kept',completed:false,deadline:'2026-11-13T10:00:00.000Z'},recordedAt:Date.now()};
+  const entry={id:'old',task:{id:'one',text:'Kept',completed:false,deadline:new Date(Date.now()-86400000).toISOString()},recordedAt:Date.now()};
   const storage=new Map([['focus-user-pending-v1:user-one',JSON.stringify({version:2,data:{tasks:[],folders:[]}})]]);
   const app=frontend({storage,remoteHistory:[entry]});await new Promise(setImmediate);
   assert.deepEqual(JSON.parse(storage.get('focus-list-overdue-history-v1:user-one')),[entry]);
   const sent=app.requests.find(request=>request.url.endsWith('/account/data') && request.options.method==='POST');
   assert.deepEqual(JSON.parse(sent.options.body).data.overdueHistory,[entry]);
+});
+test('History retention filters reads/writes and cron removes expired records without deleting tasks',async()=>{
+  const {pruneOverdueHistory}=await import('../backend/accounts.mjs');
+  const now=Math.floor(Date.now()/1000)*1000;
+  const make=(id,age)=>({id,task:{id,text:'Keep task',completed:false,deadline:new Date(now-age).toISOString()},recordedAt:now});
+  const old=make('old',10*86400000),recent=make('recent',86400000);
+  assert.deepEqual(pruneOverdueHistory({overdueHistory:[old,make('boundary',10*86400000-1)]},now).overdueHistory.map(entry=>entry.id),['boundary']);
+  const {call,register,env,worker}=await setup();const user=await register('retentionuser');
+  const data={tasks:[old.task],folders:[],overdueHistory:[old,recent]};
+  assert.equal((await call('/account/data',{version:0,data},user.token)).status,200);
+  assert.equal(JSON.parse(env.sqlite.prepare('SELECT data FROM user_data WHERE user_id=?').get(user.user.id).data).overdueHistory.length,1);
+  env.sqlite.prepare('UPDATE user_data SET data=? WHERE user_id=?').run(JSON.stringify(data),user.user.id);
+  assert.equal((await (await call('/account/data',null,user.token)).json()).data.overdueHistory.length,1);
+  await worker.scheduled({},env);
+  const saved=env.sqlite.prepare('SELECT data,version FROM user_data WHERE user_id=?').get(user.user.id);
+  assert.equal(JSON.parse(saved.data).overdueHistory.length,1);assert.deepEqual(JSON.parse(saved.data).tasks,[old.task]);assert.equal(saved.version,2);
 });

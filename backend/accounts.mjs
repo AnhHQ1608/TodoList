@@ -3,6 +3,10 @@ const encoder = new TextEncoder();
 const hex = bytes => Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
 const unhex = value => Uint8Array.from(value.match(/.{2}/g) || [], n => parseInt(n, 16));
 const lifetime = 10 * 86400;
+export function pruneOverdueHistory(data, now=Date.now()) {
+  if(!Array.isArray(data.overdueHistory))return data;
+  return {...data,overdueHistory:data.overdueHistory.filter(entry=>Date.parse(entry.task?.deadline)>now-10*86400000)};
+}
 export function normalizeFullName(value) {
   if(typeof value!=='string' || /[\p{Cc}\p{Cf}]/u.test(value)) return null;
   const name=value.normalize('NFC').trim().replace(/\s+/gu,' ');
@@ -103,7 +107,7 @@ export async function accountRoute(request, env, path, now, reply, limited) {
   if(path==='/account/data'){
     if(request.method==='GET'){
       const row=await env.DB.prepare('SELECT data,version FROM user_data WHERE user_id=?1').bind(user.id).first();
-      return reply({data:row?JSON.parse(row.data):{tasks:[],folders:[]},version:row?.version || 0});
+      return reply({data:pruneOverdueHistory(row?JSON.parse(row.data):{tasks:[],folders:[]},now*1000),version:row?.version || 0});
     }
     if(request.method==='POST'){
       if(await limited(request,env,'user-save',120,300,now))return reply({error:'Lưu quá nhanh, hãy thử lại sau.'},429);
@@ -115,6 +119,7 @@ export async function accountRoute(request, env, path, now, reply, limited) {
         const saved=previous?JSON.parse(previous.data):{};
         for(const key of ['routines','overdueHistory'])if(data.data[key]===undefined && saved[key]!==undefined)data.data[key]=saved[key];
       }
+      data.data=pruneOverdueHistory(data.data,now*1000);
       const row=await env.DB.prepare('UPDATE user_data SET data=?1,version=version+1,updated_at=?2 WHERE user_id=?3 AND version=?4 RETURNING version').bind(JSON.stringify(data.data),now,user.id,data.version).first();
       if(!row)return reply({error:'Dữ liệu đã thay đổi ở thiết bị khác. Giữ bản trên máy và tải lại trước khi sửa tiếp.'},409);
       return reply({version:row.version});

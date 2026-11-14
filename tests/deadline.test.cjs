@@ -243,6 +243,15 @@ test('Locked deadline shows only time wheels; tap, scrolling and keyboard update
   app.elements['apply-deadline'].listeners.click();assert.equal(app.elements['deadline-input'].value,'2026-11-16T20:59');
   app.elements['open-schedule-picker'].listeners.click();assert.equal(app.elements['calendar-days'].hidden,false);assert.equal(app.elements['picker-time-section'].hidden,true);
 });
+test('Overdue history expires at ten days, persists cleanup and never re-archives an old active task',()=>{
+  const old=task({deadline:iso(-10*24*HOUR)});
+  const recent=task({id:'recent',deadline:iso(-10*24*HOUR+1)});
+  const storage={value:JSON.stringify([old]),history:JSON.stringify([{id:'old',task:old,recordedAt:NOW},{id:'recent',task:recent,recordedAt:NOW}])};
+  const app=boot([],{storage});assert.equal(app.run('overdueHistory.length'),1);assert.equal(app.run('overdueHistory[0].id'),'recent');
+  assert.equal(app.run('tasks.length'),1);
+  app.run('updateCountdowns()');assert.equal(JSON.parse(storage.history).length,1);
+  assert.equal(boot([],{storage}).run('overdueHistory.length'),1);
+});
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });
   assert.equal(app.run('tasks[0].deadline'), null);

@@ -59,6 +59,7 @@ let repeatWeekdays = new Set();
 let routines = [];
 const overdueHistoryKey = window.todoAccount?.overdueHistoryKey || 'focus-list-overdue-history-v1';
 let overdueHistory=[];
+const overdueHistoryLifetime=10*24*60*60*1000;
 let restoringHistoryId=null;
 function readOverdueHistory() {
   const saved=JSON.parse(localStorage.getItem(overdueHistoryKey) || '[]');
@@ -73,9 +74,11 @@ function saveOverdueHistory(next) {
 function captureOverdueHistory(taskSource=tasks) {
   let latest;try {latest=readOverdueHistory();}catch{return false;}
   const original=JSON.stringify(latest);
-  let changed=false;
+  latest=latest.filter(entry=>Date.parse(entry.task.deadline)>Date.now()-overdueHistoryLifetime);
+  let changed=JSON.stringify(latest)!==original;
   for(const task of taskSource){
     if(!task.deadline || Date.parse(task.deadline)>Date.now() || (task.completed && !(task.completedAt>Date.parse(task.deadline))))continue;
+    if(Date.parse(task.deadline)<=Date.now()-overdueHistoryLifetime)continue;
     const id=task.id+':'+task.deadline;
     if(!latest.some(item=>item.id===id)){latest.push({id,task:{...task},recordedAt:Date.now(),restoredAt:null,completedAt:task.completed?task.completedAt:null});changed=true;}
   }
@@ -109,7 +112,7 @@ function renderOverdueHistory() {
 function beginHistoryRestore(entry) {
   try {overdueHistory=readOverdueHistory();}catch{message.textContent='Không đọc được lịch sử để khôi phục.';return;}
   entry=overdueHistory.find(item=>item.id===entry.id);
-  if(!entry || entry.restoredAt){message.textContent='Công việc này đã được khôi phục ở tab khác.';renderOverdueHistory();return;}
+  if(!entry || entry.restoredAt || Date.parse(entry.task.deadline)<=Date.now()-overdueHistoryLifetime){message.textContent='Bản ghi đã hết hạn hoặc đã được khôi phục.';captureOverdueHistory();renderOverdueHistory();return;}
   const existing=tasks.find(task=>task.id===entry.task.id && task.deadline===entry.task.deadline && !task.completed);
   resetEditor();
   if(existing)startEditing(existing);else {input.value=entry.task.text;folderSelect.value=folders.some(folder=>folder.id===entry.task.folderId)?entry.task.folderId:'';updateFolderPicker();}
