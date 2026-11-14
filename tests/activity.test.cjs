@@ -224,7 +224,7 @@ test('Admin names only this browser visitor admin, leaving other devices unchang
   await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
   assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'admin · desktop');
   assert.equal(app.elements['sessions-body'].children[1].children[1].textContent, 'desktop');
-  assert.match(app.elements['session-filter'].children[1].textContent, /^admin/);
+  assert.equal(app.elements['session-filter'], undefined);
 });
 
 test('Device number is shared across sessions from the same visitor and filters all its history', async () => {
@@ -270,7 +270,8 @@ test('Admin nav shows one table at a time; clicking device code opens filtered h
   assert.equal(app.elements['admin-sessions-panel'].hidden, true);
   assert.equal(app.elements['admin-events-panel'].hidden, false);
   assert.equal(app.elements['device-filter'].value, '17');
-  assert.equal(app.elements['session-filter'].value, '');
+  assert.equal(app.elements['session-filter'], undefined);
+  assert.ok(!app.requests.at(-1).url.includes('session='));
   assert.ok(app.requests.at(-1).url.includes('device=17'));
   app.elements['admin-events-tab'].listeners.keydown({ key:'Home', preventDefault() {} });
   assert.equal(app.elements['admin-sessions-panel'].hidden, false);

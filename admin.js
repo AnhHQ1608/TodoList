@@ -33,7 +33,6 @@
     $('admin-login').hidden = false;
     $('sessions-body').replaceChildren();
     $('events-body').replaceChildren();
-    $('session-filter').replaceChildren();
     $('device-filter').replaceChildren();
     sessionRows = [];
     $('admin-message').textContent = message;
@@ -80,27 +79,14 @@
     try { return visitorId === localStorage.getItem('focus-activity-visitor-v1'); } catch { return false; }
   }
   function cell(row, text) { const td = document.createElement('td'); td.textContent = text; row.append(td); return td; }
-  function fillSessionOptions(selected = '') {
-    const device = $('device-filter').value;
-    $('session-filter').replaceChildren();
-    const all = document.createElement('option'); all.value = ''; all.textContent = 'Tất cả phiên'; $('session-filter').append(all);
-    const matching = sessionRows.filter(session => !device || String(session.device_no) === device);
-    matching.forEach(session => {
-      const option = document.createElement('option'); option.value = session.session_id;
-      option.textContent = (isOwnDevice(session.visitor_id) ? 'admin · ' : '') + deviceCode(session.device_no) + ' · Phiên ' + short(session.session_id);
-      $('session-filter').append(option);
-    });
-    $('session-filter').value = matching.some(session => session.session_id === selected) ? selected : '';
-  }
   async function loadEvents() {
-    const session = $('session-filter').value;
     const device = $('device-filter').value;
-    const data = await api('/admin/events?offset=' + offset + (session ? '&session=' + encodeURIComponent(session) : '') + (device ? '&device=' + encodeURIComponent(device) : ''));
+    const data = await api('/admin/events?offset=' + offset + (device ? '&device=' + encodeURIComponent(device) : ''));
     if (!token) return;
     $('events-body').replaceChildren();
     data.events.forEach(event => {
       const row = document.createElement('tr');
-      cell(row, date(event.created_at)); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, short(event.session_id)); cell(row, labels[event.action] || 'Thao tác khác');
+      cell(row, date(event.created_at)); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, labels[event.action] || 'Thao tác khác');
       $('events-body').append(row);
     });
     if (!data.events.length) { const row = document.createElement('tr'); cell(row, 'Chưa có thao tác phù hợp.'); $('events-body').append(row); }
@@ -116,7 +102,6 @@
     try {
       const data = await api('/admin/sessions');
       if (!token) return;
-      const selected = $('session-filter').value;
       const selectedDevice = $('device-filter').value;
       sessionRows = data.sessions;
       $('sessions-body').replaceChildren();
@@ -129,13 +114,12 @@
         $('device-filter').append(option);
       });
       $('device-filter').value = devices.has(Number(selectedDevice)) ? selectedDevice : '';
-      fillSessionOptions(selected);
       data.sessions.forEach(session => {
         const own = isOwnDevice(session.visitor_id);
         const row = document.createElement('tr');
         const identity = document.createElement('td');
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link device-code'; button.textContent = deviceCode(session.device_no); button.title = 'Xem lịch sử thiết bị ' + deviceCode(session.device_no);
-        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); fillSessionOptions(); offset = 0; selectAdminPanel('events'); loadEvents().catch(showError); });
+        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); offset = 0; selectAdminPanel('events'); loadEvents().catch(showError); });
         const visitor = document.createElement('small'); visitor.textContent = 'Phiên ' + short(session.session_id) + (own ? ' · admin' : '');
         identity.append(button, visitor); row.append(identity);
         cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
@@ -166,8 +150,7 @@
   });
   $('admin-refresh').addEventListener('click', refresh);
   $('admin-logout').addEventListener('click', () => logout());
-  $('session-filter').addEventListener('change', () => { offset = 0; loadEvents().catch(showError); });
-  $('device-filter').addEventListener('change', () => { offset = 0; fillSessionOptions(); loadEvents().catch(showError); });
+  $('device-filter').addEventListener('change', () => { offset = 0; loadEvents().catch(showError); });
   for (const name of ['sessions', 'events']) {
     const tab = $('admin-' + name + '-tab');
     tab.addEventListener('click', () => selectAdminPanel(name));

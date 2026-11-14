@@ -10,7 +10,7 @@ Trang quản trị: `https://anhhq1608.github.io/TodoList/admin.html`. Mật kh�
 
 Người dùng vẫn dùng TodoList không cần tài khoản. Mỗi trình duyệt có mã khách ngẫu nhiên, mỗi lần mở/tải trang có mã phiên mới. Đây không phải danh tính hoặc mã phần cứng thật. Chế độ ẩn danh, đổi trình duyệt hoặc xóa storage sẽ tạo khách khác.
 
-Trang quản trị có hai tab **Phiên gần nhất** và **Lịch sử thao tác**. Thiết bị được cấp mã số chung như **TB-000001** theo mã khách; nhiều phiên của cùng trình duyệt hiển thị cùng mã. Bấm mã thiết bị để mở tab lịch sử và lọc toàn bộ phiên của thiết bị đó. Có thể lọc thêm từng phiên. Mã không tái sử dụng cho thiết bị khác; sau 30 ngày không còn lịch sử, bản ghi thiết bị được dọn và lần truy cập sau có thể được cấp mã mới.
+Trang quản trị có hai tab **Phiên gần nhất** và **Lịch sử thao tác**. Thiết bị được cấp mã số chung như **TB-000001** theo mã khách; nhiều phiên của cùng trình duyệt hiển thị cùng mã. Bấm mã thiết bị để mở tab lịch sử và lọc toàn bộ thao tác của thiết bị đó. Lịch sử chỉ hiển thị thời gian, mã thiết bị và thao tác, không có cột hay bộ lọc phiên. Mã không tái sử dụng cho thiết bị khác; sau 30 ngày không còn lịch sử, bản ghi thiết bị được dọn và lần truy cập sau có thể được cấp mã mới.
 
 Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schema.sql` bằng lệnh D1 execute bên dưới **trước** khi deploy Worker. Schema bổ sung bảng mã thiết bị và cấp mã cho lịch sử có sẵn, không xóa sự kiện cũ.
 

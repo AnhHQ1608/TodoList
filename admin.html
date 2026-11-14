@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="style.css?v=explicit-light-1">
   <link rel="stylesheet" href="admin.css?v=admin-tabs-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=ten-day-session-1" defer></script>
+  <script src="admin.js?v=device-history-2" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -34,8 +34,8 @@
       <div class="table-scroll"><table><thead><tr><th>Mã thiết bị / Phiên</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
       </div>
       <div id="admin-events-panel" role="tabpanel" aria-labelledby="admin-events-tab" hidden>
-      <div class="admin-toolbar"><label for="device-filter">Thiết bị</label><select id="device-filter"><option value="">Tất cả thiết bị</option></select><label for="session-filter">Phiên</label><select id="session-filter"><option value="">Tất cả phiên</option></select></div>
-      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã thiết bị</th><th>Phiên</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
+      <div class="admin-toolbar"><label for="device-filter">Thiết bị</label><select id="device-filter"><option value="">Tất cả thiết bị</option></select></div>
+      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã thiết bị</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
       <div class="admin-toolbar"><button id="events-previous" class="secondary" type="button">Trang trước</button><span id="events-page"></span><button id="events-next" class="secondary" type="button">Trang sau</button></div>
       </div>
     </section>
