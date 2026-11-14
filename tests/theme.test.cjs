@@ -3,16 +3,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 function boot(storage = new Map(), { noToggle = false, blocked = false } = {}) {
-  const events = {}, attributes = {}, metaAttributes = {}, buttonAttributes = {}, buttonEvents = {};
+  const events = {}, attributes = {}, metaAttributes = {}, schemeAttributes = {}, buttonAttributes = {}, buttonEvents = {};
   const toggle = { setAttribute: (key, value) => { buttonAttributes[key] = value; }, addEventListener: (type, fn) => { buttonEvents[type] = fn; } };
   vm.runInNewContext(fs.readFileSync('theme.js', 'utf8'), {
     document: { readyState: 'loading', documentElement: { setAttribute: (key, value) => { attributes[key] = value; } },
-      querySelector: () => ({ setAttribute: (key, value) => { metaAttributes[key] = value; } }),
+      querySelector: selector => ({ setAttribute: (key, value) => { (selector.includes('color-scheme') ? schemeAttributes : metaAttributes)[key] = value; } }),
       getElementById: () => noToggle ? null : toggle, addEventListener: (type, fn) => { events[type] = fn; } },
     window: { addEventListener: (type, fn) => { events[type] = fn; } },
     localStorage: { getItem: key => { if (blocked) throw Error('Blocked'); return storage.get(key); }, setItem: (key, value) => { if (blocked) throw Error('Blocked'); storage.set(key, value); } }
   });
-  return { events, attributes, metaAttributes, buttonAttributes, buttonEvents, storage };
+  return { events, attributes, metaAttributes, schemeAttributes, buttonAttributes, buttonEvents, storage };
 }
 test('Theme defaults dark, toggles light and persists across reload', () => {
   const app = boot();
@@ -22,6 +22,7 @@ test('Theme defaults dark, toggles light and persists across reload', () => {
   assert.equal(app.attributes['data-theme'], 'light');
   assert.equal(app.buttonAttributes['aria-checked'], 'true');
   assert.equal(app.metaAttributes.content, '#ffffff');
+  assert.equal(app.schemeAttributes.content, 'only light');
   assert.equal(boot(app.storage).attributes['data-theme'], 'light');
   app.buttonEvents.click();
   assert.equal(app.storage.get('focus-theme-v1'), 'dark');

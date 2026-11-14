@@ -8,8 +8,12 @@
     document.documentElement.setAttribute('data-theme', theme);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'light' ? '#ffffff' : '#101329');
+    const scheme = document.querySelector('meta[name="color-scheme"]');
+    if (scheme) scheme.setAttribute('content', theme === 'light' ? 'only light' : 'dark');
     const toggle = document.getElementById('theme-toggle');
     if (toggle) toggle.setAttribute('aria-checked', String(theme === 'light'));
+    const label = document.getElementById('theme-state-label');
+    if (label) label.textContent = theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối';
   }
   apply(theme);
   function bindToggle() {
