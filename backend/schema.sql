@@ -10,6 +10,12 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_time ON events(created_at DESC);
 CREATE INDEX IF NOT EXISTS events_session_time ON events(session_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS devices (
+  device_no INTEGER PRIMARY KEY AUTOINCREMENT,
+  visitor_id TEXT NOT NULL UNIQUE
+);
+INSERT OR IGNORE INTO devices(visitor_id)
+SELECT visitor_id FROM events GROUP BY visitor_id ORDER BY MIN(created_at), visitor_id;
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   count INTEGER NOT NULL,

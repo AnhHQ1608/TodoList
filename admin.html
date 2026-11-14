@@ -12,9 +12,9 @@
   <title>Quản trị hoạt động · Focus List</title>
   <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="style.css?v=explicit-light-1">
-  <link rel="stylesheet" href="admin.css?v=back-button-1">
+  <link rel="stylesheet" href="admin.css?v=admin-tabs-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=own-device-name-2" defer></script>
+  <script src="admin.js?v=admin-tabs-1" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -28,12 +28,16 @@
       <p class="help">Phiên đăng nhập hết hạn sau 30 phút. Token chỉ giữ trong bộ nhớ của tab này.</p>
     </section>
     <section id="admin-dashboard" hidden>
-      <div class="admin-toolbar"><button id="admin-refresh" class="secondary" type="button">Làm mới</button><label for="session-filter">Lọc phiên</label><select id="session-filter"><option value="">Tất cả phiên</option></select><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></div>
-      <h2>100 phiên gần nhất</h2>
-      <div class="table-scroll"><table><thead><tr><th>Phiên / Khách</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
-      <h2>Lịch sử thao tác</h2>
-      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Phiên</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
+      <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>
+      <div id="admin-sessions-panel" role="tabpanel" aria-labelledby="admin-sessions-tab">
+      <p class="help">100 phiên gần nhất · Cùng mã TB là cùng trình duyệt. Bấm mã để xem toàn bộ thao tác của thiết bị đó.</p>
+      <div class="table-scroll"><table><thead><tr><th>Mã thiết bị / Phiên</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
+      </div>
+      <div id="admin-events-panel" role="tabpanel" aria-labelledby="admin-events-tab" hidden>
+      <div class="admin-toolbar"><label for="device-filter">Thiết bị</label><select id="device-filter"><option value="">Tất cả thiết bị</option></select><label for="session-filter">Phiên</label><select id="session-filter"><option value="">Tất cả phiên</option></select></div>
+      <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã thiết bị</th><th>Phiên</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
       <div class="admin-toolbar"><button id="events-previous" class="secondary" type="button">Trang trước</button><span id="events-page"></span><button id="events-next" class="secondary" type="button">Trang sau</button></div>
+      </div>
     </section>
   </main>
 </body>

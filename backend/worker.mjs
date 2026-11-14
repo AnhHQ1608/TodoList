@@ -98,8 +98,11 @@ export default {
         let data;
         try { data = await readBody(request); } catch { return reply({ error: 'Payload không hợp lệ.' }, 400); }
         if (!validEvent(data)) return reply({ error: 'Chỉ được gửi dữ liệu thao tác đã cho phép.' }, 400);
-        await env.DB.prepare('INSERT OR IGNORE INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)')
-          .bind(data.eventId, data.visitorId, data.sessionId, data.action, data.browser, data.os, data.device, now).run();
+        await env.DB.batch([
+          env.DB.prepare('INSERT OR IGNORE INTO devices(visitor_id) VALUES(?1)').bind(data.visitorId),
+          env.DB.prepare('INSERT OR IGNORE INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)')
+            .bind(data.eventId, data.visitorId, data.sessionId, data.action, data.browser, data.os, data.device, now)
+        ]);
         return reply({ accepted: true }, 202);
       }
       if (path === '/admin/login' && request.method === 'POST') {
@@ -115,7 +118,7 @@ export default {
         const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
         if (!await validToken(token, env.AUTH_SECRET)) return reply({ error: 'Hãy đăng nhập lại.' }, 401);
         if (path === '/admin/sessions') {
-          const rows = await env.DB.prepare('SELECT session_id,visitor_id,browser,os,device,MIN(created_at) first_seen,MAX(created_at) last_seen,COUNT(*) event_count FROM events WHERE created_at>=?1 GROUP BY session_id,visitor_id,browser,os,device ORDER BY last_seen DESC LIMIT 100')
+          const rows = await env.DB.prepare('SELECT e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) first_seen,MAX(e.created_at) last_seen,COUNT(*) event_count FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 GROUP BY e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device ORDER BY last_seen DESC,e.session_id DESC LIMIT 100')
             .bind(now - retention).all();
           return reply({ sessions: rows.results });
         }
@@ -123,9 +126,12 @@ export default {
         const session = url.searchParams.get('session');
         if (session && !uuid.test(session)) return reply({ error: 'Mã phiên không hợp lệ.' }, 400);
         const cursor = Number(url.searchParams.get('offset') || 0);
+        const deviceParam = url.searchParams.get('device');
+        const deviceNo = deviceParam === null ? null : Number(deviceParam);
+        if (deviceParam !== null && (!/^\d+$/.test(deviceParam) || !Number.isSafeInteger(deviceNo) || deviceNo <= 0)) return reply({ error: 'Mã thiết bị không hợp lệ.' }, 400);
         if (!Number.isSafeInteger(cursor) || cursor < 0 || cursor > 10000) return reply({ error: 'Trang không hợp lệ.' }, 400);
-        const rows = await env.DB.prepare('SELECT id,session_id,visitor_id,action,browser,os,device,created_at FROM events WHERE created_at>=?1 AND (?2 IS NULL OR session_id=?2) ORDER BY created_at DESC,id DESC LIMIT 101 OFFSET ?3')
-          .bind(now - retention, session || null, cursor).all();
+        const rows = await env.DB.prepare('SELECT e.id,e.session_id,e.visitor_id,d.device_no,e.action,e.browser,e.os,e.device,e.created_at FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 AND (?2 IS NULL OR e.session_id=?2) AND (?4 IS NULL OR d.device_no=?4) ORDER BY e.created_at DESC,e.id DESC LIMIT 101 OFFSET ?3')
+          .bind(now - retention, session || null, cursor, deviceNo).all();
         return reply({ events: rows.results.slice(0, 100), hasMore: rows.results.length > 100 });
       }
       return reply({ error: 'Không tìm thấy.' }, 404);
@@ -135,6 +141,7 @@ export default {
     const now = Math.floor(Date.now() / 1000);
     await env.DB.batch([
       env.DB.prepare('DELETE FROM events WHERE created_at<?1').bind(now - retention),
+      env.DB.prepare('DELETE FROM devices WHERE NOT EXISTS(SELECT 1 FROM events WHERE events.visitor_id=devices.visitor_id)'),
       env.DB.prepare('DELETE FROM rate_limits WHERE expires_at<?1').bind(now)
     ]);
   }

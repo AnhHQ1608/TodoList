@@ -13,6 +13,20 @@
 #admin-login-button { min-height: 45px; }
 .admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; font-size: 13px; }
 #session-filter { flex: 1; }
+#device-filter { flex: 1; min-width: 0; padding: 12px; border: 1px solid #555074; border-radius: 9px; background: #14172e; color: white; }
+.admin-navigation { position: sticky; top: 10px; z-index: 5; display: flex; align-items: center; gap: 10px; margin: 24px 0 16px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: #181b36f5; box-shadow: 0 6px 20px #0001; }
+.admin-tabs { display: flex; gap: 5px; flex: 1; }
+.admin-tabs button { min-height: 42px; border: 0; padding: 10px 15px; border-radius: 9px; background: transparent; color: var(--muted); font-size: 13px; }
+.admin-tabs button[aria-selected="true"] { background: #a38aff25; color: #dfceff; }
+.admin-tabs button:hover { background: #a38aff15; }
+.admin-navigation > button { font-size: 12px; }
+.admin-app .table-scroll { max-height: 65dvh; }
+.admin-app th { position: sticky; top: 0; z-index: 1; background: #1d203b; }
+.device-code { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #a38aff15; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+[data-theme="light"] .admin-navigation, [data-theme="light"] .admin-app th { background: #ffffff; }
+[data-theme="light"] .admin-tabs button[aria-selected="true"] { background: #ede9fe; color: #6336ba; }
+[data-theme="light"] #device-filter { color: #334155; border-color: #dce3ec; background: #fff; }
+@media (max-width: 600px) { .admin-navigation { flex-wrap: wrap; top: 6px; gap: 7px; } .admin-tabs { flex-basis: 100%; } .admin-tabs button { flex: 1; padding: 10px 8px; } #device-filter, #session-filter { flex-basis: 100%; } }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #181b36; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
 th, td { padding: 14px; border-bottom: 1px solid var(--line); line-height: 1.7; }

@@ -136,6 +136,8 @@ function adminClient(configured = true, sessions = [], visitorId = '') {
   const elements = {};
   class Element {
     constructor() { this.listeners = {}; this.children = []; this.value = ''; }
+    setAttribute(name, value) { this[name] = value; }
+    focus() {}
     addEventListener(type, fn) { this.listeners[type] = fn; }
     append(...children) { this.children.push(...children); }
     replaceChildren() { this.children = []; }
@@ -182,4 +184,53 @@ test('Admin names only this browser visitor admin, leaving other devices unchang
   assert.equal(app.elements['sessions-body'].children[0].children[1].textContent, 'admin · desktop');
   assert.equal(app.elements['sessions-body'].children[1].children[1].textContent, 'desktop');
   assert.match(app.elements['session-filter'].children[1].textContent, /^admin/);
+});
+
+test('Device number is shared across sessions from the same visitor and filters all its history', async () => {
+  const { default: worker, makeToken } = await workerModule;
+  const env = environment();
+  const visitor = crypto.randomUUID();
+  for (const action of ['visit', 'task_completed']) await worker.fetch(request('/events', { method: 'POST', data: event(action, { visitorId: visitor }) }), env);
+  await worker.fetch(request('/events', { method: 'POST', data: event() }), env);
+  const token = await makeToken(env.AUTH_SECRET);
+  const sessions = (await (await worker.fetch(request('/admin/sessions', { token }), env)).json()).sessions;
+  const same = sessions.filter(session => session.visitor_id === visitor);
+  assert.equal(same.length, 2);
+  assert.ok(Number.isSafeInteger(same[0].device_no));
+  assert.equal(same[0].device_no, same[1].device_no);
+  assert.notEqual(same[0].device_no, sessions.find(session => session.visitor_id !== visitor).device_no);
+  const history = await (await worker.fetch(request('/admin/events?device=' + same[0].device_no, { token }), env)).json();
+  assert.equal(history.events.length, 2);
+  assert.ok(history.events.every(item => item.visitor_id === visitor && item.device_no === same[0].device_no));
+  assert.equal((await worker.fetch(request('/admin/events?device=-1', { token }), env)).status, 400);
+});
+test('Existing events receive device numbers without losing history on idempotent schema update', async () => {
+  const env = environment();
+  const sample = event();
+  env.sqlite.prepare('INSERT INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?,?,?,?,?,?,?,?)')
+    .run(sample.eventId, sample.visitorId, sample.sessionId, 'visit', 'Other', 'Other', 'desktop', Math.floor(Date.now()/1000));
+  env.sqlite.exec(fs.readFileSync('backend/schema.sql','utf8'));
+  const number = env.sqlite.prepare('SELECT device_no FROM devices WHERE visitor_id=?').get(sample.visitorId).device_no;
+  env.sqlite.exec(fs.readFileSync('backend/schema.sql','utf8'));
+  assert.equal(env.sqlite.prepare('SELECT device_no FROM devices WHERE visitor_id=?').get(sample.visitorId).device_no, number);
+  assert.equal(env.sqlite.prepare('SELECT COUNT(*) count FROM events').get().count, 1);
+});
+test('Admin nav shows one table at a time; clicking device code opens filtered history across sessions', async () => {
+  const visitor = crypto.randomUUID();
+  const rows = [1,2].map(() => ({ visitor_id: visitor, session_id: crypto.randomUUID(), device_no: 17, device:'desktop', browser:'CocCoc', os:'Windows', last_seen:Math.floor(Date.now()/1000) }));
+  const app = adminClient(true, rows, visitor);
+  app.elements['admin-password'].value = 'test-only';
+  await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(app.elements['admin-sessions-panel'].hidden, false);
+  assert.equal(app.elements['admin-events-panel'].hidden, true);
+  assert.equal(app.elements['sessions-body'].children[0].children[0].children[0].textContent, 'TB-000017');
+  assert.equal(app.elements['sessions-body'].children[1].children[0].children[0].textContent, 'TB-000017');
+  app.elements['sessions-body'].children[0].children[0].children[0].listeners.click();
+  assert.equal(app.elements['admin-sessions-panel'].hidden, true);
+  assert.equal(app.elements['admin-events-panel'].hidden, false);
+  assert.equal(app.elements['device-filter'].value, '17');
+  assert.equal(app.elements['session-filter'].value, '');
+  assert.ok(app.requests.at(-1).url.includes('device=17'));
+  app.elements['admin-events-tab'].listeners.keydown({ key:'Home', preventDefault() {} });
+  assert.equal(app.elements['admin-sessions-panel'].hidden, false);
 });
