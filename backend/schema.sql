@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   user_id TEXT NOT NULL REFERENCES users(id),
   expires_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS user_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  full_name TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS user_sessions_expiry ON user_sessions(expires_at);
 CREATE TABLE IF NOT EXISTS user_data (
   user_id TEXT PRIMARY KEY REFERENCES users(id),

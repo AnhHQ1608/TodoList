@@ -24,6 +24,8 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 ## Dữ liệu được ghi nhận
 
+Đăng ký mới bắt buộc **Họ và tên** (2–80 ký tự, hỗ trợ chữ tiếng Việt, khoảng trắng, dấu chấm/nháy/gạch nối). Họ tên được chuẩn hóa Unicode NFC và khoảng trắng trên máy chủ, lưu trong bảng `user_profiles` bổ sung bằng schema idempotent. Tài khoản cũ chưa có tên vẫn đăng nhập được và được mở sẵn form bổ sung; nút **Họ và tên** trên TodoList cho phép cập nhật sau này. API `/auth/profile` chỉ sửa hồ sơ của chính phiên đã xác thực. Cả ba bảng quản trị hiển thị họ tên kèm `@tên_đăng_nhập` để phân biệt người trùng tên. Họ tên do người dùng khai báo, chưa xác minh danh tính.
+
 - Khi ghi nhận đang bật: mở trang; trang còn hoạt động (heartbeat khi tab hiện); thêm/sửa/xóa/hoàn thành/mở lại task; tạo/xóa thư mục; đợt tự dọn task hoàn thành.
 - Chỉ gửi mã sự kiện, mã khách, mã phiên, tên thao tác và nhóm trình duyệt/hệ điều hành/thiết bị. Thời gian do máy chủ ghi nhận.
 - API lịch sử không gửi nội dung task, tên thư mục, deadline, phím gõ, ảnh màn hình hoặc URL đang mở. API tài khoản riêng nhận tên đăng nhập/mật khẩu qua HTTPS để xác thực và nhận task/thư mục/deadline để đồng bộ. Tên tài khoản gắn với thiết bị và lịch sử từ phiên đã xác thực trên máy chủ.

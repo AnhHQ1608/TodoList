@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="style.css?v=accounts-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <link rel="stylesheet" href="account.css?v=1">
-  <script src="auth.js?v=1" defer></script>
+  <link rel="stylesheet" href="account.css?v=full-name-1">
+  <script src="auth.js?v=full-name-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -29,7 +29,8 @@
   <main class="app">
     <header><a class="brand" href="./index.html" aria-label="Focus List — Trang chủ"><img class="brand-logo" src="logo.svg" alt="" width="40" height="40"><span class="brand-name">FOCUS LIST</span></a><div class="header-actions"><span class="tagline">MỖI NGÀY, MỘT BƯỚC TIẾN</span><button id="open-settings" class="settings-button" type="button" aria-label="Mở menu" aria-expanded="false" aria-haspopup="dialog" aria-controls="settings-dialog" title="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div></header>
     <div class="header-clock" aria-label="Giờ hiện tại trên thiết bị"><time id="current-time">--:--:--</time><span id="time-period-icon" class="time-period-icon" role="img" aria-label="Ban đêm">☾</span></div>
-    <div class="account-bar"><strong id="account-name"></strong><span id="account-sync" role="status" aria-live="polite"></span><button id="account-retry" class="secondary" type="button" hidden>Thử lại</button><button id="account-import" class="secondary" type="button" hidden>Nhập task cũ trên máy</button><button id="account-logout" class="secondary" type="button">Đăng xuất</button></div>
+    <div class="account-bar"><strong id="account-name"></strong><span id="account-sync" role="status" aria-live="polite"></span><button id="account-retry" class="secondary" type="button" hidden>Thử lại</button><button id="account-import" class="secondary" type="button" hidden>Nhập task cũ trên máy</button><button id="account-profile" class="secondary" type="button" aria-expanded="false" aria-controls="account-profile-form">Họ và tên</button><button id="account-logout" class="secondary" type="button">Đăng xuất</button></div>
+    <form id="account-profile-form" class="card" hidden><label for="account-fullname">Họ và tên</label><input id="account-fullname" autocomplete="name" required minlength="2" maxlength="80" placeholder="Nhập họ và tên của bạn"><p id="account-profile-message" role="status">Bổ sung họ và tên để quản trị viên dễ nhận diện tài khoản.</p><button id="account-profile-save" class="secondary" type="submit">Lưu họ tên</button></form>
     <section class="intro" aria-labelledby="title">
       <p class="eyebrow">KHÔNG GIAN LÀM VIỆC CỦA BẠN</p>
       <h1 id="title">Bớt bận rộn.<br><span>Thêm tập trung.</span></h1>

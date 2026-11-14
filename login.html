@@ -9,9 +9,9 @@
   <link rel="icon" href="logo.svg">
   <script src="theme.js?v=3"></script>
   <link rel="stylesheet" href="style.css?v=accounts-1">
-  <link rel="stylesheet" href="account.css?v=1">
+  <link rel="stylesheet" href="account.css?v=full-name-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="account.js?v=1" defer></script>
+  <script src="account.js?v=full-name-1" defer></script>
 </head>
 <body class="auth-page">
   <main class="auth-shell">
@@ -25,6 +25,7 @@
         <button id="auth-register-tab" role="tab" aria-selected="false" aria-controls="auth-form" type="button">Đăng ký</button>
       </div>
       <form id="auth-form">
+        <div id="auth-fullname-field" hidden><label for="auth-fullname">Họ và tên</label><input id="auth-fullname" autocomplete="name" minlength="2" maxlength="80" placeholder="Ví dụ: Hoàng Quốc Anh"></div>
         <label for="auth-username">Tên đăng nhập</label>
         <input id="auth-username" autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.]{3,32}" placeholder="Ví dụ: quocanh1608" required aria-describedby="username-help">
         <span id="username-help" class="help">3–32 chữ không dấu, số, dấu chấm hoặc gạch dưới.</span>

@@ -151,7 +151,7 @@ export default {
         const revoked = await env.DB.prepare('SELECT expires_at FROM rate_limits WHERE key=?1').bind(revokeKey).first();
         if (revoked && revoked.expires_at > now) return reply({ error: 'Phiên đã đăng xuất. Hãy đăng nhập lại.' }, 401);
         if(path === '/admin/users'){
-          const rows=await env.DB.prepare('SELECT u.id,u.username,u.created_at,COUNT(a.visitor_id) device_count,MAX(a.last_seen) last_seen FROM users u LEFT JOIN account_devices a ON a.user_id=u.id GROUP BY u.id,u.username,u.created_at ORDER BY u.created_at DESC,u.id DESC LIMIT 100').all();
+          const rows=await env.DB.prepare('SELECT u.id,u.username,p.full_name AS fullName,u.created_at,COUNT(a.visitor_id) device_count,MAX(a.last_seen) last_seen FROM users u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN account_devices a ON a.user_id=u.id GROUP BY u.id,u.username,p.full_name,u.created_at ORDER BY u.created_at DESC,u.id DESC LIMIT 100').all();
           return reply({users:rows.results});
         }
         if (path === '/admin/alerts') {
@@ -177,9 +177,9 @@ export default {
           // Mỗi trình duyệt chỉ có một dòng; phiên truy cập mới cập nhật last_seen.
           const rows = await env.DB.prepare('WITH ranked AS (SELECT e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) OVER (PARTITION BY e.visitor_id) first_seen,MAX(e.created_at) OVER (PARTITION BY e.visitor_id) last_seen,COUNT(*) OVER (PARTITION BY e.visitor_id) event_count,ROW_NUMBER() OVER (PARTITION BY e.visitor_id ORDER BY e.created_at,e.id) position FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1) SELECT visitor_id,device_no,browser,os,device,first_seen,last_seen,event_count FROM ranked WHERE position=1 ORDER BY last_seen DESC,device_no DESC LIMIT 100')
             .bind(now - retention).all();
-          const accounts = await env.DB.prepare('SELECT a.visitor_id,u.username FROM account_devices a JOIN users u ON u.id=a.user_id WHERE a.visitor_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.visitor_id))).all();
-          const names = new Map(accounts.results.map(a => [a.visitor_id,a.username]));
-          return reply({ sessions: rows.results.map(row => ({...row,username:names.get(row.visitor_id) || null})) });
+          const accounts = await env.DB.prepare('SELECT a.visitor_id,u.username,p.full_name AS fullName FROM account_devices a JOIN users u ON u.id=a.user_id LEFT JOIN user_profiles p ON p.user_id=u.id WHERE a.visitor_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.visitor_id))).all();
+          const names = new Map(accounts.results.map(a => [a.visitor_id,a]));
+          return reply({ sessions: rows.results.map(row => ({...row,username:names.get(row.visitor_id)?.username || null,fullName:names.get(row.visitor_id)?.fullName || null})) });
         }
         const url = new URL(request.url);
         const session = url.searchParams.get('session');
@@ -191,9 +191,9 @@ export default {
         if (!Number.isSafeInteger(cursor) || cursor !== 0) return reply({ error: 'Trang không hợp lệ.' }, 400);
         const rows = await env.DB.prepare('SELECT e.id,e.session_id,e.visitor_id,d.device_no,e.action,e.browser,e.os,e.device,e.created_at FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 AND (?2 IS NULL OR e.session_id=?2) AND (?4 IS NULL OR d.device_no=?4) ORDER BY e.created_at DESC,e.id DESC LIMIT 100 OFFSET ?3')
           .bind(now - retention, session || null, cursor, deviceNo).all();
-        const accounts = await env.DB.prepare('SELECT a.event_id,u.username FROM event_accounts a JOIN users u ON u.id=a.user_id WHERE a.event_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.id))).all();
-        const names = new Map(accounts.results.map(a => [a.event_id,a.username]));
-        return reply({ events: rows.results.slice(0, 100).map(row=>({...row,username:names.get(row.id) || null})), hasMore: false });
+        const accounts = await env.DB.prepare('SELECT a.event_id,u.username,p.full_name AS fullName FROM event_accounts a JOIN users u ON u.id=a.user_id LEFT JOIN user_profiles p ON p.user_id=u.id WHERE a.event_id IN (SELECT value FROM json_each(?1))').bind(JSON.stringify(rows.results.map(row=>row.id))).all();
+        const names = new Map(accounts.results.map(a => [a.event_id,a]));
+        return reply({ events: rows.results.slice(0, 100).map(row=>({...row,username:names.get(row.id)?.username || null,fullName:names.get(row.id)?.fullName || null})), hasMore: false });
       }
       return reply({ error: 'Không tìm thấy.' }, 404);
     } catch { return reply({ error: 'Không xử lý được yêu cầu. Hãy thử lại.' }, 500); }

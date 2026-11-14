@@ -12,7 +12,7 @@ function environment(){
 async function setup(){
   const {default:worker}=await import('../backend/worker.mjs');const env=environment();
   const call=async(path,body,token,source=origin)=>worker.fetch(new Request('https://api.example'+path,{method:body?'POST':'GET',headers:{Origin:source,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})}),env);
-  const register=async username=>{const response=await call('/auth/register',{username,password:'Test-password-12345'});assert.equal(response.status,201);return response.json();};
+  const register=async username=>{const response=await call('/auth/register',{username,fullName:'Hoàng Quốc Anh',password:'Test-password-12345'});assert.equal(response.status,201);return response.json();};
   return {worker,env,call,register};
 }
 test('Accounts normalize names, hash passwords with unique salts and issue revocable 10-day sessions',async()=>{
@@ -22,7 +22,7 @@ test('Accounts normalize names, hash passwords with unique salts and issue revoc
   const rows=env.sqlite.prepare('SELECT * FROM users').all();assert.notEqual(rows[0].password_hash,'Test-password-12345');assert.notEqual(rows[0].password_hash,rows[1].password_hash);assert.notEqual(rows[0].password_salt,rows[1].password_salt);
   assert.ok(!JSON.stringify(rows).includes('Test-password-12345'));
   assert.ok(!JSON.stringify(env.sqlite.prepare('SELECT * FROM user_sessions').all()).includes(first.token));
-  assert.equal((await call('/auth/register',{username:'TEST.USER',password:'Test-password-12345'})).status,409);
+  assert.equal((await call('/auth/register',{username:'TEST.USER',fullName:'Hoàng Quốc Anh',password:'Test-password-12345'})).status,409);
   const login=await call('/auth/login',{username:'TEST.USER',password:'Test-password-12345'});assert.equal(login.status,200);
   assert.equal((await call('/auth/login',{username:'test.user',password:'wrong-password'})).status,401);
   assert.equal((await call('/auth/me',null,first.token)).status,200);
@@ -72,15 +72,43 @@ test('Registration rejects weak or malformed input and login throttling blocks g
   assert.equal(response.status,429);
 });
 
+test('Vietnamese full names are required for registration and legacy profiles update only the signed-in user',async()=>{
+  const {normalizeFullName}=await import('../backend/accounts.mjs');
+  assert.equal(normalizeFullName('  Hoa\u0300ng   Quo\u0302\u0301c Anh  '),'Hoàng Quốc Anh');
+  for(const value of [undefined,'','A','  ','x'.repeat(81),'<img src=x>','Nguyễn 123','An\u0000B','An\u202eB'])assert.equal(normalizeFullName(value),null);
+  const {call,register,env}=await setup();
+  assert.equal((await call('/auth/register',{username:'noname',password:'Test-password-12345'})).status,400);
+  const first=await register('nameduser'),other=await register('otheruser');
+  assert.equal(first.user.fullName,'Hoàng Quốc Anh');
+  env.sqlite.prepare('DELETE FROM user_profiles WHERE user_id=?').run(first.user.id);
+  assert.equal((await (await call('/auth/me',null,first.token)).json()).user.fullName,'');
+  const response=await call('/auth/profile',{fullName:'  Nguyễn   Văn An  ',userId:other.user.id},first.token);
+  assert.equal(response.status,200);assert.equal((await response.json()).user.fullName,'Nguyễn Văn An');
+  assert.equal((await (await call('/auth/me',null,other.token)).json()).user.fullName,'Hoàng Quốc Anh');
+  assert.equal((await call('/auth/profile',{fullName:'<script>alert(1)</script>'},first.token)).status,400);
+  assert.equal((await call('/auth/profile',{fullName:'Nguyễn Văn An'})).status,401);
+  const login=await (await call('/auth/login',{username:'nameduser',password:'Test-password-12345'})).json();
+  assert.equal(login.user.fullName,'Nguyễn Văn An');
+  const admin=await (await call('/admin/login',{password:env.ADMIN_PASSWORD})).json();
+  const users=await (await call('/admin/users',null,admin.token)).json();
+  assert.equal(users.users.find(user=>user.id===first.user.id).fullName,'Nguyễn Văn An');
+  await call('/events',{eventId:crypto.randomUUID(),visitorId:crypto.randomUUID(),sessionId:crypto.randomUUID(),action:'visit',browser:'Other',os:'Other',device:'desktop'},first.token);
+  assert.equal((await (await call('/admin/sessions',null,admin.token)).json()).sessions[0].fullName,'Nguyễn Văn An');
+  assert.equal((await (await call('/admin/events',null,admin.token)).json()).events[0].fullName,'Nguyễn Văn An');
+  env.sqlite.exec(fs.readFileSync('backend/schema.sql','utf8'));
+  assert.equal(env.sqlite.prepare('SELECT full_name FROM user_profiles WHERE user_id=?').get(first.user.id).full_name,'Nguyễn Văn An');
+});
+
 function frontend({session=true,failMe=false,storage=new Map(),conflict=false}={}){
   const endpoint='https://api.example',redirects=[],requests=[],scripts=[],timers=[];
   if(session)storage.set('focus-user-session-v1',JSON.stringify({token:'user-token',user:{id:'user-one',username:'alice'},expiresAt:Date.now()+86400000,endpoint}));
-  const elements={};for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={hidden:true,listeners:{},addEventListener(n,fn){this.listeners[n]=fn;}};
+  const elements={};for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={hidden:true,listeners:{},setAttribute(name,value){this[name]=value;},focus(){},addEventListener(n,fn){this.listeners[n]=fn;}};
   const context={URL,Blob,crypto,AbortController,window:{TODO_ANALYTICS:{apiUrl:endpoint},addEventListener(){}},location:{replace:p=>redirects.push(p),reload(){}},
     localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     document:{getElementById:id=>elements[id],documentElement:{classList:{remove(){}}},createElement:()=>({}),head:{append(script){scripts.push(script.src);script.onload();}}},
     setTimeout:(fn,ms)=>{if(ms===700)timers.push(fn);return 1;},clearTimeout(){},
     fetch:async(url,options)=>{requests.push({url,options});if(url.endsWith('/auth/me'))return {status:failMe?401:200,ok:!failMe,json:async()=>({user:{id:'user-one',username:'alice'}})};
+      if(url.endsWith('/auth/profile'))return {status:200,ok:true,json:async()=>({user:{id:'user-one',username:'alice',fullName:JSON.parse(options.body).fullName}})};
       if(options.method==='POST')return {status:conflict?409:200,ok:!conflict,json:async()=>conflict?{error:'Conflict'}:{version:3}};
       return {ok:true,status:200,json:async()=>({version:2,data:{tasks:[{id:'remote',text:'Private',completed:false}],folders:[]}})};}};
   vm.runInNewContext(fs.readFileSync('auth.js','utf8'),context);
@@ -102,4 +130,16 @@ test('Cloud saving sends only account data, retains legacy tasks and preserves e
   assert.ok(storage.has('focus-user-pending-v1:user-one'));assert.match(storage.get('focus-list-tasks-v1'),/Keep me/);
   storage.set('focus-list-tasks-v1:user-one',JSON.stringify([{id:'new',text:'Changed after conflict',completed:false}]));
   app.context.window.todoAccount.save();assert.match(storage.get('focus-user-pending-v1:user-one'),/Changed after conflict/);
+});
+test('Legacy account can add a full name without logging out or changing tasks',async()=>{
+  const app=frontend();await new Promise(setImmediate);
+  assert.equal(app.elements['account-profile-form'].hidden,false);
+  const tasks=app.storage.get('focus-list-tasks-v1:user-one');
+  app.elements['account-fullname'].value='Nguyễn Văn An';
+  await app.elements['account-profile-form'].listeners.submit({preventDefault(){}});
+  assert.equal(app.elements['account-name'].textContent,'Nguyễn Văn An');
+  assert.equal(app.elements['account-profile-form'].hidden,true);
+  assert.equal(JSON.parse(app.storage.get('focus-user-session-v1')).user.fullName,'Nguyễn Văn An');
+  assert.equal(app.storage.get('focus-list-tasks-v1:user-one'),tasks);
+  assert.equal(app.redirects.length,0);
 });

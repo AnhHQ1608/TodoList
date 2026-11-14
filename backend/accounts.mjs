@@ -3,6 +3,13 @@ const encoder = new TextEncoder();
 const hex = bytes => Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
 const unhex = value => Uint8Array.from(value.match(/.{2}/g) || [], n => parseInt(n, 16));
 const lifetime = 10 * 86400;
+export function normalizeFullName(value) {
+  if(typeof value!=='string' || /[\p{Cc}\p{Cf}]/u.test(value)) return null;
+  const name=value.normalize('NFC').trim().replace(/\s+/gu,' ');
+  if(name.length<2 || name.length>80 || !/^[\p{L}\p{M} .’'\-]+$/u.test(name) || (name.match(/\p{L}/gu)||[]).length<2) return null;
+  return name;
+}
+const publicUser = user => ({id:user.id,username:user.username,fullName:user.full_name || ''});
 export const tokenHash = async token => hex(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
 export async function passwordHash(password, salt, secret) {
   // Pepper ở secret Worker: chỉ lấy database cũng chưa đủ để thử mật khẩu offline.
@@ -21,7 +28,7 @@ export async function currentUser(request, env, now) {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
   if (!/^[0-9a-f]{64}$/.test(token || '')) return null;
   const hash = await tokenHash(token);
-  return env.DB.prepare('SELECT u.id,u.username,s.expires_at FROM user_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?1 AND s.expires_at>?2').bind(hash, now).first();
+  return env.DB.prepare('SELECT u.id,u.username,p.full_name,s.expires_at FROM user_sessions s JOIN users u ON u.id=s.user_id LEFT JOIN user_profiles p ON p.user_id=u.id WHERE s.token_hash=?1 AND s.expires_at>?2').bind(hash, now).first();
 }
 async function body(request, max=2048) {
   if (!request.headers.get('Content-Type')?.startsWith('application/json')) throw Error('Invalid content type');
@@ -48,16 +55,19 @@ export async function accountRoute(request, env, path, now, reply, limited) {
     const password=data?.password;
     if(!/^[a-z0-9_.]{3,32}$/.test(username)||typeof password!=='string'||password.length<10||password.length>128)
       return reply({error:'Tên đăng nhập gồm 3–32 chữ không dấu, số, dấu . hoặc _. Mật khẩu từ 10–128 ký tự.'},400);
-    let user=await env.DB.prepare('SELECT id,username,password_hash,password_salt FROM users WHERE username=?1').bind(username).first();
+    let user=await env.DB.prepare('SELECT u.id,u.username,u.password_hash,u.password_salt,p.full_name FROM users u LEFT JOIN user_profiles p ON p.user_id=u.id WHERE u.username=?1').bind(username).first();
     if(path==='/auth/register'){
+      const fullName=normalizeFullName(data.fullName);
+      if(!fullName)return reply({error:'Nhập họ và tên từ 2–80 ký tự, chỉ gồm chữ, khoảng trắng, dấu chấm, nháy hoặc gạch nối.'},400);
       if(await limited(request,env,'user-register',5,3600,now))return reply({error:'Thử đăng ký lại sau 1 giờ.'},429);
       if(user)return reply({error:'Tên đăng nhập đã được sử dụng.'},409);
       const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
       const hash=await passwordHash(password,salt,env.PASSWORD_PEPPER);
-      user={id:crypto.randomUUID(),username};
+      user={id:crypto.randomUUID(),username,full_name:fullName};
       try {
         await env.DB.batch([
           env.DB.prepare('INSERT INTO users(id,username,password_hash,password_salt,created_at) VALUES(?1,?2,?3,?4,?5)').bind(user.id,username,hash,salt,now),
+          env.DB.prepare('INSERT INTO user_profiles(user_id,full_name) VALUES(?1,?2)').bind(user.id,fullName),
           env.DB.prepare('INSERT INTO user_data(user_id,updated_at) VALUES(?1,?2)').bind(user.id,now)
         ]);
       } catch {return reply({error:'Không thể tạo tài khoản. Hãy thử tên khác.'},409);}
@@ -67,11 +77,19 @@ export async function accountRoute(request, env, path, now, reply, limited) {
     }
     const token=hex(crypto.getRandomValues(new Uint8Array(32)));
     await env.DB.prepare('INSERT INTO user_sessions(token_hash,user_id,expires_at) VALUES(?1,?2,?3)').bind(await tokenHash(token),user.id,now+lifetime).run();
-    return reply({token,user:{id:user.id,username:user.username},expiresAt:(now+lifetime)*1000},path==='/auth/register'?201:200);
+    return reply({token,user:publicUser(user),expiresAt:(now+lifetime)*1000},path==='/auth/register'?201:200);
   }
   const user=await currentUser(request,env,now);
   if(!user)return reply({error:'Vui lòng đăng nhập lại.'},401);
-  if(path==='/auth/me' && request.method==='GET')return reply({user:{id:user.id,username:user.username},expiresAt:user.expires_at*1000});
+  if(path==='/auth/me' && request.method==='GET')return reply({user:publicUser(user),expiresAt:user.expires_at*1000});
+  if(path==='/auth/profile' && request.method==='POST'){
+    if(await limited(request,env,'user-profile',20,300,now))return reply({error:'Cập nhật quá nhanh. Hãy thử lại sau.'},429);
+    let data;try{data=await body(request);}catch{return reply({error:'Dữ liệu không hợp lệ.'},400);}
+    const fullName=normalizeFullName(data?.fullName);
+    if(!fullName)return reply({error:'Họ và tên phải gồm 2–80 ký tự chữ và khoảng trắng; có thể dùng dấu chấm, nháy hoặc gạch nối.'},400);
+    await env.DB.prepare('INSERT INTO user_profiles(user_id,full_name) VALUES(?1,?2) ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name').bind(user.id,fullName).run();
+    return reply({user:publicUser({...user,full_name:fullName})});
+  }
   if(path==='/auth/logout' && request.method==='POST'){
     await env.DB.prepare('DELETE FROM user_sessions WHERE token_hash=?1').bind(await tokenHash(request.headers.get('Authorization').replace(/^Bearer /,''))).run();
     return reply({loggedOut:true});

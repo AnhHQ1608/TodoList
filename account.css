@@ -17,6 +17,11 @@
 .password-field input { padding-right: 64px !important; }
 .password-field button { position: absolute; right: 8px; top: 6px; bottom: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #bda6f4; }
 #auth-confirm-field label { display: block; margin: 8px 0 10px; }
+#auth-fullname-field label { display: block; margin-bottom: 10px; }
+#account-profile-form { display: grid; gap: 12px; margin: 16px 0; }
+#account-fullname { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #101329; color: inherit; }
+#account-profile-message { margin: 0; font-size: 12px; color: var(--muted); }
+[data-theme="light"] #account-fullname { background: #f8fafc; }
 #auth-message { min-height: 20px; margin: 5px 0; color: #d4b8ff; font-size: 13px; }
 #auth-submit { min-height: 48px; width: 100%; }
 .auth-note { font-size: 11px; margin: 18px 0 0; }

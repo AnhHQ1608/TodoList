@@ -30,7 +30,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     await new Promise((r,j)=>{socket.onopen=r;socket.onerror=j;});
     let sequence=0;const pending=new Map(),errors=[];
     function send(method,params={}){return new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout: '+method));},8000);pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});socket.send(JSON.stringify({id,method,params}));});}
-    const user={id:'12345678-1234-4123-8123-123456789abc',username:'testuser'};
+    const user={id:'12345678-1234-4123-8123-123456789abc',username:'testuser',fullName:'Hoàng Quốc Anh'};
     let data={tasks:[],folders:[]},version=0;
     socket.onmessage=event=>{
       const message=JSON.parse(event.data);
@@ -40,7 +40,10 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
         const {requestId,request}=message.params;let result={},status=200;
         const route=new URL(request.url).pathname;
         if(request.method==='OPTIONS')status=204;
-        else if(route==='/auth/login'||route==='/auth/register')result={token:'a'.repeat(64),user,expiresAt:Date.now()+864000000};
+        else if(route==='/auth/login'||route==='/auth/register'){
+          if(route==='/auth/register')assert.equal(JSON.parse(request.postData).fullName,user.fullName);
+          result={token:'a'.repeat(64),user,expiresAt:Date.now()+864000000};
+        }
         else if(route==='/auth/me')result={user,expiresAt:Date.now()+864000000};
         else if(route==='/account/data'){
           if(request.method==='POST'){const body=JSON.parse(request.postData);assert.equal(body.version,version);data=body.data;version++;result={version};}
@@ -57,9 +60,9 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     async function until(expression){for(let i=0;i<100;i++){if(await evaluate(expression))return;await delay(100);}throw Error('Timeout: '+expression);}
     await send('Page.navigate',{url:origin+'/index.html'});
     await until("location.pathname.endsWith('/login.html') && !!document.getElementById('auth-submit')");
-    await evaluate("document.getElementById('auth-register-tab').click();document.getElementById('auth-username').value='testuser';document.getElementById('auth-password').value='Test-password-12345';document.getElementById('auth-confirm').value='Test-password-12345';document.getElementById('auth-form').requestSubmit();");
+    await evaluate("document.getElementById('auth-register-tab').click();document.getElementById('auth-fullname').value='Hoàng Quốc Anh';document.getElementById('auth-username').value='testuser';document.getElementById('auth-password').value='Test-password-12345';document.getElementById('auth-confirm').value='Test-password-12345';document.getElementById('auth-form').requestSubmit();");
     await until("!!window.todoAccount && !document.documentElement.classList.contains('account-loading')");
-    assert.equal(await evaluate("document.getElementById('account-name').textContent"),'testuser');
+    assert.equal(await evaluate("document.getElementById('account-name').textContent"),'Hoàng Quốc Anh');
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
     await evaluate("document.getElementById('task-input').value='Browser QA task';document.getElementById('task-form').requestSubmit();");
     for(let i=0;i<50 && !data.tasks.length;i++)await delay(100);

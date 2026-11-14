@@ -82,7 +82,10 @@
       localStorage.setItem('focus-activity-visitor-v1',visitor);
       window.todoAccount = Object.freeze({user:me.user,storageKey:tasksKey,foldersKey,save,
         headers:()=>({Authorization:'Bearer '+session.token})});
-      document.getElementById('account-name').textContent = me.user.username;
+      document.getElementById('account-name').textContent = me.user.fullName || me.user.username;
+      document.getElementById('account-fullname').value = me.user.fullName || '';
+      document.getElementById('account-profile-form').hidden = Boolean(me.user.fullName);
+      document.getElementById('account-profile').setAttribute('aria-expanded',String(!me.user.fullName));
       await loadScript('activity.js?v=accounts-1');
       await loadScript('device-alerts.js?v=accounts-1');
       await loadScript('script.js?v=accounts-1');
@@ -102,6 +105,28 @@
     } catch(error) { gate.textContent = error.message || 'Không tải được tài khoản. Hãy kiểm tra kết nối và tải lại.'; document.getElementById('account-gate-retry').hidden = false; }
   }
   document.getElementById('account-gate-retry').addEventListener('click', () => location.reload());
+  document.getElementById('account-profile').addEventListener('click', () => {
+    const form=document.getElementById('account-profile-form');form.hidden=!form.hidden;
+    document.getElementById('account-profile').setAttribute('aria-expanded',String(!form.hidden));
+    if(!form.hidden)document.getElementById('account-fullname').focus();
+  });
+  document.getElementById('account-profile-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const button=document.getElementById('account-profile-save');if(button.disabled)return;
+    button.disabled=true;
+    try {
+      const result=await api('/auth/profile',{fullName:document.getElementById('account-fullname').value.trim()});
+      window.todoAccount.user.fullName=result.user.fullName;
+      session.user=result.user;
+      localStorage.setItem(sessionKey,JSON.stringify(session));
+      document.getElementById('account-name').textContent=result.user.fullName;
+      document.getElementById('account-fullname').value=result.user.fullName;
+      document.getElementById('account-profile-message').textContent='Đã lưu họ và tên.';
+      document.getElementById('account-profile-form').hidden=true;
+      document.getElementById('account-profile').setAttribute('aria-expanded','false');
+    }catch(error){document.getElementById('account-profile-message').textContent=error.message || 'Không lưu được họ tên.';}
+    finally{button.disabled=false;}
+  });
   document.getElementById('account-retry').addEventListener('click', () => { if(stopped) location.reload(); else flush(); });
   document.getElementById('account-logout').addEventListener('click', async () => {
     clearTimeout(timer);

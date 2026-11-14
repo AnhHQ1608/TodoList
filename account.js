@@ -12,6 +12,8 @@
     $('auth-register-tab').setAttribute('aria-selected', String(value));
     $('auth-confirm-field').hidden = !value;
     $('auth-confirm').required = value;
+    $('auth-fullname-field').hidden = !value;
+    $('auth-fullname').required = value;
     $('auth-password').autocomplete = value ? 'new-password' : 'current-password';
     $('auth-title').textContent = value ? 'Bắt đầu một ngày mới.' : 'Chào mừng trở lại.';
     $('auth-submit').textContent = value ? 'Tạo tài khoản' : 'Đăng nhập';
@@ -34,7 +36,7 @@
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 20000);
     try {
       const response = await fetch(endpoint + (register ? '/auth/register' : '/auth/login'), {method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({username:$('auth-username').value.trim(),password:$('auth-password').value}),credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
+        body:JSON.stringify({username:$('auth-username').value.trim(),password:$('auth-password').value,...(register?{fullName:$('auth-fullname').value.trim()}:{})}),credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
       const data = await response.json();
       if(!response.ok) throw Error(data.error || 'Không thể đăng nhập.');
       localStorage.setItem(key, JSON.stringify({token:data.token,user:data.user,expiresAt:data.expiresAt,endpoint}));

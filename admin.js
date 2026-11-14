@@ -75,6 +75,7 @@
       refresh(); // Máy chủ kiểm tra lại chữ ký, thời hạn và trạng thái đăng xuất.
     } catch { try { localStorage.removeItem(sessionKey); } catch { /* Storage không khả dụng. */ } }
   }
+  const accountLabel = user => user.username ? (user.fullName || 'Chưa có họ tên') + ' · @' + user.username : 'Khách cũ';
   const date = value => new Date(value * 1000).toLocaleString('vi-VN');
   const deviceCode = value => Number.isSafeInteger(value) && value > 0 ? 'TB-' + String(value).padStart(6, '0') : 'Chưa cấp mã';
   function isOwnDevice(visitorId) {
@@ -88,7 +89,7 @@
     $('events-body').replaceChildren();
     data.events.forEach(event => {
       const row = document.createElement('tr');
-      cell(row, date(event.created_at)); cell(row, event.username || 'Khách cũ'); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, labels[event.action] || 'Thao tác khác');
+      cell(row, date(event.created_at)); cell(row, accountLabel(event)); cell(row, (isOwnDevice(event.visitor_id) ? 'admin · ' : '') + deviceCode(event.device_no)); cell(row, labels[event.action] || 'Thao tác khác');
       $('events-body').append(row);
     });
     if (!data.events.length) { const row = document.createElement('tr'); cell(row, 'Chưa có thao tác phù hợp.'); $('events-body').append(row); }
@@ -131,7 +132,7 @@
           $('admin-alert-message').focus();
         });
         identity.append(warn);
-        cell(row, session.username || 'Khách cũ'); cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
+        cell(row, accountLabel(session)); cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
         cell(row, Date.now() / 1000 - session.last_seen < 120 ? 'Vừa hoạt động' : 'Không hoạt động gần đây');
         $('sessions-body').append(row);
       });
@@ -141,7 +142,7 @@
       $('users-body').replaceChildren();
       accounts.users.forEach(user => {
         const row=document.createElement('tr');
-        cell(row,user.username); cell(row,date(user.created_at)); cell(row,String(user.device_count)); cell(row,user.last_seen ? date(user.last_seen) : 'Chưa hoạt động');
+        cell(row,accountLabel(user)); cell(row,date(user.created_at)); cell(row,String(user.device_count)); cell(row,user.last_seen ? date(user.last_seen) : 'Chưa hoạt động');
         $('users-body').append(row);
       });
       if (token) $('admin-message').textContent = 'Đã cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN');
