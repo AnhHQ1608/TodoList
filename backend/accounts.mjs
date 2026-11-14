@@ -40,8 +40,13 @@ async function body(request, max=2048) {
 }
 function validData(data) {
   return data && Array.isArray(data.tasks) && Array.isArray(data.folders) && data.tasks.length<=2000 && data.folders.length<=200
-    && data.tasks.every(t=>t && typeof t.id==='string' && t.id.length<=100 && typeof t.text==='string' && t.text.length<=200 && typeof t.completed==='boolean')
-    && data.folders.every(f=>f && typeof f.id==='string' && f.id.length<=100 && typeof f.name==='string' && f.name.length<=100);
+    && data.tasks.every(t=>t && typeof t.id==='string' && t.id.length<=100 && typeof t.text==='string' && t.text.length<=200 && typeof t.completed==='boolean' && (t.scheduledDate==null || validScheduleDate(t.scheduledDate)))
+    && data.folders.every(f=>f && typeof f.id==='string' && f.id.length<=100 && typeof f.name==='string' && f.name.length<=100)
+    && (data.routines===undefined || Array.isArray(data.routines) && data.routines.length<=100 && data.routines.every(r=>r && typeof r.id==='string' && r.id.length<=100 && typeof r.text==='string' && r.text.length<=200 && validScheduleDate(r.startDate) && Array.isArray(r.weekdays) && r.weekdays.length>=1 && r.weekdays.length<=7 && r.weekdays.every(day=>Number.isInteger(day)&&day>=1&&day<=7) && (r.deadlineTime==null || /^([01]\d|2[0-3]):[0-5]\d$/.test(r.deadlineTime)) && Array.isArray(r.excludedDates) && r.excludedDates.length<=2000 && r.excludedDates.every(validScheduleDate)));
+}
+function validScheduleDate(value) {
+  if(typeof value!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const date=new Date(value+'T00:00:00Z');return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10)===value;
 }
 export async function accountRoute(request, env, path, now, reply, limited) {
   if (!path.startsWith('/auth/') && path!=='/account/data') return null;
@@ -103,6 +108,12 @@ export async function accountRoute(request, env, path, now, reply, limited) {
       if(await limited(request,env,'user-save',120,300,now))return reply({error:'Lưu quá nhanh, hãy thử lại sau.'},429);
       let data;try{data=await body(request,262144);}catch{return reply({error:'Dữ liệu quá lớn hoặc không hợp lệ (tối đa 256 KB).'},400);}
       if(!Number.isSafeInteger(data?.version)||data.version<0||!validData(data.data))return reply({error:'Danh sách công việc không hợp lệ.'},400);
+      if(data.data.routines===undefined){
+        // Tab chạy phiên bản cũ không được làm mất lịch lặp đã lưu từ phiên bản mới.
+        const previous=await env.DB.prepare('SELECT data FROM user_data WHERE user_id=?1').bind(user.id).first();
+        const routines=previous?JSON.parse(previous.data).routines:undefined;
+        if(routines!==undefined)data.data.routines=routines;
+      }
       const row=await env.DB.prepare('UPDATE user_data SET data=?1,version=version+1,updated_at=?2 WHERE user_id=?3 AND version=?4 RETURNING version').bind(JSON.stringify(data.data),now,user.id,data.version).first();
       if(!row)return reply({error:'Dữ liệu đã thay đổi ở thiết bị khác. Giữ bản trên máy và tải lại trước khi sửa tiếp.'},409);
       return reply({version:row.version});

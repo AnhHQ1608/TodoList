@@ -48,6 +48,100 @@ let tasks = [];
 let tasksNeedSaving = false;
 let currentFilter = 'all';
 let editingId = null;
+const taskDateInput = document.getElementById('task-date');
+const repeatInput = document.getElementById('task-repeat');
+const routinesKey = window.todoAccount?.routinesKey || 'focus-list-routines-v1';
+// Lịch lặp là mẫu riêng; task của mỗi ngày có ID riêng để hoàn thành độc lập.
+const weekdayNames = ['Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy','Chủ nhật'];
+let selectedDay = 'all';
+let visibleWeek = weekStart(new Date(Date.now()));
+let repeatWeekdays = new Set();
+let routines = [];
+function dayKey(date) {
+  return `${String(date.getFullYear()).padStart(4,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function validDay(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(new Date(value+'T12:00:00').getTime()) && dayKey(new Date(value+'T12:00:00')) === value;
+}
+function weekStart(value) {
+  const date=new Date(value);date.setHours(12,0,0,0);date.setDate(date.getDate()-(date.getDay()+6)%7);return date;
+}
+function weekDates(start) {
+  return Array.from({length:7},(_,index)=>{const date=new Date(start);date.setDate(date.getDate()+index);return dayKey(date);});
+}
+function readRoutines() {
+  const saved=JSON.parse(localStorage.getItem(routinesKey) || '[]');
+  if(!Array.isArray(saved))throw Error('Lịch lặp không hợp lệ');
+  return saved.filter(item=>item && typeof item.id==='string' && typeof item.text==='string' && validDay(item.startDate) && Array.isArray(item.weekdays))
+    .map(item=>({...item,weekdays:[...new Set(item.weekdays.filter(day=>Number.isInteger(day)&&day>=1&&day<=7))],deadlineTime:typeof item.deadlineTime==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.deadlineTime)?item.deadlineTime:null,excludedDates:Array.isArray(item.excludedDates)?item.excludedDates.filter(validDay):[]}));
+}
+try { routines=readRoutines(); } catch { message.textContent='Không đọc được lịch lặp. Các task hiện có vẫn được giữ.'; }
+function saveRoutines(next) {
+  try {localStorage.setItem(routinesKey,JSON.stringify(next));routines=next;window.todoAccount?.save();return true;}
+  catch {message.textContent='Không lưu được lịch lặp. Hãy kiểm tra bộ nhớ trình duyệt.';return false;}
+}
+function markOccurrence(task, excluded) {
+  if(!task.routineId || !validDay(task.scheduledDate))return true;
+  try {routines=readRoutines();} catch {return false;}
+  return saveRoutines(routines.map(item=>item.id!==task.routineId?item:{...item,excludedDates:excluded?[...new Set([...item.excludedDates,task.scheduledDate])]:item.excludedDates.filter(date=>date!==task.scheduledDate)}));
+}
+function ensureWeekOccurrences() {
+  const dates=[...new Set([...weekDates(weekStart(new Date())),...weekDates(visibleWeek)])];
+  const ids=new Set(tasks.map(task=>task.id));let changed=false;
+  for(const routine of routines)for(const date of dates){
+    const weekday=(new Date(date+'T12:00:00').getDay()+6)%7+1;
+    const id='repeat-'+routine.id+'-'+date;
+    if(date<routine.startDate || !routine.weekdays.includes(weekday) || routine.excludedDates.includes(date) || ids.has(id) || tasks.length>=2000)continue;
+    const deadline=routine.deadlineTime ? new Date(date+'T'+routine.deadlineTime).toISOString() : null;
+    tasks.push({id,text:routine.text,completed:false,completedAt:null,folderId:routine.folderId || '',scheduledDate:date,routineId:routine.id,deadline,notifiedDeadline:null});ids.add(id);changed=true;
+  }
+  if(changed)saveTasks();
+  return changed;
+}
+function matchesDay(task) {
+  return selectedDay==='all' || (selectedDay==='unscheduled'?!task.scheduledDate:selectedDay==='week'?weekDates(visibleWeek).includes(task.scheduledDate):task.scheduledDate===selectedDay);
+}
+function selectDay(value) {
+  selectedDay=value;
+  if(!editingId)taskDateInput.value=validDay(value)?value:'';
+  renderTasks();
+}
+function renderWeekPlanner() {
+  const dates=weekDates(visibleWeek);
+  document.getElementById('week-range').textContent=new Date(dates[0]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit'})+' – '+new Date(dates[6]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit',year:'numeric'});
+  const container=document.getElementById('week-days');container.replaceChildren();
+  dates.forEach((date,index)=>{
+    const button=document.createElement('button');button.type='button';button.className='week-day';button.id='week-day-'+date;button.setAttribute('aria-pressed',String(selectedDay===date));button.setAttribute('aria-label',weekdayNames[index]+', '+date);
+    if(date===dayKey(new Date(Date.now())))button.className+=' is-today';
+    const label=document.createElement('span');label.textContent=index===6?'CN':'T'+(index+2);
+    const number=document.createElement('strong');number.textContent=String(Number(date.slice(-2)));
+    const count=document.createElement('small');count.textContent=String(tasks.filter(task=>task.scheduledDate===date&&(currentFolder==='all'||taskFolderId(task)===currentFolder)&&(currentFilter==='active'?!task.completed:currentFilter==='completed'?task.completed:true)).length);
+    button.append(label,number,count);button.addEventListener('click',()=>{selectDay(date);document.getElementById('week-day-'+date)?.focus();});container.append(button);
+  });
+  for(const [id,value] of [['week-all','all'],['week-whole','week'],['week-unscheduled','unscheduled']])document.getElementById(id).setAttribute('aria-pressed',String(selectedDay===value));
+}
+function renderRepeatDays() {
+  const container=document.getElementById('repeat-days');container.replaceChildren();
+  weekdayNames.forEach((name,index)=>{const day=index+1;const button=document.createElement('button');button.type='button';button.id='repeat-weekday-'+day;button.textContent=index===6?'CN':'T'+(index+2);button.setAttribute('aria-label',name);button.setAttribute('aria-pressed',String(repeatWeekdays.has(day)));button.addEventListener('click',()=>{if(repeatWeekdays.has(day))repeatWeekdays.delete(day);else repeatWeekdays.add(day);renderRepeatDays();document.getElementById('repeat-weekday-'+day)?.focus();});container.append(button);});
+}
+function updateRepeatEditor() {
+  document.getElementById('repeat-options').hidden=!repeatInput.checked;
+  document.getElementById('task-deadline-field').hidden=Boolean(repeatInput.checked);
+  form.classList.toggle('repeat-mode',Boolean(repeatInput.checked));
+  document.getElementById('open-picker').disabled=repeatInput.checked;
+  renderRepeatDays();
+}
+repeatInput.addEventListener('change',()=>{
+  const original=tasks.find(task=>task.id===editingId);
+  const routine=routines.find(item=>item.id===original?.routineId);
+  if(routine)taskDateInput.value=repeatInput.checked?routine.startDate:original.scheduledDate;
+  if(repeatInput.checked && !repeatWeekdays.size){const date=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00'):new Date(Date.now());repeatWeekdays.add((date.getDay()+6)%7+1);}
+  updateRepeatEditor();
+});
+for(const [id,value] of [['week-all','all'],['week-whole','week'],['week-unscheduled','unscheduled']])document.getElementById(id).addEventListener('click',()=>selectDay(value));
+for(const [id,direction] of [['week-previous',-1],['week-next',1]])document.getElementById(id).addEventListener('click',()=>{visibleWeek.setDate(visibleWeek.getDate()+7*direction);selectDay('week');});
+document.getElementById('week-current').addEventListener('click',()=>{visibleWeek=weekStart(new Date());selectDay('week');});
+renderRepeatDays();
 let notificationTestPending = false;
 const soundKey = 'focus-list-sound-v1';
 let soundEnabled = true;
@@ -211,6 +305,7 @@ function readTasks() {
     .map(task => ({ ...task,
       completedAt: task.completed && Number.isFinite(task.completedAt) && task.completedAt > 0 ? task.completedAt : null,
       folderId: typeof task.folderId === 'string' ? task.folderId : '',
+      scheduledDate: validDay(task.scheduledDate) ? task.scheduledDate : null,
       deadline: typeof task.deadline === 'string' && Number.isFinite(Date.parse(task.deadline))
         ? new Date(task.deadline).toISOString() : null,
       notifiedDeadline: typeof task.notifiedDeadline === 'string' ? task.notifiedDeadline : null,
@@ -315,6 +410,8 @@ function updateCountdowns() {
 function resetEditor() {
   editingId = null;
   form.reset();
+  taskDateInput.value=validDay(selectedDay)?selectedDay:'';
+  repeatInput.checked=false;repeatWeekdays=new Set();document.getElementById('repeat-time').value='';updateRepeatEditor();
   folderSelect.value = currentFolder === 'all' ? '' : currentFolder;
   document.getElementById('folder-picker').open = false;
   updateFolderPicker();
@@ -325,6 +422,9 @@ function resetEditor() {
 function startEditing(task) {
   editingId = task.id;
   input.value = task.text;
+  const routine=routines.find(item=>item.id===task.routineId);
+  taskDateInput.value=routine?.startDate || task.scheduledDate || '';
+  repeatInput.checked=Boolean(routine);repeatWeekdays=new Set(routine?.weekdays || []);document.getElementById('repeat-time').value=routine?.deadlineTime || '';updateRepeatEditor();
   folderSelect.value = taskFolderId(task);
   updateFolderPicker();
   // datetime-local cần giờ địa phương, không phải chuỗi UTC từ toISOString().
@@ -341,9 +441,11 @@ function startEditing(task) {
 
 // 3. Vẽ danh sách. textContent ngăn nội dung nhập bị chạy như HTML.
 function renderTasks() {
+  ensureWeekOccurrences();
+  renderWeekPlanner();
   renderFolders();
   list.replaceChildren();
-  const visible = tasks.filter(task => (currentFolder === 'all' || taskFolderId(task) === currentFolder)
+  const visible = tasks.filter(task => matchesDay(task) && (currentFolder === 'all' || taskFolderId(task) === currentFolder)
     && (currentFilter === 'active' ? !task.completed : currentFilter === 'completed' ? task.completed : true));
   visible.forEach(task => {
     const item = document.createElement('li');
@@ -353,6 +455,7 @@ function renderTasks() {
     checkbox.id = 'task-' + task.id;
     checkbox.checked = task.completed;
     checkbox.addEventListener('change', () => {
+      if(!markOccurrence(task,checkbox.checked)){checkbox.checked=task.completed;return;}
       task.completed = checkbox.checked;
       task.completedAt = task.completed ? Date.now() : null;
       if (saveTasks()) recordActivity(task.completed ? 'task_completed' : 'task_reopened');
@@ -373,6 +476,7 @@ function renderTasks() {
     folderBadge.setAttribute('data-icon', getFolderIcon(folders.find(folder => folder.id === taskFolderId(task))));
     folderBadge.textContent = folders.find(folder => folder.id === taskFolderId(task))?.name || 'Chưa phân loại';
     content.append(folderBadge);
+    if(task.scheduledDate){const badge=document.createElement('span');badge.className='task-schedule-badge';badge.textContent=(task.routineId?'↻ ':'')+new Date(task.scheduledDate+'T12:00:00').toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'});content.append(badge);}
     if (task.completed) {
       const cleanupLabel = document.createElement('p');
       cleanupLabel.id = 'cleanup-' + task.id;
@@ -393,6 +497,7 @@ function renderTasks() {
     deleteButton.textContent = '×';
     deleteButton.setAttribute('aria-label', 'Xóa công việc: ' + task.text);
     deleteButton.addEventListener('click', () => {
+      if(!markOccurrence(task,true))return;
       tasks = tasks.filter(existing => existing.id !== task.id);
       if (editingId === task.id) resetEditor();
       if (saveTasks()) recordActivity('task_deleted');
@@ -403,7 +508,7 @@ function renderTasks() {
     item.append(checkbox, content, actions);
     list.append(item);
   });
-  const scopedTasks = tasks.filter(task => currentFolder === 'all' || taskFolderId(task) === currentFolder);
+  const scopedTasks = tasks.filter(task => matchesDay(task) && (currentFolder === 'all' || taskFolderId(task) === currentFolder));
   const completed = scopedTasks.filter(task => task.completed).length;
   const percent = scopedTasks.length ? Math.round(completed / scopedTasks.length * 100) : 0;
   document.getElementById('task-count').textContent = visible.length + ' công việc';
@@ -420,12 +525,16 @@ function renderTasks() {
   };
   empty.querySelector('h3').textContent = texts[currentFilter][0];
   empty.querySelector('p').textContent = texts[currentFilter][1];
+  document.getElementById('task-section-title').textContent=selectedDay==='week'?'Công việc trong tuần':validDay(selectedDay)?'Công việc ngày '+new Date(selectedDay+'T12:00:00').toLocaleDateString('vi-VN'):'Công việc của bạn';
   updateCountdowns();
 }
 form.addEventListener('submit', event => {
   event.preventDefault();
   const text = input.value.trim();
   if (!text) { message.textContent = 'Vui lòng nhập nội dung công việc.'; input.focus(); return; }
+  const scheduledDate=taskDateInput.value || null;
+  if(scheduledDate && !validDay(scheduledDate)){message.textContent='Ngày thực hiện không hợp lệ.';return;}
+  if(repeatInput.checked){submitRepeatingTask(text,scheduledDate);return;}
   const date = deadlineInput.value ? new Date(deadlineInput.value) : null;
   if (date && !Number.isFinite(date.getTime())) {
     message.textContent = 'Ngày giờ deadline không hợp lệ.'; document.getElementById('open-picker').focus(); return;
@@ -442,6 +551,13 @@ form.addEventListener('submit', event => {
   if (editingId) {
     const task = tasks.find(task => task.id === editingId);
     if (!task) { resetEditor(); message.textContent = 'Công việc đã bị xóa ở tab khác.'; return; }
+    if(task.routineId){
+      const oldId=task.routineId;
+      if(!saveRoutines(routines.filter(item=>item.id!==oldId)))return;
+      const today=dayKey(new Date(Date.now()));
+      tasks=tasks.filter(item=>item.id===task.id || item.routineId!==oldId || item.completed || item.scheduledDate<today);
+      task.routineId=null;
+    }
     if (task.deadline !== deadline) {
       task.notifiedDeadline = null;
       task.overdueNotifiedDeadline = null;
@@ -451,18 +567,54 @@ form.addEventListener('submit', event => {
     task.text = text;
     task.deadline = deadline;
     task.folderId = folderId;
+    task.scheduledDate=scheduledDate;
   } else {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    tasks.push({ id, text, completed: false, completedAt: null, deadline, folderId, notifiedDeadline: null });
+    tasks.push({ id, text, completed: false, completedAt: null, deadline, folderId, scheduledDate, notifiedDeadline: null });
     setFilter('all');
   }
   if (currentFolder !== 'all') currentFolder = folderId;
+  if(validDay(selectedDay)&&scheduledDate!==selectedDay)selectedDay=scheduledDate || 'unscheduled';
   if (saveTasks()) recordActivity(activity);
   resetEditor();
   renderTasks();
   input.focus();
   checkDeadlines();
 });
+function submitRepeatingTask(text,startDate) {
+  if(!repeatWeekdays.size){message.textContent='Chọn ít nhất một thứ để lặp hằng tuần.';return;}
+  const time=document.getElementById('repeat-time').value || null;
+  if(time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){message.textContent='Giờ deadline phải theo dạng HH:mm.';return;}
+  const original=tasks.find(task=>task.id===editingId);
+  const old=routines.find(item=>item.id===original?.routineId);
+  if(!old && routines.length>=100){message.textContent='Tối đa 100 lịch lặp cho mỗi tài khoản.';return;}
+  const id=old?.id || Date.now().toString(36)+Math.random().toString(36).slice(2);
+  const routine={id,text,folderId:folders.some(folder=>folder.id===folderSelect.value)?folderSelect.value:'',startDate:startDate || dayKey(new Date(Date.now())),weekdays:[...repeatWeekdays].sort(),deadlineTime:time,excludedDates:old?.excludedDates || []};
+  if(time && (!old || time!==old.deadlineTime || routine.startDate!==old.startDate)){
+    const next=new Date((routine.startDate>dayKey(new Date(Date.now()))?routine.startDate:dayKey(new Date(Date.now())))+'T12:00:00');
+    for(let count=0;count<7 && !routine.weekdays.includes((next.getDay()+6)%7+1);count++)next.setDate(next.getDate()+1);
+    if(new Date(dayKey(next)+'T'+time).getTime()<=Date.now()){message.textContent='Giờ deadline hôm nay đã qua. Chọn giờ khác hoặc ngày bắt đầu sau hôm nay.';return;}
+  }
+  if(!saveRoutines([...routines.filter(item=>item.id!==id),routine]))return;
+  const today=dayKey(new Date(Date.now()));
+  tasks=tasks.filter(task=>{
+    if(task.routineId!==id)return task.id!==original?.id || task.completed;
+    if(task.completed || task.scheduledDate<today)return true;
+    return task.scheduledDate>=routine.startDate && routine.weekdays.includes((new Date(task.scheduledDate+'T12:00:00').getDay()+6)%7+1);
+  }).map(task=>{
+    if(task.routineId!==id || task.completed || task.scheduledDate<today)return task;
+    const deadline=time?new Date(task.scheduledDate+'T'+time).toISOString():null;
+    return {...task,text,folderId:routine.folderId,deadline,...(deadline!==task.deadline?{notifiedDeadline:null,overdueNotifiedDeadline:null,overdueSoundedDeadline:null,reminderSoundedDeadline:null}:{})};
+  });
+  if(!old){
+    const first=new Date(routine.startDate+'T12:00:00');
+    for(let count=0;count<7 && !routine.weekdays.includes((first.getDay()+6)%7+1);count++)first.setDate(first.getDate()+1);
+    visibleWeek=weekStart(first);
+  }
+  selectedDay='week';setFilter('all');
+  if(currentFolder!=='all')currentFolder=routine.folderId;
+  ensureWeekOccurrences();saveTasks();recordActivity(editingId?'task_updated':'task_created');resetEditor();renderTasks();input.focus();checkDeadlines();
+}
 cancelButton.addEventListener('click', () => { resetEditor(); input.focus(); });
 filters.forEach(button => button.addEventListener('click', () => { setFilter(button.dataset.filter); renderTasks(); }));
 
@@ -771,6 +923,7 @@ async function sendDueNotifications() {
 }
 async function checkDeadlines() {
   const runChecks = async () => {
+    if(ensureWeekOccurrences())renderTasks();
     cleanupCompletedTasks();
     updateCountdowns();
     await sendDueNotifications();
@@ -781,8 +934,9 @@ async function checkDeadlines() {
   } else await runChecks();
 }
 window.addEventListener('storage', event => {
-  if (event.key !== storageKey && event.key !== foldersKey && event.key !== null) return;
+  if (event.key !== storageKey && event.key !== foldersKey && event.key !== routinesKey && event.key !== null) return;
   try {
+    routines=readRoutines();
     folders = readFolders();
     tasks = readTasks();
     if (currentFolder !== 'all' && !folders.some(folder => folder.id === currentFolder)) currentFolder = 'all';

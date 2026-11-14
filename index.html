@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=sounds-1">
+  <link rel="stylesheet" href="style.css?v=weekly-repeat-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=full-name-1" defer></script>
+  <script src="auth.js?v=weekly-repeat-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -37,12 +37,22 @@
       <p>Ghi lại điều cần làm, tập trung vào điều quan trọng.</p>
     </section>
     <section class="card" aria-label="Quản lý công việc">
-      <div class="heading"><h2>Công việc hôm nay</h2><span class="badge">LET’S DO THIS</span></div>
+      <div class="heading"><h2 id="task-section-title">Công việc của bạn</h2><span class="badge">LET’S DO THIS</span></div>
+      <section class="week-planner" aria-label="Kế hoạch tuần">
+        <div class="week-heading"><div><span class="week-eyebrow">KẾ HOẠCH TUẦN</span><p id="week-range" aria-live="polite"></p></div><div class="week-navigation"><button id="week-previous" type="button" aria-label="Tuần trước">‹</button><button id="week-current" type="button">Tuần này</button><button id="week-next" type="button" aria-label="Tuần sau">›</button></div></div>
+        <div id="week-days" class="week-days" role="group" aria-label="Chọn ngày trong tuần"></div>
+        <div class="week-views" role="group" aria-label="Phạm vi lịch"><button id="week-all" type="button" aria-pressed="true">Tất cả</button><button id="week-whole" type="button" aria-pressed="false">Cả tuần</button><button id="week-unscheduled" type="button" aria-pressed="false">Chưa xếp ngày</button></div>
+      </section>
       <form id="task-form" autocomplete="off">
         <label class="sr-only" for="task-input">Công việc mới</label>
         <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
+        <div class="task-schedule">
+          <div class="schedule-date-field"><label for="task-date">Ngày thực hiện / bắt đầu</label><input id="task-date" type="date"></div>
+          <label class="repeat-toggle" for="task-repeat"><input id="task-repeat" type="checkbox"><span>Lặp hằng tuần</span><span aria-hidden="true">↻</span></label>
+          <div id="repeat-options" hidden><div id="repeat-days" class="repeat-days" role="group" aria-label="Các thứ lặp lại"></div><label class="repeat-time-label" for="repeat-time">Giờ deadline mỗi lần (không bắt buộc)<input id="repeat-time" type="time"></label><p class="help">Mỗi ngày là một task riêng. Sửa task lặp sẽ cập nhật lịch lặp; bỏ chọn để dừng lặp.</p></div>
+        </div>
         <div class="folder-field"><span id="folder-select-label" class="field-label">Mục công việc</span><select id="task-folder" hidden><option value="">Chưa phân loại</option></select><details id="folder-picker" class="folder-picker"><summary id="folder-picker-trigger" aria-labelledby="folder-select-label folder-selected-name"><span id="folder-selected-icon" class="folder-symbol" aria-hidden="true">▱</span><span id="folder-selected-name">Chưa phân loại</span><span class="folder-chevron ui-chevron" aria-hidden="true"></span></summary><div class="folder-menu"><p>CHỌN MỤC CÔNG VIỆC</p><div id="folder-options" role="group" aria-label="Chọn mục cho công việc"></div></div></details></div>
-        <div class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
+        <div id="task-deadline-field" class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
         <button id="submit-task" class="add" type="submit">＋ Add Task</button>
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>

@@ -24,6 +24,14 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 ## Dữ liệu được ghi nhận
 
+### Lịch tuần và task lặp
+
+TodoList có thanh Thứ Hai–Chủ nhật, chuyển tuần trước/sau và các bộ lọc Tất cả / Cả tuần / Chưa xếp ngày. Task cũ không có ngày vẫn hiện trong Tất cả và Chưa xếp ngày. Có thể đặt ngày cho task một lần hoặc bật **Lặp hằng tuần**, chọn nhiều thứ, ngày bắt đầu và giờ deadline mỗi lần (tùy chọn). Deadline của task một lần giữ nguyên cách chọn cũ.
+
+Lịch lặp lưu riêng trong `data.routines` của tài khoản, tối đa 100 lịch. Mỗi ngày có task ID cố định theo mã lịch + ngày, tránh tạo trùng khi mở lại. Hoàn thành hoặc xóa một lần chỉ đánh dấu ngày đó; task tuần sau vẫn mới và độc lập. Task hoàn thành vẫn tự xóa sau 2 giờ; ngày đã xử lý không bị tạo lại. Sửa task lặp cập nhật các lần chưa hoàn thành từ hôm nay; task đã hoàn thành và ngày cũ được giữ. Bỏ chọn Lặp hằng tuần khi sửa sẽ dừng lịch và giữ task đang sửa như task một lần, dọn các lần tương lai chưa hoàn thành khác. Ngày đã bỏ qua lưu tối đa 2.000 mốc mỗi lịch theo giới hạn API.
+
+Task lặp được tạo cho tuần hiện tại và tuần đang xem khi mở web, chuyển tuần hoặc khi trang đang chạy kiểm tra định kỳ; JavaScript không chạy khi đóng website. Không có tác vụ nền tạo mọi tuần vô hạn. Lịch và các ngày đã xử lý đồng bộ cùng task qua cơ chế phiên bản hiện có. API giữ `routines` cũ nếu tab chạy phiên bản cũ gửi dữ liệu không có trường này. Không cần migration database vì phần này lưu trong JSON tài khoản; cần deploy Worker để áp dụng kiểm tra dữ liệu mới.
+
 Đăng ký mới bắt buộc **Họ và tên** (2–80 ký tự, hỗ trợ chữ tiếng Việt, khoảng trắng, dấu chấm/nháy/gạch nối). Họ tên được chuẩn hóa Unicode NFC và khoảng trắng trên máy chủ, lưu trong bảng `user_profiles` bổ sung bằng schema idempotent. Tài khoản cũ chưa có tên vẫn đăng nhập được và được mở sẵn form bổ sung; nút **Họ và tên** trên TodoList cho phép cập nhật sau này. API `/auth/profile` chỉ sửa hồ sơ của chính phiên đã xác thực. Cả ba bảng quản trị hiển thị họ tên kèm `@tên_đăng_nhập` để phân biệt người trùng tên. Họ tên do người dùng khai báo, chưa xác minh danh tính.
 
 - Khi ghi nhận đang bật: mở trang; trang còn hoạt động (heartbeat khi tab hiện); thêm/sửa/xóa/hoàn thành/mở lại task; tạo/xóa thư mục; đợt tự dọn task hoàn thành.

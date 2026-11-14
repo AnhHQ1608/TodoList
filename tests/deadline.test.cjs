@@ -71,8 +71,8 @@ function boot(initial = [], options = {}) {
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
       querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(),
       addEventListener: (type, listener) => { documentListeners[type] = listener; } },
-    localStorage: { getItem: key => key === 'focus-list-sound-v1' ? storage.sound : key === 'focus-list-folders-v1' ? storage.folders : storage.value,
-      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if (key === 'focus-list-sound-v1') storage.sound = value; else if (key === 'focus-list-folders-v1') storage.folders = value; else storage.value = value; } },
+    localStorage: { getItem: key => key === 'focus-list-routines-v1' ? storage.routines : key === 'focus-list-sound-v1' ? storage.sound : key === 'focus-list-folders-v1' ? storage.folders : storage.value,
+      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if(key === 'focus-list-routines-v1')storage.routines=value;else if (key === 'focus-list-sound-v1') storage.sound = value; else if (key === 'focus-list-folders-v1') storage.folders = value; else storage.value = value; } },
     setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); }, clearTimeout() {} });
   vm.runInContext(code, context);
   return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, workerSent, registrations, focusCount: () => focusCount, requested: () => requested,
@@ -88,6 +88,60 @@ test('Deadline: 24h boundary, yellow, overdue and completed', () => {
   }
   assert.equal(app.run(`deadlineInfo(${JSON.stringify(task({ completed: true, deadline: iso(-HOUR) }))}).className`), '');
   assert.match(app.run(`deadlineInfo(${JSON.stringify(task({ deadline: iso(HOUR/2) }))}).text`), /30 phút/);
+});
+
+test('Weekly planner schedules one-off tasks, keeps old tasks unscheduled and combines with status filters',()=>{
+  const app=boot([task()]);
+  app.elements['task-date'].value='2026-11-16';app.submit('Monday task');
+  assert.equal(app.run('tasks[1].scheduledDate'),'2026-11-16');
+  app.run("visibleWeek=weekStart(new Date('2026-11-16T12:00:00'));selectDay('2026-11-16')");
+  assert.equal(app.elements['task-list'].children.length,1);
+  app.filters[2].listeners.click();assert.equal(app.elements['task-list'].children.length,0);
+  app.filters[0].listeners.click();
+  app.elements['week-unscheduled'].listeners.click();assert.equal(app.elements['task-list'].children.length,1);
+  assert.equal(app.run('validDay("2028-02-29")'),true);assert.equal(app.run('validDay("2026-02-29")'),false);
+  assert.equal(app.run("weekDates(weekStart(new Date('2026-12-31T12:00:00'))).join(',')"),'2026-12-28,2026-12-29,2026-12-30,2026-12-31,2027-01-01,2027-01-02,2027-01-03');
+});
+function addWeekly(app,days=[1,3,5],time=''){
+  app.elements['task-repeat'].checked=true;app.elements['task-date'].value='2026-11-16';app.elements['repeat-time'].value=time;
+  app.run('repeatWeekdays=new Set('+JSON.stringify(days)+')');app.submit('Weekly workout');
+}
+test('Recurring weekdays generate independent tasks, persist completion/deletion and never resurrect after 2h cleanup',()=>{
+  const app=boot();addWeekly(app);
+  assert.equal(app.run('routines.length'),1);assert.equal(app.run('tasks.length'),3);
+  assert.equal(app.run('tasks.map(t=>t.scheduledDate).sort().join(",")'),'2026-11-16,2026-11-18,2026-11-20');
+  const first=app.elements['task-list'].children[0].children[0];first.checked=true;first.listeners.change();
+  assert.equal(app.run('tasks.filter(t=>t.completed).length'),1);
+  app.run('tasks[0].completedAt=Date.now()-2*hour;saveTasks();cleanupCompletedTasks()');
+  assert.equal(app.run('tasks.length'),2);
+  app.elements['task-list'].children[0].children[2].children[1].listeners.click();
+  assert.equal(app.run('tasks.length'),1);
+  const reload=boot([],{storage:app.storage});
+  reload.run("visibleWeek=weekStart(new Date('2026-11-16T12:00:00'));selectDay('week')");
+  assert.equal(reload.run('tasks.length'),1);
+  reload.elements['week-next'].listeners.click();
+  assert.equal(reload.elements['task-list'].children.length,3);
+  assert.equal(reload.run('tasks.filter(t=>t.completed).length'),0);
+  assert.equal(reload.run('new Set(tasks.map(t=>t.id)).size'),4);
+});
+test('Recurring completion can be undone; edits update future tasks; disabling repetition stops future generation',()=>{
+  const app=boot();addWeekly(app,[1,3],'18:30');
+  const first=app.elements['task-list'].children[0].children[0];first.checked=true;first.listeners.change();
+  const undo=app.elements['task-list'].children[0].children[0];undo.checked=false;undo.listeners.change();
+  assert.equal(app.run('routines[0].excludedDates.length'),0);
+  app.run('tasks[0].notifiedDeadline=tasks[0].deadline');
+  app.run('startEditing(tasks[0]);repeatWeekdays=new Set([1,5])');app.submit('Changed routine');
+  assert.equal(app.run('tasks.length'),2);assert.ok(app.run('tasks.every(t=>t.text==="Changed routine")'));
+  assert.ok(app.run('tasks[0].notifiedDeadline===tasks[0].deadline'));
+  assert.equal(app.run('tasks.some(t=>t.scheduledDate==="2026-11-18")'),false);
+  app.run('startEditing(tasks[0])');app.elements['task-repeat'].checked=false;app.elements['task-repeat'].listeners.change();app.submit('One last task');
+  assert.equal(app.run('routines.length'),0);assert.equal(app.run('tasks.length'),1);
+  app.elements['week-next'].listeners.click();assert.equal(app.elements['task-list'].children.length,0);
+});
+test('Weekly input rejects empty weekdays, invalid time and failed storage without creating tasks',()=>{
+  const app=boot();addWeekly(app,[]);assert.equal(app.run('routines.length'),0);
+  addWeekly(app,[1],'25:00');assert.equal(app.run('routines.length'),0);
+  const blocked=boot([],{blocked:true});addWeekly(blocked);assert.equal(blocked.run('routines.length'),0);assert.equal(blocked.run('tasks.length'),0);
 });
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });

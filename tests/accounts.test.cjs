@@ -63,6 +63,20 @@ test('Logged-in activities attach account names and alert delivery checks device
   assert.equal((await call('/device/alerts',{visitorId:event.visitorId},b.token)).status,403);
   assert.equal((await call('/device/alerts',{visitorId:event.visitorId})).status,401);
 });
+test('Weekly routines sync privately, validate dates/weekdays and survive saves from old clients',async()=>{
+  const {call,register}=await setup();const a=await register('weeklyuser'),b=await register('otherweekly');
+  const routine={id:'r1',text:'Exercise',startDate:'2026-11-16',weekdays:[1,3,5],deadlineTime:'18:30',excludedDates:['2026-11-16']};
+  const data={tasks:[{id:'one',text:'One off',completed:false,scheduledDate:'2026-11-18'}],folders:[],routines:[routine]};
+  assert.equal((await call('/account/data',{version:0,data},a.token)).status,200);
+  const saved=await (await call('/account/data',null,a.token)).json();assert.deepEqual(saved.data,data);
+  assert.equal((await (await call('/account/data',null,b.token)).json()).data.routines,undefined);
+  for(const bad of [{...routine,weekdays:[0,8]},{...routine,startDate:'2026-02-30'},{...routine,deadlineTime:'25:00'}]){
+    assert.equal((await call('/account/data',{version:1,data:{...data,routines:[bad]}},a.token)).status,400);
+  }
+  assert.equal((await call('/account/data',{version:1,data:{tasks:[],folders:[]}},a.token)).status,200);
+  assert.deepEqual((await (await call('/account/data',null,a.token)).json()).data.routines,[routine]);
+});
+
 test('Registration rejects weak or malformed input and login throttling blocks guessing',async()=>{
   const {call}=await setup();
   for(const body of [{username:'ab',password:'long-enough-password'},{username:'user',password:'short'},{username:'<img>',password:'long-enough-password'},null]){
@@ -99,7 +113,7 @@ test('Vietnamese full names are required for registration and legacy profiles up
   assert.equal(env.sqlite.prepare('SELECT full_name FROM user_profiles WHERE user_id=?').get(first.user.id).full_name,'Nguyễn Văn An');
 });
 
-function frontend({session=true,failMe=false,storage=new Map(),conflict=false}={}){
+function frontend({session=true,failMe=false,storage=new Map(),conflict=false,remoteRoutines=[]}={}){
   const endpoint='https://api.example',redirects=[],requests=[],scripts=[],timers=[];
   if(session)storage.set('focus-user-session-v1',JSON.stringify({token:'user-token',user:{id:'user-one',username:'alice'},expiresAt:Date.now()+86400000,endpoint}));
   const elements={};for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={hidden:true,listeners:{},setAttribute(name,value){this[name]=value;},focus(){},addEventListener(n,fn){this.listeners[n]=fn;}};
@@ -110,7 +124,7 @@ function frontend({session=true,failMe=false,storage=new Map(),conflict=false}={
     fetch:async(url,options)=>{requests.push({url,options});if(url.endsWith('/auth/me'))return {status:failMe?401:200,ok:!failMe,json:async()=>({user:{id:'user-one',username:'alice'}})};
       if(url.endsWith('/auth/profile'))return {status:200,ok:true,json:async()=>({user:{id:'user-one',username:'alice',fullName:JSON.parse(options.body).fullName}})};
       if(options.method==='POST')return {status:conflict?409:200,ok:!conflict,json:async()=>conflict?{error:'Conflict'}:{version:3}};
-      return {ok:true,status:200,json:async()=>({version:2,data:{tasks:[{id:'remote',text:'Private',completed:false}],folders:[]}})};}};
+      return {ok:true,status:200,json:async()=>({version:2,data:{tasks:[{id:'remote',text:'Private',completed:false}],folders:[],routines:remoteRoutines}})};}};
   vm.runInNewContext(fs.readFileSync('auth.js','utf8'),context);
   return {context,elements,redirects,requests,scripts,storage,timers};
 }
@@ -142,4 +156,12 @@ test('Legacy account can add a full name without logging out or changing tasks',
   assert.equal(JSON.parse(app.storage.get('focus-user-session-v1')).user.fullName,'Nguyễn Văn An');
   assert.equal(app.storage.get('focus-list-tasks-v1:user-one'),tasks);
   assert.equal(app.redirects.length,0);
+});
+test('Pending edits from an old app preserve cloud recurring schedules during upgrade',async()=>{
+  const routine={id:'weekly',text:'Keep schedule',startDate:'2026-11-16',weekdays:[1],excludedDates:['2026-11-16']};
+  const storage=new Map([['focus-user-pending-v1:user-one',JSON.stringify({version:2,data:{tasks:[],folders:[]}})]]);
+  const app=frontend({storage,remoteRoutines:[routine]});await new Promise(setImmediate);
+  assert.deepEqual(JSON.parse(storage.get('focus-list-routines-v1:user-one')),[routine]);
+  const sent=app.requests.find(request=>request.url.endsWith('/account/data') && request.options.method==='POST');
+  assert.deepEqual(JSON.parse(sent.options.body).data.routines,[routine]);
 });
