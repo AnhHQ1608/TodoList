@@ -13,6 +13,7 @@
   const tasksKey = 'focus-list-tasks-v1:' + session.user.id;
   const foldersKey = 'focus-list-folders-v1:' + session.user.id;
   const routinesKey = 'focus-list-routines-v1:' + session.user.id;
+  const overdueHistoryKey = 'focus-list-overdue-history-v1:' + session.user.id;
   const pendingKey = 'focus-user-pending-v1:' + session.user.id;
   async function api(path, data) {
     const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 15000);
@@ -25,7 +26,7 @@
       return result;
     } finally { clearTimeout(timeout); }
   }
-  function snapshot() { return {tasks:JSON.parse(localStorage.getItem(tasksKey) || '[]'),folders:JSON.parse(localStorage.getItem(foldersKey) || '[]'),routines:JSON.parse(localStorage.getItem(routinesKey) || '[]')}; }
+  function snapshot() { return {tasks:JSON.parse(localStorage.getItem(tasksKey) || '[]'),folders:JSON.parse(localStorage.getItem(foldersKey) || '[]'),routines:JSON.parse(localStorage.getItem(routinesKey) || '[]'),overdueHistory:JSON.parse(localStorage.getItem(overdueHistoryKey) || '[]')}; }
   async function flush() {
     if(stopped || busy || !dirty) return;
     busy = true; dirty = false;
@@ -61,7 +62,7 @@
       const pending = JSON.parse(localStorage.getItem(pendingKey) || 'null');
       let data = remote.data;
       if(pending){
-        if(pending.version === version){ data = {...pending.data,routines:pending.data.routines === undefined ? remote.data.routines || [] : pending.data.routines}; dirty = true; }
+        if(pending.version === version){ data = {...pending.data,routines:pending.data.routines === undefined ? remote.data.routines || [] : pending.data.routines,overdueHistory:pending.data.overdueHistory===undefined?remote.data.overdueHistory || []:pending.data.overdueHistory}; dirty = true; }
         else {
           // Không tự chọn một phía khi có xung đột. Bản chưa đồng bộ được giữ riêng.
           document.getElementById('account-conflict').hidden = false;
@@ -78,11 +79,12 @@
       localStorage.setItem(tasksKey, JSON.stringify(data.tasks));
       localStorage.setItem(foldersKey, JSON.stringify(data.folders));
       localStorage.setItem(routinesKey, JSON.stringify(data.routines || []));
+      localStorage.setItem(overdueHistoryKey, JSON.stringify(data.overdueHistory || []));
       const visitorKey='focus-activity-visitor-v1:' + me.user.id;
       let visitor=localStorage.getItem(visitorKey);
       if(!/^[0-9a-f-]{36}$/.test(visitor || '')){visitor=crypto.randomUUID();localStorage.setItem(visitorKey,visitor);}
       localStorage.setItem('focus-activity-visitor-v1',visitor);
-      window.todoAccount = Object.freeze({user:me.user,storageKey:tasksKey,foldersKey,routinesKey,save,
+      window.todoAccount = Object.freeze({user:me.user,storageKey:tasksKey,foldersKey,routinesKey,overdueHistoryKey,save,
         headers:()=>({Authorization:'Bearer '+session.token})});
       document.getElementById('account-name').textContent = me.user.fullName || me.user.username;
       document.getElementById('account-fullname').value = me.user.fullName || '';
@@ -90,7 +92,7 @@
       document.getElementById('account-profile').setAttribute('aria-expanded',String(!me.user.fullName));
       await loadScript('activity.js?v=accounts-1');
       await loadScript('device-alerts.js?v=sounds-2');
-      await loadScript('script.js?v=deadline-day-sync-1');
+      await loadScript('script.js?v=overdue-history-1');
       document.documentElement.classList.remove('account-loading');
       document.getElementById('account-gate').hidden = true;
       sync.textContent = dirty ? 'Đang đồng bộ…' : 'Đã đồng bộ';

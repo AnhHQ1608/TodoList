@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=weekly-repeat-1">
+  <link rel="stylesheet" href="style.css?v=overdue-history-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=deadline-day-sync-1" defer></script>
+  <script src="auth.js?v=overdue-history-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -47,7 +47,7 @@
         <label class="sr-only" for="task-input">Công việc mới</label>
         <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
         <div class="task-schedule">
-          <div class="schedule-date-field"><label for="task-date">Ngày thực hiện / bắt đầu</label><input id="task-date" type="date"></div>
+          <div class="schedule-date-field"><label id="task-date-label" for="open-schedule-picker">Ngày thực hiện / bắt đầu</label><input id="task-date" type="date" hidden><button id="open-schedule-picker" class="schedule-date-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-labelledby="task-date-label task-date-display"><span class="calendar-icon" aria-hidden="true">▦</span><span id="task-date-display">Chọn ngày</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
           <label class="repeat-toggle" for="task-repeat"><input id="task-repeat" type="checkbox"><span>Lặp hằng tuần</span><span aria-hidden="true">↻</span></label>
           <div id="repeat-options" hidden><div id="repeat-days" class="repeat-days" role="group" aria-label="Các thứ lặp lại"></div><label class="repeat-time-label" for="repeat-time">Giờ deadline mỗi lần (không bắt buộc)<input id="repeat-time" type="time"></label><p class="help">Mỗi ngày là một task riêng. Sửa task lặp sẽ cập nhật lịch lặp; bỏ chọn để dừng lặp.</p></div>
         </div>
@@ -57,8 +57,9 @@
         <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
       <span id="deadline-help" class="sr-only">Giờ địa phương, không bắt buộc.</span>
-      <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p></aside>
+      <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p><button id="open-overdue-history" class="secondary" type="button">Xem lịch sử &amp; khôi phục</button></aside>
       <p id="message" role="status" aria-live="polite"></p>
+      <details id="overdue-history" class="overdue-history"><summary><span>Lịch sử quá hạn</span><span id="overdue-history-count" class="history-count">0</span><span class="ui-chevron" aria-hidden="true"></span></summary><p class="help">Giữ lại task đã lỡ hạn. Khôi phục với deadline mới để tiếp tục thực hiện.</p><div id="overdue-history-list" class="overdue-history-list"></div></details>
       <details class="folder-section folder-manager">
         <summary>Thư mục <span class="folder-manager-action">＋ Tạo / quản lý <span class="ui-chevron" aria-hidden="true"></span></span></summary>
         <form id="folder-form" autocomplete="off"><label class="sr-only" for="folder-name">Tên mục mới</label><input id="folder-name" placeholder="Ví dụ: Học tập, Công việc, Cá nhân…" maxlength="40" required><button class="secondary" type="submit">＋ Tạo mục</button></form>
@@ -106,7 +107,7 @@
     <div class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="Tháng trước">‹</button><h3 id="calendar-month" aria-live="polite"></h3><button id="next-month" class="icon-button" type="button" aria-label="Tháng sau">›</button></div>
     <div class="weekdays" aria-hidden="true"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
     <div id="calendar-days" class="calendar-days" role="group" aria-label="Chọn ngày"></div>
-    <div class="time-section"><div class="time-heading"><span class="time-caption">THỜI GIAN</span><span>Định dạng 24 giờ</span></div><div class="time-controls"><div class="time-unit"><label for="picker-hour">Giờ</label><button id="hour-down" type="button" aria-label="Giảm giờ">−</button><input id="picker-hour" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="hour-up" type="button" aria-label="Tăng giờ">＋</button></div><span class="time-colon" aria-hidden="true">:</span><div class="time-unit"><label for="picker-minute">Phút</label><button id="minute-down" type="button" aria-label="Giảm phút">−</button><input id="picker-minute" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="minute-up" type="button" aria-label="Tăng phút">＋</button></div></div></div>
+    <div id="picker-time-section" class="time-section"><div class="time-heading"><span class="time-caption">THỜI GIAN</span><span>Định dạng 24 giờ</span></div><div class="time-controls"><div class="time-unit"><label for="picker-hour">Giờ</label><button id="hour-down" type="button" aria-label="Giảm giờ">−</button><input id="picker-hour" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="hour-up" type="button" aria-label="Tăng giờ">＋</button></div><span class="time-colon" aria-hidden="true">:</span><div class="time-unit"><label for="picker-minute">Phút</label><button id="minute-down" type="button" aria-label="Giảm phút">−</button><input id="picker-minute" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="minute-up" type="button" aria-label="Tăng phút">＋</button></div></div></div>
     <div class="quick-dates"><button id="pick-today" type="button">Hôm nay</button><button id="pick-tomorrow" type="button">Ngày mai</button><button id="clear-deadline" type="button">Bỏ deadline</button></div>
     <p id="picker-preview" class="picker-preview" aria-live="polite"></p>
     <p id="picker-error" class="picker-error" role="alert"></p>

@@ -113,7 +113,7 @@ test('Vietnamese full names are required for registration and legacy profiles up
   assert.equal(env.sqlite.prepare('SELECT full_name FROM user_profiles WHERE user_id=?').get(first.user.id).full_name,'Nguyễn Văn An');
 });
 
-function frontend({session=true,failMe=false,storage=new Map(),conflict=false,remoteRoutines=[]}={}){
+function frontend({session=true,failMe=false,storage=new Map(),conflict=false,remoteRoutines=[],remoteHistory=[]}={}){
   const endpoint='https://api.example',redirects=[],requests=[],scripts=[],timers=[];
   if(session)storage.set('focus-user-session-v1',JSON.stringify({token:'user-token',user:{id:'user-one',username:'alice'},expiresAt:Date.now()+86400000,endpoint}));
   const elements={};for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={hidden:true,listeners:{},setAttribute(name,value){this[name]=value;},focus(){},addEventListener(n,fn){this.listeners[n]=fn;}};
@@ -124,7 +124,7 @@ function frontend({session=true,failMe=false,storage=new Map(),conflict=false,re
     fetch:async(url,options)=>{requests.push({url,options});if(url.endsWith('/auth/me'))return {status:failMe?401:200,ok:!failMe,json:async()=>({user:{id:'user-one',username:'alice'}})};
       if(url.endsWith('/auth/profile'))return {status:200,ok:true,json:async()=>({user:{id:'user-one',username:'alice',fullName:JSON.parse(options.body).fullName}})};
       if(options.method==='POST')return {status:conflict?409:200,ok:!conflict,json:async()=>conflict?{error:'Conflict'}:{version:3}};
-      return {ok:true,status:200,json:async()=>({version:2,data:{tasks:[{id:'remote',text:'Private',completed:false}],folders:[],routines:remoteRoutines}})};}};
+      return {ok:true,status:200,json:async()=>({version:2,data:{tasks:[{id:'remote',text:'Private',completed:false}],folders:[],routines:remoteRoutines,overdueHistory:remoteHistory}})};}};
   vm.runInNewContext(fs.readFileSync('auth.js','utf8'),context);
   return {context,elements,redirects,requests,scripts,storage,timers};
 }
@@ -164,4 +164,23 @@ test('Pending edits from an old app preserve cloud recurring schedules during up
   assert.deepEqual(JSON.parse(storage.get('focus-list-routines-v1:user-one')),[routine]);
   const sent=app.requests.find(request=>request.url.endsWith('/account/data') && request.options.method==='POST');
   assert.deepEqual(JSON.parse(sent.options.body).data.routines,[routine]);
+});
+test('Overdue history is private, validated, synchronized and preserved for older clients',async()=>{
+  const {call,register}=await setup();const a=await register('historyuser'),b=await register('otherhistory');
+  const entry={id:'task1:old',task:{id:'task1',text:'Recover me',completed:false,deadline:'2026-11-13T10:00:00.000Z'},recordedAt:Date.now(),restoredAt:null};
+  const data={tasks:[],folders:[],overdueHistory:[entry]};
+  assert.equal((await call('/account/data',{version:0,data},a.token)).status,200);
+  assert.deepEqual((await (await call('/account/data',null,a.token)).json()).data.overdueHistory,[entry]);
+  assert.equal((await (await call('/account/data',null,b.token)).json()).data.overdueHistory,undefined);
+  assert.equal((await call('/account/data',{version:1,data:{...data,overdueHistory:[{...entry,task:{...entry.task,deadline:'bad'}}]}},a.token)).status,400);
+  assert.equal((await call('/account/data',{version:1,data:{tasks:[],folders:[]}},a.token)).status,200);
+  assert.deepEqual((await (await call('/account/data',null,a.token)).json()).data.overdueHistory,[entry]);
+});
+test('Upgrading pending edits preserves overdue history fetched from the account',async()=>{
+  const entry={id:'old',task:{id:'one',text:'Kept',completed:false,deadline:'2026-11-13T10:00:00.000Z'},recordedAt:Date.now()};
+  const storage=new Map([['focus-user-pending-v1:user-one',JSON.stringify({version:2,data:{tasks:[],folders:[]}})]]);
+  const app=frontend({storage,remoteHistory:[entry]});await new Promise(setImmediate);
+  assert.deepEqual(JSON.parse(storage.get('focus-list-overdue-history-v1:user-one')),[entry]);
+  const sent=app.requests.find(request=>request.url.endsWith('/account/data') && request.options.method==='POST');
+  assert.deepEqual(JSON.parse(sent.options.body).data.overdueHistory,[entry]);
 });

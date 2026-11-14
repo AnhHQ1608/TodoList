@@ -24,6 +24,14 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 ## Dữ liệu được ghi nhận
 
+### Lịch sử quá hạn và khôi phục
+
+Task quá hạn vẫn ở danh sách hiện tại, đồng thời được lưu bản chụp vào **Lịch sử quá hạn**, kể cả khi bộ lọc ngày/mục đang ẩn task. Mỗi task + deadline chỉ có một bản ghi; lưu tối đa 500 bản gần nhất trong `data.overdueHistory` của tài khoản. Lịch sử được đồng bộ riêng theo tài khoản, giữ cả khi task bị xóa hoặc task hoàn thành muộn được tự dọn sau 2 giờ. Task đã bị xóa trước khi có tính năng này không thể lấy lại nếu không còn bản lưu.
+
+Bấm **Khôi phục** để điền lại form, chọn ngày và deadline mới trong tương lai rồi xác nhận. Task còn đang quá hạn được cập nhật tại chỗ, task không còn trong danh sách tạo thành task mới. Chỉ đánh dấu lịch sử đã khôi phục sau khi lưu task thành công. Khôi phục một lần lặp chỉ tách riêng lần đó thành task một lần, không dừng lịch tuần. Lịch sử không bị mất nếu tab chạy phiên bản cũ lưu dữ liệu thiếu trường này; vẫn áp dụng kiểm tra phiên bản để chống ghi đè.
+
+Ô ngày thực hiện dùng nút mở lịch tùy chỉnh chung với bộ chọn deadline: bo góc, tông tím, hỗ trợ sáng/tối và điện thoại, có chuyển tháng/Hôm nay/Ngày mai/Bỏ ngày. Chế độ chọn ngày ẩn ô giờ; hủy không thay đổi dữ liệu. Chọn ngày thực hiện mới vẫn đồng bộ ngày deadline và giữ giờ đã nhập.
+
 ### Lịch tuần và task lặp
 
 Khi đã chọn ngày thực hiện, deadline của task một lần phải cùng ngày đó. Bộ chọn deadline mở đúng ngày đã chọn, khóa ngày khác và nút đổi tháng/ngày nhanh không phù hợp; giờ vẫn nhập được. Đổi ngày thực hiện tự giữ giờ và đổi phần ngày của deadline. Task cũ có deadline khác ngày được căn lại trong form khi bấm Sửa, chỉ ghi dữ liệu khi Lưu; vẫn chặn deadline mới trong quá khứ.

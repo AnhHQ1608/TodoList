@@ -71,8 +71,8 @@ function boot(initial = [], options = {}) {
     document: { getElementById: id => elements[id] || allNodes().find(e => e.id === id),
       querySelectorAll: () => filters, querySelector: () => filters[0], createElement: () => new Element(),
       addEventListener: (type, listener) => { documentListeners[type] = listener; } },
-    localStorage: { getItem: key => key === 'focus-list-routines-v1' ? storage.routines : key === 'focus-list-sound-v1' ? storage.sound : key === 'focus-list-folders-v1' ? storage.folders : storage.value,
-      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if(key === 'focus-list-routines-v1')storage.routines=value;else if (key === 'focus-list-sound-v1') storage.sound = value; else if (key === 'focus-list-folders-v1') storage.folders = value; else storage.value = value; } },
+    localStorage: { getItem: key => key === 'focus-list-overdue-history-v1' ? storage.history : key === 'focus-list-routines-v1' ? storage.routines : key === 'focus-list-sound-v1' ? storage.sound : key === 'focus-list-folders-v1' ? storage.folders : storage.value,
+      setItem: (key, value) => { if (options.blocked) throw Error('Storage blocked'); if(key === 'focus-list-overdue-history-v1')storage.history=value;else if(key === 'focus-list-routines-v1')storage.routines=value;else if (key === 'focus-list-sound-v1') storage.sound = value; else if (key === 'focus-list-folders-v1') storage.folders = value; else storage.value = value; } },
     setInterval: () => {}, setTimeout: (callback, delay) => { timers.push({ callback, delay }); }, clearTimeout() {} });
   vm.runInContext(code, context);
   return { elements, filters, storage, sent, audio, documentListeners, notifications, timers, workerSent, registrations, focusCount: () => focusCount, requested: () => requested,
@@ -171,6 +171,50 @@ test('Editing a legacy mismatched deadline aligns only the editor until saved; p
   app.run("selectDay('2026-11-13')");app.elements['open-picker'].listeners.click();
   assert.equal(app.run('dayKey(selectedDate)'),'2026-11-13');
   assert.equal(app.elements['apply-deadline'].disabled,true);
+});
+test('Overdue history survives deletion and reload, requires a future deadline and restores a deleted task once',()=>{
+  const app=boot([task({text:'<img src=x>',deadline:iso(-HOUR)})]);
+  assert.equal(app.run('overdueHistory.length'),1);
+  assert.equal(app.elements['overdue-history-list'].children[0].children[0].children[0].textContent,'<img src=x>');
+  app.elements['task-list'].children[0].children[2].children[1].listeners.click();
+  const restored=boot([],{storage:app.storage});assert.equal(restored.run('tasks.length'),0);assert.equal(restored.run('overdueHistory.length'),1);
+  restored.run('beginHistoryRestore(overdueHistory[0])');restored.submit('Again');assert.equal(restored.run('tasks.length'),0);
+  const future=restored.run('localDateValue(new Date(Date.now()+hour))');
+  restored.submit('Again',future);
+  assert.equal(restored.run('tasks.length'),1);assert.equal(restored.run('tasks[0].completed'),false);
+  assert.ok(restored.run('overdueHistory[0].restoredAt'));
+  assert.equal(restored.run('overdueHistory[0].task.deadline'),iso(-HOUR));
+  const reload=boot([],{storage:restored.storage});assert.equal(reload.elements['overdue-history-list'].children[0].children[1].disabled,true);
+});
+test('Restoring an active overdue task keeps its ID; late completed tasks retain history after automatic cleanup',()=>{
+  const app=boot([task({deadline:iso(-HOUR)})]);app.run('beginHistoryRestore(overdueHistory[0])');
+  app.submit('Continue',app.run('localDateValue(new Date(Date.now()+hour))'));
+  assert.equal(app.run('tasks.length'),1);assert.equal(app.run('tasks[0].id'),'1');
+  const completed=boot([task({deadline:iso(-3*HOUR),completed:true,completedAt:NOW-2*HOUR})]);
+  assert.equal(completed.run('tasks.length'),0);assert.equal(completed.run('overdueHistory.length'),1);
+  assert.equal(completed.run('overdueHistory[0].completedAt'),NOW-2*HOUR);
+});
+test('Restoring one overdue recurrence leaves its weekly template and future occurrences intact',()=>{
+  const seed=boot();const date=seed.run('dayKey(new Date(Date.now()))');const weekday=seed.run('(new Date(Date.now()).getDay()+6)%7+1');
+  const original=task({id:'repeat-r1-'+date,deadline:iso(-HOUR),scheduledDate:date,routineId:'r1'});
+  const storage={value:JSON.stringify([original]),routines:JSON.stringify([{id:'r1',text:'Weekly',startDate:date,weekdays:[weekday],deadlineTime:null,excludedDates:[]}])};
+  const app=boot([],{storage});app.run('beginHistoryRestore(overdueHistory[0])');
+  app.submit('Restore only this one',app.run('localDateValue(new Date(Date.now()+hour))'));
+  assert.equal(app.run('routines.length'),1);assert.equal(app.run('tasks[0].routineId'),null);
+  assert.equal(app.run('routines[0].excludedDates.length'),1);
+  app.elements['week-next'].listeners.click();assert.equal(app.run('tasks.filter(task=>task.routineId==="r1").length'),1);
+});
+test('Custom schedule calendar selects or clears a day, preserves time and cancels without changing data',()=>{
+  const app=boot();app.run("selectDay('2026-11-16')");app.elements['deadline-input'].value='2026-11-16T18:30';
+  app.elements['open-schedule-picker'].listeners.click();
+  assert.equal(app.run('pickerMode'),'schedule');assert.equal(app.elements['picker-time-section'].hidden,true);assert.equal(app.elements['next-month'].disabled,false);
+  const day=app.elements['calendar-days'].children.find(button=>Number(button.textContent)===18&&!button.className.includes('outside'));
+  day.listeners.click();app.elements['apply-deadline'].listeners.click();
+  assert.equal(app.elements['task-date'].value,'2026-11-18');assert.equal(app.elements['deadline-input'].value,'2026-11-18T18:30');
+  app.elements['open-schedule-picker'].listeners.click();app.elements['next-month'].listeners.click();app.elements['cancel-picker'].listeners.click();
+  assert.equal(app.elements['task-date'].value,'2026-11-18');
+  app.elements['open-picker'].listeners.click();assert.equal(app.elements['picker-time-section'].hidden,false);assert.equal(app.elements['next-month'].disabled,true);
+  app.elements['cancel-picker'].listeners.click();app.elements['open-schedule-picker'].listeners.click();app.elements['clear-deadline'].listeners.click();assert.equal(app.elements['task-date'].value,'');
 });
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });

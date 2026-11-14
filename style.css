@@ -472,3 +472,31 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 [data-theme="light"] #task-date, [data-theme="light"] #repeat-time { background: white; color: #334155; border-color: #ded6eb; }
 [data-theme="light"] .task-schedule-badge { color: #3d6597; }
 @media(max-width:520px) { .week-planner { padding: 12px; } .week-heading { align-items: flex-start; gap: 6px; } #week-range { font-size: 11px; } .week-days { gap: 4px; } .week-day { border-radius: 9px; padding: 8px 2px; } .week-day strong { font-size: 18px; } .week-navigation button { padding: 4px 7px; min-width: 27px; } .task-schedule { grid-template-columns: minmax(0,1fr); } #task-form.repeat-mode .folder-field { grid-column: auto; } .task-schedule-badge { margin-left: 4px; } }
+.schedule-date-trigger { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #79639660; border-radius: 10px; background: linear-gradient(115deg,#b59cff0b,#11152c); color: #e5dcf5; text-align: left; transition: border-color .2s,box-shadow .2s; }
+.schedule-date-trigger:hover { border-color: #b59cff; box-shadow: 0 0 0 3px #b59cff0a; }
+#task-date-display { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-date-trigger .calendar-icon { font-size: 19px; color: #b59cff; }
+.overdue-history { margin: 18px 0; padding: 16px; border: 1px solid #f296b52b; border-radius: 15px; background: #ed7fa205; }
+.overdue-history > summary { display: flex; align-items: center; gap: 9px; color: #e6c7db; list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+.overdue-history > summary::-webkit-details-marker { display: none; }
+.overdue-history > summary .ui-chevron { margin-left: auto; }
+.overdue-history[open] > summary .ui-chevron { transform: rotate(180deg); }
+.overdue-history > summary:focus-visible { outline: 2px solid var(--purple); outline-offset: 5px; border-radius: 5px; }
+.history-count { display: grid; place-items: center; min-width: 23px; height: 22px; border-radius: 7px; background: #ed7fa212; color: #f1b7ce; font-size: 11px; }
+.overdue-history > .help { margin: 12px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.overdue-history-list { display: grid; gap: 8px; max-height: 360px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #76516d transparent; }
+.history-task { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px; border: 1px solid #b59cff18; border-radius: 11px; background: #11142a65; }
+.history-task > div { min-width: 0; }
+.history-task strong { display: block; font-size: 13px; color: #eee4f6; overflow-wrap: anywhere; }
+.history-task p { margin: 7px 0 5px; font-size: 11px; color: #c394b1; }
+.history-task small { font-size: 10px; color: var(--muted); }
+.history-task button { flex-shrink: 0; min-height: 38px; padding: 8px 12px; font-size: 11px; }
+#open-overdue-history { margin-top: 5px; padding: 8px 12px; font-size: 11px; color: #f2bfd1; border-color: #f296b540; }
+[data-theme="light"] .schedule-date-trigger { background: white; color: #334155; border-color: #ded6eb; }
+[data-theme="light"] .overdue-history { background: #fffafb; border-color: #f3dce5; }
+[data-theme="light"] .overdue-history > summary, [data-theme="light"] .history-count { color: #98526e; }
+[data-theme="light"] .history-task { background: white; border-color: #eee5ef; }
+[data-theme="light"] .history-task strong { color: #3f304a; }
+[data-theme="light"] .history-task p { color: #98526e; }
+[data-theme="light"] #open-overdue-history { color: #9a3b60; }
+@media(max-width:420px) { .history-task { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .history-task > div { flex-basis: 100%; } .history-task button { margin-left: auto; } }
