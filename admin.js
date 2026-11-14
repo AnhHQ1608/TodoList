@@ -71,7 +71,6 @@
     } catch { try { localStorage.removeItem(sessionKey); } catch { /* Storage không khả dụng. */ } }
   }
   const date = value => new Date(value * 1000).toLocaleString('vi-VN');
-  const short = value => value.slice(0, 8);
   const deviceCode = value => Number.isSafeInteger(value) && value > 0 ? 'TB-' + String(value).padStart(6, '0') : 'Chưa cấp mã';
   function isOwnDevice(visitorId) {
     try { return visitorId === localStorage.getItem('focus-activity-visitor-v1'); } catch { return false; }
@@ -115,8 +114,7 @@
         const identity = document.createElement('td');
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link device-code'; button.textContent = deviceCode(session.device_no); button.title = 'Xem lịch sử thiết bị ' + deviceCode(session.device_no);
         button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); selectAdminPanel('events'); loadEvents().catch(showError); });
-        const visitor = document.createElement('small'); visitor.textContent = 'Phiên ' + short(session.session_id) + (own ? ' · admin' : '');
-        identity.append(button, visitor); row.append(identity);
+        identity.append(button); row.append(identity);
         cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
         cell(row, Date.now() / 1000 - session.last_seen < 120 ? 'Vừa hoạt động' : 'Không hoạt động gần đây');
         $('sessions-body').append(row);

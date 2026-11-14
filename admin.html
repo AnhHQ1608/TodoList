@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="style.css?v=explicit-light-1">
   <link rel="stylesheet" href="admin.css?v=admin-tabs-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=latest-100-1" defer></script>
+  <script src="admin.js?v=unique-device-1" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -30,8 +30,8 @@
     <section id="admin-dashboard" hidden>
       <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>
       <div id="admin-sessions-panel" role="tabpanel" aria-labelledby="admin-sessions-tab">
-      <p class="help">100 phiên gần nhất · Cùng mã TB là cùng trình duyệt. Bấm mã để xem toàn bộ thao tác của thiết bị đó.</p>
-      <div class="table-scroll"><table><thead><tr><th>Mã thiết bị / Phiên</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
+      <p class="help">100 thiết bị gần nhất · Mỗi mã TB chỉ một dòng, cập nhật lần truy cập cuối.</p>
+      <div class="table-scroll"><table><thead><tr><th>Mã thiết bị</th><th>Thiết bị</th><th>Trình duyệt / Hệ điều hành</th><th>Lần cuối</th><th>Trạng thái</th></tr></thead><tbody id="sessions-body"></tbody></table></div>
       </div>
       <div id="admin-events-panel" role="tabpanel" aria-labelledby="admin-events-tab" hidden>
       <p class="help">100 thao tác mới nhất.</p>

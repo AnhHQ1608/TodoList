@@ -128,7 +128,8 @@ export default {
           return reply({ loggedOut: true });
         }
         if (path === '/admin/sessions') {
-          const rows = await env.DB.prepare('SELECT e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) first_seen,MAX(e.created_at) last_seen,COUNT(*) event_count FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 GROUP BY e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device ORDER BY last_seen DESC,e.session_id DESC LIMIT 100')
+          // Mỗi trình duyệt chỉ có một dòng; phiên truy cập mới cập nhật last_seen.
+          const rows = await env.DB.prepare('WITH ranked AS (SELECT e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) OVER (PARTITION BY e.visitor_id) first_seen,MAX(e.created_at) OVER (PARTITION BY e.visitor_id) last_seen,COUNT(*) OVER (PARTITION BY e.visitor_id) event_count,ROW_NUMBER() OVER (PARTITION BY e.visitor_id ORDER BY e.created_at,e.id) position FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1) SELECT visitor_id,device_no,browser,os,device,first_seen,last_seen,event_count FROM ranked WHERE position=1 ORDER BY last_seen DESC,device_no DESC LIMIT 100')
             .bind(now - retention).all();
           return reply({ sessions: rows.results });
         }

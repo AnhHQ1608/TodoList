@@ -236,23 +236,44 @@ test('Device number is shared across sessions from the same visitor and filters 
   const token = await makeToken(env.AUTH_SECRET);
   const sessions = (await (await worker.fetch(request('/admin/sessions', { token }), env)).json()).sessions;
   const same = sessions.filter(session => session.visitor_id === visitor);
-  assert.equal(same.length, 2);
+  assert.equal(same.length, 1);
   assert.ok(Number.isSafeInteger(same[0].device_no));
-  assert.equal(same[0].device_no, same[1].device_no);
+  assert.equal(same[0].event_count, 2);
   assert.notEqual(same[0].device_no, sessions.find(session => session.visitor_id !== visitor).device_no);
   const history = await (await worker.fetch(request('/admin/events?device=' + same[0].device_no, { token }), env)).json();
   assert.equal(history.events.length, 2);
   assert.ok(history.events.every(item => item.visitor_id === visitor && item.device_no === same[0].device_no));
   assert.equal((await worker.fetch(request('/admin/events?device=-1', { token }), env)).status, 400);
 });
+test('Returning device keeps one row and identity while last seen advances and history stays complete', async () => {
+  const {default:worker,makeToken}=await workerModule;
+  const env=environment();
+  const first=event('visit');
+  await worker.fetch(request('/events',{method:'POST',data:first}),env);
+  env.sqlite.prepare('UPDATE events SET created_at=created_at-600 WHERE id=?').run(first.eventId);
+  const token=await makeToken(env.AUTH_SECRET);
+  const before=(await (await worker.fetch(request('/admin/sessions',{token}),env)).json()).sessions[0];
+  await worker.fetch(request('/events',{method:'POST',data:event('visit',{visitorId:first.visitorId,browser:'Firefox'})}),env);
+  const rows=(await (await worker.fetch(request('/admin/sessions',{token}),env)).json()).sessions;
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].device_no,before.device_no);
+  assert.equal(rows[0].browser,before.browser);
+  assert.equal(rows[0].first_seen,before.first_seen);
+  assert.ok(rows[0].last_seen>=before.last_seen+600);
+  assert.equal(rows[0].event_count,2);
+  assert.equal(env.sqlite.prepare('SELECT COUNT(*) total FROM events').get().total,2);
+});
+
 test('Admin lists only the latest 100 sessions and actions without older pages', async () => {
   const {default:worker,makeToken}=await workerModule;
   const env=environment();
-  const visitor=crypto.randomUUID();
-  env.sqlite.prepare('INSERT INTO devices(visitor_id) VALUES(?)').run(visitor);
   const insert=env.sqlite.prepare('INSERT INTO events(id,visitor_id,session_id,action,browser,os,device,created_at) VALUES(?,?,?,?,?,?,?,?)');
   const now=Math.floor(Date.now()/1000);
-  for(let i=0;i<105;i++) insert.run(crypto.randomUUID(),visitor,crypto.randomUUID(),'visit','Other','Other','desktop',now-i);
+  for(let i=0;i<105;i++) {
+    const visitor=crypto.randomUUID();
+    env.sqlite.prepare('INSERT INTO devices(visitor_id) VALUES(?)').run(visitor);
+    insert.run(crypto.randomUUID(),visitor,crypto.randomUUID(),'visit','Other','Other','desktop',now-i);
+  }
   const token=await makeToken(env.AUTH_SECRET);
   const sessions=await (await worker.fetch(request('/admin/sessions',{token}),env)).json();
   const history=await (await worker.fetch(request('/admin/events',{token}),env)).json();
