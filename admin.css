@@ -1,5 +1,8 @@
 .admin-app { width: min(1100px, calc(100% - 32px)); margin: auto; padding: 30px 0; }
 .admin-app header > span { color: var(--muted); font-size: 12px; }
+.admin-back { display: inline-flex; align-items: center; gap: 8px; padding: 10px 13px; border: 1px solid #b59cff35; border-radius: 10px; background: #a38aff0d; color: #d2bff4; text-decoration: none; font-size: 12px; transition: background .2s, border-color .2s; }
+.admin-back:hover { background: #a38aff25; border-color: #b59cff75; color: white; }
+@media (max-width: 420px) { .admin-app header { flex-wrap: wrap; } .admin-back { padding: 9px 10px; font-size: 11px; } }
 .admin-app h1 { font-size: clamp(26px, 5vw, 36px); margin-top: 45px; }
 .admin-app h2 { margin: 24px 0 14px; }
 #admin-message { color: #dbb9ff; font-size: 13px; min-height: 20px; }
