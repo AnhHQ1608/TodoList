@@ -328,6 +328,27 @@ test('Existing events receive device numbers without losing history on idempoten
   assert.equal(env.sqlite.prepare('SELECT device_no FROM devices WHERE visitor_id=?').get(sample.visitorId).device_no, number);
   assert.equal(env.sqlite.prepare('SELECT COUNT(*) count FROM events').get().count, 1);
 });
+test('Custom admin device picker filters, resets, closes with Escape and outside click', async () => {
+  const rows=[24,31].map(device_no=>({device_no,visitor_id:crypto.randomUUID(),username:'user'+device_no,fullName:'Nguyễn Văn An',device:'desktop',browser:'Chrome',os:'Windows',last_seen:1}));
+  const app=adminClient(true,rows);
+  await app.elements['admin-login-form'].listeners.submit({preventDefault(){}});
+  assert.equal(app.elements['admin-device-options'].children.length,3);
+  app.elements['admin-device-options'].children[1].listeners.click();
+  assert.equal(app.elements['device-filter'].value,'24');
+  assert.equal(app.elements['admin-device-selected'].textContent,'TB-000024');
+  assert.equal(app.elements['admin-device-options'].children[1]['aria-pressed'],'true');
+  assert.ok(app.requests.at(-1).url.includes('device=24'));
+  app.elements['admin-device-picker'].open=true;
+  app.elements['admin-device-picker'].listeners.keydown({key:'Escape'});
+  assert.equal(app.elements['admin-device-picker'].open,false);
+  app.elements['admin-device-picker'].open=true;
+  app.windowEvents.pointerdown({target:{closest:()=>null}});
+  assert.equal(app.elements['admin-device-picker'].open,false);
+  app.elements['admin-device-options'].children[0].listeners.click();
+  assert.equal(app.elements['device-filter'].value,'');
+  assert.ok(!app.requests.at(-1).url.includes('device='));
+});
+
 test('Admin nav shows one table at a time; clicking device code opens filtered history across sessions', async () => {
   const visitor = crypto.randomUUID();
   const rows = [1,2].map(() => ({ visitor_id: visitor, session_id: crypto.randomUUID(), device_no: 17, device:'desktop', browser:'CocCoc', os:'Windows', last_seen:Math.floor(Date.now()/1000) }));

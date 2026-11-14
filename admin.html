@@ -12,9 +12,9 @@
   <title>Quản trị hoạt động · Focus List</title>
   <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="style.css?v=accounts-1">
-  <link rel="stylesheet" href="admin.css?v=accounts-1">
+  <link rel="stylesheet" href="admin.css?v=device-picker-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=full-name-1" defer></script>
+  <script src="admin.js?v=device-picker-1" defer></script>
   <script src="device-alerts.js?v=accounts-1" defer></script>
 </head>
 <body>
@@ -43,7 +43,14 @@
       </div>
       <div id="admin-events-panel" role="tabpanel" aria-labelledby="admin-events-tab" hidden>
       <p class="help">100 thao tác mới nhất.</p>
-      <div class="admin-toolbar"><label for="device-filter">Thiết bị</label><select id="device-filter"><option value="">Tất cả thiết bị</option></select></div>
+      <div class="admin-toolbar device-filter-toolbar">
+        <span id="device-filter-label" class="device-filter-label">Lọc theo thiết bị</span>
+        <select id="device-filter" hidden><option value="">Tất cả thiết bị</option></select>
+        <details id="admin-device-picker" class="admin-device-picker">
+          <summary id="admin-device-trigger" aria-labelledby="device-filter-label admin-device-selected"><span class="device-picker-symbol" aria-hidden="true">▣</span><span id="admin-device-selected">Tất cả thiết bị</span><span class="ui-chevron" aria-hidden="true"></span></summary>
+          <div class="admin-device-menu"><p>CHỌN THIẾT BỊ</p><div id="admin-device-options" role="group" aria-label="Thiết bị cần xem"></div></div>
+        </details>
+      </div>
       <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Họ tên / Tài khoản</th><th>Mã thiết bị</th><th>Thao tác</th></tr></thead><tbody id="events-body"></tbody></table></div>
       </div>
       <div id="admin-users-panel" role="tabpanel" aria-labelledby="admin-users-tab" hidden>

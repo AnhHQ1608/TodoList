@@ -45,6 +45,10 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
           result={token:'a'.repeat(64),user,expiresAt:Date.now()+864000000};
         }
         else if(route==='/auth/me')result={user,expiresAt:Date.now()+864000000};
+        else if(route==='/admin/login')result={token:'admin-test-token',expiresAt:Date.now()+864000000};
+        else if(route==='/admin/sessions')result={sessions:[24,31].map(device_no=>({device_no,visitor_id:'test-visitor',username:user.username,fullName:user.fullName,browser:'Chrome',os:'Windows',device:'desktop',last_seen:1}))};
+        else if(route==='/admin/events')result={events:[]};
+        else if(route==='/admin/users')result={users:[]};
         else if(route==='/account/data'){
           if(request.method==='POST'){const body=JSON.parse(request.postData);assert.equal(body.version,version);data=body.data;version++;result={version};}
           else result={data,version};
@@ -70,12 +74,26 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     await send('Page.reload');
     await until("!!window.todoAccount && !!document.querySelector('.task')");
     assert.ok(await evaluate("document.getElementById('task-list').textContent.includes('Browser QA task')"));
+    await send('Page.navigate',{url:origin+'/admin.html'});
+    await until("!!document.getElementById('admin-login-button') && !!window.TODO_ANALYTICS");
+    await evaluate("document.getElementById('admin-password').value='fake-admin-password';document.getElementById('admin-login-form').requestSubmit();");
+    await until("document.getElementById('admin-device-options').children.length===3");
+    await evaluate("document.getElementById('admin-events-tab').click();document.getElementById('admin-device-trigger').click();");
+    assert.equal(await evaluate("document.getElementById('admin-device-picker').open"),true);
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
+    await evaluate("document.getElementById('admin-device-options').children[1].click()");
+    assert.equal(await evaluate("document.getElementById('device-filter').value"),'24');
+    assert.equal(await evaluate("document.getElementById('admin-device-picker').open"),false);
+    await evaluate("document.documentElement.dataset.theme='light';document.getElementById('admin-device-trigger').click();");
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.admin-device-menu')).backgroundColor"),'rgb(255, 255, 255)');
+    await send('Page.navigate',{url:origin+'/index.html'});
+    await until("!!window.todoAccount && !document.documentElement.classList.contains('account-loading')");
     await evaluate("document.getElementById('account-logout').click()");
     await until("location.pathname.endsWith('/login.html') && !!document.getElementById('auth-submit')");
     assert.equal(await evaluate("localStorage.getItem('focus-user-session-v1')"),null);
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
     assert.deepEqual(errors,[]);
-    console.log('PASS Edge mobile: login gate, registration, task sync, reload, logout, no overflow or JS errors');
+    console.log('PASS Edge mobile: accounts, task sync, admin device picker, dark/light, logout, no overflow or JS errors');
   }finally{
     if(socket)socket.close();child.kill();server.closeAllConnections();await new Promise(r=>server.close(r));await delay(800);
     // Chỉ xóa thư mục profile QA vừa tạo trong thư mục tạm.

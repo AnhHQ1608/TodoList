@@ -13,6 +13,7 @@
   let sessionRows = [];
   let alertDevice = null;
   function selectAdminPanel(name) {
+    $('admin-device-picker').open = false;
     for (const item of ['sessions', 'events', 'users']) {
       $('admin-' + item + '-panel').hidden = item !== name;
       $('admin-' + item + '-tab').setAttribute('aria-selected', String(item === name));
@@ -36,6 +37,7 @@
     $('users-body').replaceChildren();
     $('device-filter').replaceChildren();
     sessionRows = [];
+    updateDevicePicker();
     alertDevice = null;
     $('admin-alert-form').hidden = true;
     $('admin-alert-message').value = '';
@@ -82,6 +84,29 @@
     try { return visitorId === localStorage.getItem('focus-activity-visitor-v1'); } catch { return false; }
   }
   function cell(row, text) { const td = document.createElement('td'); td.textContent = text; row.append(td); return td; }
+  function updateDevicePicker() {
+    const selected=$('device-filter').value || '';
+    const devices=[...new Map(sessionRows.map(item=>[item.device_no,item])).values()].sort((a,b)=>a.device_no-b.device_no);
+    const current=devices.find(item=>String(item.device_no)===selected);
+    $('admin-device-selected').textContent=current ? deviceCode(current.device_no) + (isOwnDevice(current.visitor_id) ? ' · admin' : '') : 'Tất cả thiết bị';
+    $('admin-device-options').replaceChildren();
+    for(const device of [null,...devices]){
+      const value=device ? String(device.device_no) : '';
+      const button=document.createElement('button');button.type='button';button.className='admin-device-option';
+      button.setAttribute('aria-pressed',String(selected===value));
+      const icon=document.createElement('span');icon.className='device-option-icon';icon.setAttribute('aria-hidden','true');icon.textContent=device?.device==='mobile' ? '▯' : device ? '▣' : '◈';
+      const text=document.createElement('span');text.className='device-option-text';
+      const title=document.createElement('strong');title.textContent=device ? deviceCode(device.device_no) + (isOwnDevice(device.visitor_id) ? ' · admin' : '') : 'Tất cả thiết bị';
+      const description=document.createElement('small');description.textContent=device ? (device.fullName || device.username || 'Khách cũ') + ' · ' + device.browser : 'Xem toàn bộ lịch sử thao tác';
+      text.append(title,description);
+      const check=document.createElement('span');check.className='device-option-check';check.textContent=selected===value ? '✓' : '';check.setAttribute('aria-hidden','true');
+      button.append(icon,text,check);
+      button.addEventListener('click',()=>{
+        $('device-filter').value=value;updateDevicePicker();$('admin-device-picker').open=false;$('admin-device-trigger').focus();loadEvents().catch(showError);
+      });
+      $('admin-device-options').append(button);
+    }
+  }
   async function loadEvents() {
     const device = $('device-filter').value;
     const data = await api('/admin/events?offset=0' + (device ? '&device=' + encodeURIComponent(device) : ''));
@@ -114,12 +139,13 @@
         $('device-filter').append(option);
       });
       $('device-filter').value = devices.has(Number(selectedDevice)) ? selectedDevice : '';
+      updateDevicePicker();
       data.sessions.forEach(session => {
         const own = isOwnDevice(session.visitor_id);
         const row = document.createElement('tr');
         const identity = document.createElement('td');
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link device-code'; button.textContent = deviceCode(session.device_no); button.title = 'Xem lịch sử thiết bị ' + deviceCode(session.device_no);
-        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); selectAdminPanel('events'); loadEvents().catch(showError); });
+        button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); updateDevicePicker(); selectAdminPanel('events'); loadEvents().catch(showError); });
         identity.append(button); row.append(identity);
         const warn = document.createElement('button'); warn.type = 'button'; warn.className = 'secondary'; warn.textContent = 'Cảnh báo';
         warn.disabled = !session.username;
@@ -183,7 +209,17 @@
     finally { $('admin-alert-send').disabled = false; }
   });
   $('admin-logout').addEventListener('click', () => logout());
-  $('device-filter').addEventListener('change', () => { loadEvents().catch(showError); });
+  $('device-filter').addEventListener('change', () => { updateDevicePicker(); loadEvents().catch(showError); });
+  $('admin-device-picker').addEventListener('keydown',event=>{
+    if(event.key==='Escape'){$('admin-device-picker').open=false;$('admin-device-trigger').focus();return;}
+    if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
+    event.preventDefault();$('admin-device-picker').open=true;
+    const options=Array.from($('admin-device-options').children);
+    const index=options.indexOf(event.target);
+    const next=event.key==='Home'?0:event.key==='End'?options.length-1:event.key==='ArrowDown'?(index+1)%options.length:(index<=0?options.length-1:index-1);
+    options[next]?.focus();
+  });
+  window.addEventListener('pointerdown',event=>{if(!event.target.closest?.('#admin-device-picker'))$('admin-device-picker').open=false;});
   const adminPanels = ['sessions', 'events', 'users'];
   for (const name of adminPanels) {
     const tab = $('admin-' + name + '-tab');
