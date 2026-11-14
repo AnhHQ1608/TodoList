@@ -231,6 +231,18 @@ test('Past days are blocked in week planner, calendar and task submission while 
   app.elements['cancel-picker'].listeners.click();
   const old=boot([task({scheduledDate:'2026-11-13'})]);old.run('startEditing(tasks[0])');old.submit('Rename existing past task');assert.equal(old.run('tasks[0].text'),'Rename existing past task');
 });
+test('Locked deadline shows only time wheels; tap, scrolling and keyboard update the selected time without saving early',()=>{
+  const app=boot();app.run("selectDay('2026-11-16')");app.elements['open-picker'].listeners.click();
+  assert.equal(app.elements['calendar-days'].hidden,true);assert.equal(app.elements['picker-calendar-nav'].hidden,true);
+  assert.equal(app.elements['pick-today'].hidden,true);
+  assert.equal(app.elements['hour-wheel'].children.length,24);assert.equal(app.elements['minute-wheel'].children.length,60);
+  app.elements['hour-wheel'].children[18].listeners.click();app.elements['minute-wheel'].children[45].listeners.click();
+  assert.equal(app.elements['picker-hour'].value,'18');assert.equal(app.elements['picker-minute'].value,'45');assert.equal(app.elements['deadline-input'].value,'');
+  app.elements['hour-wheel'].scrollTop=20*44;app.elements['hour-wheel'].listeners.scroll();assert.equal(app.elements['picker-hour'].value,'20');
+  app.elements['minute-wheel'].listeners.keydown({key:'End',preventDefault(){}});assert.equal(app.elements['picker-minute'].value,'59');
+  app.elements['apply-deadline'].listeners.click();assert.equal(app.elements['deadline-input'].value,'2026-11-16T20:59');
+  app.elements['open-schedule-picker'].listeners.click();assert.equal(app.elements['calendar-days'].hidden,false);assert.equal(app.elements['picker-time-section'].hidden,true);
+});
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });
   assert.equal(app.run('tasks[0].deadline'), null);

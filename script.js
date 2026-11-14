@@ -183,7 +183,7 @@ function syncDeadlineWithSchedule() {
 }
 function updateScheduleDisplay() {
   document.getElementById('task-date-display').textContent=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00').toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}):'Chọn ngày';
-  updateTaskOptionsSummary();
+  updateDeadlineDisplay();
 }
 function updateTaskOptionsSummary() {
   const parts=[];
@@ -1109,10 +1109,42 @@ function localDateValue(date) {
   return `${date.getFullYear()}-${padDate(date.getMonth() + 1)}-${padDate(date.getDate())}T${padDate(date.getHours())}:${padDate(date.getMinutes())}`;
 }
 function updateDeadlineDisplay() {
+  document.getElementById('deadline-label').textContent=validDay(taskDateInput.value)?'Giờ deadline (không bắt buộc)':'Deadline (không bắt buộc)';
   document.getElementById('deadline-display').textContent = deadlineInput.value
-    ? new Date(deadlineInput.value).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
-    : 'Chọn ngày & giờ';
+    ? new Date(deadlineInput.value).toLocaleString('vi-VN', { ...(validDay(taskDateInput.value)?{}:{day:'2-digit',month:'2-digit',year:'numeric'}), hour: '2-digit', minute: '2-digit', hour12: false })
+    : validDay(taskDateInput.value)?'Chọn giờ':'Chọn ngày & giờ';
   updateTaskOptionsSummary();
+}
+// Mỗi hàng cao 44px; CSS scroll-snap tự căn vào giữa sau khi vuốt.
+function paintTimeWheel(name,value) {
+  const wheel=document.getElementById(name+'-wheel');
+  Array.from(wheel.children).forEach((option,index)=>option.setAttribute('aria-selected',String(index===value)));
+  wheel.setAttribute('aria-activedescendant',name+'-wheel-'+value);
+}
+function syncTimeWheels() {
+  for(const [name,field,max] of [['hour',hourInput,23],['minute',minuteInput,59]]){
+    if(!/^\d{1,2}$/.test(field.value) || Number(field.value)>max)continue;
+    const value=Number(field.value);document.getElementById(name+'-wheel').scrollTop=value*44;paintTimeWheel(name,value);
+  }
+}
+for(const [name,field,max] of [['hour',hourInput,23],['minute',minuteInput,59]]){
+  const wheel=document.getElementById(name+'-wheel');
+  function choose(value,smooth=false){
+    value=Math.max(0,Math.min(max,value));field.value=padDate(value);paintTimeWheel(name,value);updatePickerPreview();
+    wheel.focus();
+    if(wheel.scrollTo)wheel.scrollTo({top:value*44,behavior:smooth?'smooth':'auto'});else wheel.scrollTop=value*44;
+  }
+  for(let value=0;value<=max;value++){
+    const option=document.createElement('button');option.type='button';option.id=name+'-wheel-'+value;option.textContent=padDate(value);option.setAttribute('role','option');option.setAttribute('tabindex','-1');option.setAttribute('aria-selected','false');
+    option.addEventListener('click',()=>choose(value));wheel.append(option);
+  }
+  wheel.addEventListener('scroll',()=>{
+    const value=Math.max(0,Math.min(max,Math.round(wheel.scrollTop/44)));field.value=padDate(value);paintTimeWheel(name,value);updatePickerPreview();
+  });
+  wheel.addEventListener('keydown',event=>{
+    if(!['ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+    event.preventDefault();choose(event.key==='Home'?0:event.key==='End'?max:(Number(field.value)||0)+(event.key==='ArrowDown'?1:-1));
+  });
 }
 function readPickerTime() {
   if (!/^\d{1,2}$/.test(hourInput.value) || !/^\d{1,2}$/.test(minuteInput.value)) return null;
@@ -1142,7 +1174,7 @@ function updatePickerPreview() {
   document.getElementById('apply-deadline').disabled = invalid || wrongDay;
   document.getElementById('picker-error').textContent = wrongDay ? 'Deadline phải cùng ngày thực hiện.' : invalid ? 'Chọn thời gian trong tương lai.' : '';
   document.getElementById('picker-preview').textContent = date.toLocaleString('vi-VN', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+    ...(validDay(taskDateInput.value)?{}:{weekday:'long',day:'2-digit',month:'long',year:'numeric'}),hour:'2-digit',minute:'2-digit',hour12:false
   });
 }
 function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
@@ -1185,12 +1217,17 @@ function openDatePicker(mode='deadline') {
   const existing = deadlineInput.value ? new Date(deadlineInput.value) : null;
   selectedDate = existing && existing.getTime() > Date.now() ? existing : new Date(Math.ceil((Date.now() + 1) / 60000) * 60000);
   const locked=pickerMode==='deadline' && validDay(taskDateInput.value);
+  picker.classList.toggle('time-only',locked);
   if(locked){
     const time=existing && Number.isFinite(existing.getTime()) ? existing : selectedDate;
     selectedDate=new Date(taskDateInput.value+'T'+padDate(time.getHours())+':'+padDate(time.getMinutes()));
   }
   if(pickerMode==='schedule')selectedDate=validDay(taskDateInput.value) && taskDateInput.value>=dayKey(new Date(Date.now()))?new Date(taskDateInput.value+'T12:00:00'):new Date(Date.now());
   document.getElementById('picker-title').textContent=pickerMode==='schedule'?'Ngày thực hiện':'Chọn deadline';
+  if(locked)document.getElementById('picker-title').textContent='Chọn giờ deadline';
+  for(const id of ['picker-calendar-nav','picker-weekdays','calendar-days'])document.getElementById(id).hidden=locked;
+  document.getElementById('pick-today').hidden=locked;
+  document.getElementById('pick-tomorrow').hidden=locked;
   document.getElementById('picker-time-section').hidden=pickerMode==='schedule';
   document.getElementById('apply-deadline').textContent=pickerMode==='schedule'?'Chọn ngày này':'Xác nhận deadline';
   document.getElementById('clear-deadline').textContent=pickerMode==='schedule'?'Bỏ ngày':'Bỏ deadline';
@@ -1204,6 +1241,7 @@ function openDatePicker(mode='deadline') {
   minuteInput.value = padDate(selectedDate.getMinutes());
   renderCalendar();
   picker.showModal(); // dialog hỗ trợ Escape, giữ focus và chặn tương tác phía sau.
+  syncTimeWheels();
   document.getElementById('open-picker').setAttribute('aria-expanded', 'true');
   if(pickerMode==='schedule'){
     document.getElementById('open-picker').setAttribute('aria-expanded','false');
@@ -1214,6 +1252,7 @@ for (const [field, max, name] of [[hourInput, 23, 'hour'], [minuteInput, 59, 'mi
   field.addEventListener('input', () => {
     field.value = field.value.replace(/\D/g, '').slice(0, 2);
     updatePickerPreview();
+    syncTimeWheels();
   });
   field.addEventListener('change', updatePickerPreview);
   field.addEventListener('focus', () => field.select());
@@ -1225,6 +1264,7 @@ for (const [field, max, name] of [[hourInput, 23, 'hour'], [minuteInput, 59, 'mi
     const value = Number(field.value) || 0;
     field.value = padDate(Math.min(max, Math.max(0, value + delta)));
     updatePickerPreview();
+    syncTimeWheels();
   };
   document.getElementById(name + '-down').addEventListener('click', () => stepTime(-1));
   document.getElementById(name + '-up').addEventListener('click', () => stepTime(1));

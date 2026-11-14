@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=no-past-days-1">
+  <link rel="stylesheet" href="style.css?v=time-wheel-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=no-past-days-1" defer></script>
+  <script src="auth.js?v=time-wheel-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -109,10 +109,10 @@
   </dialog>
   <dialog id="date-picker" class="date-picker" aria-labelledby="picker-title">
     <div class="picker-heading"><div><p class="eyebrow">LÊN LỊCH HOÀN THÀNH</p><h2 id="picker-title">Chọn deadline</h2></div><button id="close-picker" class="icon-button" type="button" aria-label="Đóng bộ chọn">×</button></div>
-    <div class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="Tháng trước">‹</button><h3 id="calendar-month" aria-live="polite"></h3><button id="next-month" class="icon-button" type="button" aria-label="Tháng sau">›</button></div>
-    <div class="weekdays" aria-hidden="true"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+    <div id="picker-calendar-nav" class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="Tháng trước">‹</button><h3 id="calendar-month" aria-live="polite"></h3><button id="next-month" class="icon-button" type="button" aria-label="Tháng sau">›</button></div>
+    <div id="picker-weekdays" class="weekdays" aria-hidden="true"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
     <div id="calendar-days" class="calendar-days" role="group" aria-label="Chọn ngày"></div>
-    <div id="picker-time-section" class="time-section"><div class="time-heading"><span class="time-caption">THỜI GIAN</span><span>Định dạng 24 giờ</span></div><div class="time-controls"><div class="time-unit"><label for="picker-hour">Giờ</label><button id="hour-down" type="button" aria-label="Giảm giờ">−</button><input id="picker-hour" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="hour-up" type="button" aria-label="Tăng giờ">＋</button></div><span class="time-colon" aria-hidden="true">:</span><div class="time-unit"><label for="picker-minute">Phút</label><button id="minute-down" type="button" aria-label="Giảm phút">−</button><input id="picker-minute" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="minute-up" type="button" aria-label="Tăng phút">＋</button></div></div></div>
+    <div id="picker-time-section" class="time-section"><div class="time-heading"><span class="time-caption">THỜI GIAN</span><span>Định dạng 24 giờ</span></div><div class="time-wheels"><div class="time-wheel-column"><span>Giờ</span><div id="hour-wheel" class="time-wheel" role="listbox" aria-label="Giờ" tabindex="0"></div></div><span class="wheel-colon" aria-hidden="true">:</span><div class="time-wheel-column"><span>Phút</span><div id="minute-wheel" class="time-wheel" role="listbox" aria-label="Phút" tabindex="0"></div></div></div><details class="time-manual"><summary>Nhập giờ bằng bàn phím</summary><div class="time-controls"><div class="time-unit"><label for="picker-hour">Giờ</label><button id="hour-down" type="button" aria-label="Giảm giờ">−</button><input id="picker-hour" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="hour-up" type="button" aria-label="Tăng giờ">＋</button></div><span class="time-colon" aria-hidden="true">:</span><div class="time-unit"><label for="picker-minute">Phút</label><button id="minute-down" type="button" aria-label="Giảm phút">−</button><input id="picker-minute" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="00" aria-describedby="picker-error"><button id="minute-up" type="button" aria-label="Tăng phút">＋</button></div></div></details></div>
     <div class="quick-dates"><button id="pick-today" type="button">Hôm nay</button><button id="pick-tomorrow" type="button">Ngày mai</button><button id="clear-deadline" type="button">Bỏ deadline</button></div>
     <p id="picker-preview" class="picker-preview" aria-live="polite"></p>
     <p id="picker-error" class="picker-error" role="alert"></p>
