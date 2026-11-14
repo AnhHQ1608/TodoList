@@ -235,7 +235,7 @@ select:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .settings-dialog { width: min(460px, calc(100% - 28px)); }
 .settings-dialog .settings-content { padding-top: 24px; }
 .settings-dialog .notification-settings { padding-top: 16px; border-top: 1px solid var(--line); }
-.settings-dialog .notification-settings button, .settings-dialog #test-sound { font-size: 12px; }
+.settings-dialog .notification-settings button, .settings-dialog #test-sound, .settings-dialog #test-sound-notify { font-size: 12px; }
 .settings-dialog #notification-status { flex-basis: 100%; margin-top: 4px; }
 /* Ánh sáng nền và hiệu ứng thương hiệu. Lớp trang trí không chặn thao tác. */
 body { isolation: isolate; }

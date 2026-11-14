@@ -87,8 +87,8 @@
       document.getElementById('account-profile-form').hidden = Boolean(me.user.fullName);
       document.getElementById('account-profile').setAttribute('aria-expanded',String(!me.user.fullName));
       await loadScript('activity.js?v=accounts-1');
-      await loadScript('device-alerts.js?v=accounts-1');
-      await loadScript('script.js?v=accounts-1');
+      await loadScript('device-alerts.js?v=sounds-1');
+      await loadScript('script.js?v=sounds-1');
       document.documentElement.classList.remove('account-loading');
       document.getElementById('account-gate').hidden = true;
       sync.textContent = dirty ? 'Đang đồng bộ…' : 'Đã đồng bộ';

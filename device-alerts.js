@@ -28,6 +28,7 @@
     try {
       dialog.showModal();
       showing = true;
+      try { (window.playWarningSound || window.playAlertSound)?.(true); } catch { /* Bỏ qua nếu âm thanh chưa được kích hoạt */ }
       queue.shift(); queued.delete(item.id);
       remember(item.id); // Chỉ đánh dấu sau khi hộp thoại thật sự hiển thị.
     } catch { dialog.remove(); }

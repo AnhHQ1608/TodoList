@@ -581,27 +581,38 @@ function updateSoundStatus() {
   const toggle = document.getElementById('toggle-sound');
   toggle.disabled = !supported;
   toggle.checked = soundEnabled;
-  document.getElementById('test-sound').disabled = !active;
+  const testAlert = document.getElementById('test-sound');
+  if (testAlert) testAlert.disabled = !active;
+  const testNotify = document.getElementById('test-sound-notify');
+  if (testNotify) testNotify.disabled = !active;
   document.getElementById('sound-status').textContent = supported ? '' : 'Trình duyệt không hỗ trợ âm thanh.';
 }
 function playAlertSound(overdue = false) {
   if (!soundEnabled || !audioContext || audioContext.state !== 'running') return false;
   try {
-    const frequencies = overdue ? [660, 520, 660] : [660, 880];
-    frequencies.forEach((frequency, index) => {
+    const notes = overdue ? [
+      { freq: 880, delay: 0, duration: 0.13, peak: 0.12, decay: 0.12 },
+      { freq: 880, delay: 0.13, duration: 0.13, peak: 0.12, decay: 0.12 },
+      { freq: 587.33, delay: 0.27, duration: 0.32, peak: 0.14, decay: 0.30 }
+    ] : [
+      { freq: 523.25, delay: 0, duration: 0.26, peak: 0.11, decay: 0.25 },
+      { freq: 783.99, delay: 0.12, duration: 0.38, peak: 0.13, decay: 0.36 }
+    ];
+    const now = audioContext.currentTime;
+    notes.forEach(note => {
       const oscillator = audioContext.createOscillator();
       const gain = audioContext.createGain();
-      const start = audioContext.currentTime + index * 0.22;
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(frequency, start);
+      const start = now + note.delay;
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(note.freq, start);
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.12, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      gain.gain.linearRampToValueAtTime(note.peak, start + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + note.decay);
       oscillator.connect(gain);
       gain.connect(audioContext.destination);
       oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
       oscillator.start(start);
-      oscillator.stop(start + 0.2);
+      oscillator.stop(start + note.duration);
     });
     return true;
   } catch (error) {
@@ -609,6 +620,12 @@ function playAlertSound(overdue = false) {
     return false;
   }
 }
+function playNotificationSound() { return playAlertSound(false); }
+function playWarningSound() { return playAlertSound(true); }
+window.playClickSound = playClickSound;
+window.playAlertSound = playAlertSound;
+window.playNotificationSound = playNotificationSound;
+window.playWarningSound = playWarningSound;
 document.getElementById('toggle-sound').addEventListener('change', async () => {
   const toggle = document.getElementById('toggle-sound');
   try {
@@ -634,24 +651,30 @@ document.getElementById('toggle-sound').addEventListener('change', async () => {
   }
 });
 document.getElementById('test-sound').addEventListener('click', () => playAlertSound(true));
+const testSoundNotify = document.getElementById('test-sound-notify');
+if (testSoundNotify) testSoundNotify.addEventListener('click', () => playAlertSound(false));
 
 // Bắt click ở document để các nút vừa tạo (công việc, lịch) cũng có tiếng.
+// Âm click haptic / phím cơ ngắn (30ms), êm tai và tự nhiên thay cho tiếng beep chói.
 function playClickSound() {
   if (!soundEnabled || audioContext?.state !== 'running') return false;
   try {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const now = audioContext.currentTime;
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(1100, now);
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(460, now);
+    if (typeof oscillator.frequency.exponentialRampToValueAtTime === 'function') {
+      oscillator.frequency.exponentialRampToValueAtTime(140, now + 0.024);
+    }
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
     oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
     oscillator.start(now);
-    oscillator.stop(now + 0.1);
+    oscillator.stop(now + 0.032);
     return true;
   } catch (error) { return false; } // Lỗi âm thanh không cản thao tác trên trang.
 }
@@ -680,7 +703,7 @@ async function handleInteractionSound(event) {
   if (!control) { await activateAudioFromGesture(); return; }
   if (control.disabled || control.matches(':disabled') || control.hidden) return;
   // Nút nghe thử có âm riêng; nút bật/tắt không phát tiếng khi người dùng tắt.
-  if (control.id === 'toggle-sound' || control.id === 'test-sound') return;
+  if (control.id === 'toggle-sound' || control.id === 'test-sound' || control.id === 'test-sound-notify') return;
   if (event.type === 'pointerdown') {
     lastPointerControl = control;
     lastPointerTime = Date.now();
