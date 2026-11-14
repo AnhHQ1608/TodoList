@@ -676,19 +676,27 @@ test('Header clock shows local HH:MM:SS and day/night icon', () => {
   assert.equal(app.elements['time-period-icon']['aria-label'], 'Ban ngày');
 });
 
-test('Hamburger menu switches between settings and contact, including keyboard navigation', () => {
+test('Drawer hides features until clicked, toggles panels and supports keyboard navigation', () => {
   const app = boot();
   app.elements['open-settings'].listeners.click();
   assert.equal(app.elements['open-settings']['aria-expanded'], 'true');
+  for (const name of ['sound', 'notifications', 'activity', 'contact']) assert.equal(app.elements['menu-' + name + '-panel'].hidden, true);
   app.elements['menu-contact-tab'].listeners.click();
   assert.equal(app.elements['menu-contact-panel'].hidden, false);
-  assert.equal(app.elements['menu-settings-panel'].hidden, true);
-  assert.equal(app.elements['menu-contact-tab']['aria-selected'], 'true');
+  assert.equal(app.elements['menu-sound-panel'].hidden, true);
+  assert.equal(app.elements['menu-contact-tab']['aria-expanded'], 'true');
   app.elements['menu-contact-tab'].listeners.keydown({ key: 'Home', preventDefault() {} });
-  assert.equal(app.elements['menu-settings-panel'].hidden, false);
+  app.elements['menu-sound-tab'].listeners.click();
+  assert.equal(app.elements['menu-sound-panel'].hidden, false);
   assert.equal(app.elements['menu-contact-panel'].hidden, true);
+  app.elements['menu-sound-tab'].listeners.click();
+  assert.equal(app.elements['menu-sound-panel'].hidden, true);
+  app.elements['menu-notifications-tab'].listeners.click();
+  assert.equal(app.elements['menu-notifications-panel'].hidden, false);
   app.elements['close-settings'].listeners.click();
   assert.equal(app.elements['open-settings']['aria-expanded'], 'false');
+  app.elements['open-settings'].listeners.click();
+  assert.equal(app.elements['menu-notifications-panel'].hidden, true);
 });
 
 test('Reject past or current deadlines on add and changed deadlines on edit', () => {

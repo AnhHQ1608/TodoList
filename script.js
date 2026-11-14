@@ -939,6 +939,7 @@ const settingsButton = document.getElementById('open-settings');
 settingsButton.addEventListener('click', () => {
   updateNotificationStatus();
   updateSoundStatus();
+  selectMenuSection(null);
   settingsDialog.showModal();
   settingsButton.setAttribute('aria-expanded', 'true');
 });
@@ -951,23 +952,24 @@ settingsDialog.addEventListener('click', event => {
   if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
 });
 
+const menuSections = ['sound', 'notifications', 'activity', 'contact'];
 function selectMenuSection(section) {
-  for (const name of ['settings', 'contact']) {
+  for (const name of menuSections) {
     const active = name === section;
     const tab = document.getElementById('menu-' + name + '-tab');
-    tab.setAttribute('aria-selected', String(active));
-    tab.setAttribute('tabindex', active ? '0' : '-1');
+    tab.setAttribute('aria-expanded', String(active));
     document.getElementById('menu-' + name + '-panel').hidden = !active;
   }
 }
-for (const section of ['settings', 'contact']) {
+for (const section of menuSections) {
   const tab = document.getElementById('menu-' + section + '-tab');
-  tab.addEventListener('click', () => selectMenuSection(section));
+  tab.addEventListener('click', () => selectMenuSection(tab.getAttribute('aria-expanded') === 'true' ? null : section));
   tab.addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    const next = event.key === 'Home' ? 'settings' : event.key === 'End' ? 'contact' : section === 'settings' ? 'contact' : 'settings';
-    selectMenuSection(next);
+    const index = menuSections.indexOf(section);
+    const next = event.key === 'Home' ? menuSections[0] : event.key === 'End' ? menuSections.at(-1)
+      : menuSections[(index + (event.key === 'ArrowDown' ? 1 : -1) + menuSections.length) % menuSections.length];
     document.getElementById('menu-' + next + '-tab').focus();
   });
 }

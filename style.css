@@ -307,3 +307,26 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 .activity-notice > div { display: flex; justify-content: flex-end; gap: 8px; }
 .activity-notice button { font-size: 12px; }
 #activity-consent { width: 34px; height: 20px; accent-color: #b59cff; cursor: pointer; }
+/* Menu trượt bên phải: chỉ hiện nội dung khi chọn chức năng. */
+.navigation-drawer { inset: 0 0 0 auto; margin: 0 0 0 auto; width: min(390px, 100%); height: 100dvh; max-height: 100dvh; padding: 0; border: 0; border-left: 1px solid #ffffff0c; border-radius: 20px 0 0 20px; background: #14141d; box-shadow: -24px 0 80px #0006; }
+.navigation-drawer[open] { animation: drawer-enter .24s ease-out; }
+.drawer-heading { display: flex; align-items: center; gap: 12px; padding: 26px 22px; border-bottom: 1px solid #ffffff0b; }
+.drawer-heading > div { flex: 1; }
+.drawer-heading h2 { font-size: 16px; font-weight: 800; letter-spacing: 1.5px; }
+.drawer-heading p { margin: 5px 0 0; color: #9493a9; font-size: 12px; }
+.drawer-heading .icon-button { background: #ffffff08; color: #bbb9ca; }
+.drawer-navigation { padding: 16px 12px 30px; }
+.drawer-item { display: flex; align-items: center; gap: 17px; width: 100%; min-height: 60px; margin: 2px 0; padding: 16px 14px; border: 0; border-radius: 11px; background: transparent; color: #b7b6c6; text-align: left; font-size: 15px; font-weight: 650; }
+.drawer-item > svg { width: 21px; height: 21px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.drawer-item > span:first-of-type { flex: 1; }
+.drawer-item:hover { background: #ffffff05; color: #f2ecff; }
+.drawer-item[aria-expanded="true"] { background: #a38aff15; color: #d8c6ff; }
+.drawer-item .ui-chevron { background: transparent; opacity: .6; }
+.drawer-item[aria-expanded="true"] .ui-chevron { transform: rotate(180deg); }
+.drawer-panel { margin: 0 4px 12px; padding: 16px; border: 1px solid #ffffff0a; border-radius: 11px; background: #1b1a26; animation: appear .18s ease-out; }
+.drawer-panel .sound-preference { margin: 0; flex-wrap: wrap; font-size: 12px; }
+.drawer-panel .help { font-size: 11px; }
+.navigation-drawer .notification-settings { padding-top: 0; border-top: 0; }
+.drawer-panel .menu-contact-link:first-child { margin-top: 0; }
+@keyframes drawer-enter { from { transform: translateX(100%); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .navigation-drawer[open], .drawer-panel { animation: none !important; } }

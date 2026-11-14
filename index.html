@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=activity-admin-1">
+  <link rel="stylesheet" href="style.css?v=drawer-menu-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <script src="activity.js?v=automatic-activity-1" defer></script>
-  <script src="script.js?v=activity-admin-1" defer></script>
+  <script src="script.js?v=drawer-menu-1" defer></script>
 </head>
 <body>
   <div class="ambient-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -70,21 +70,18 @@
       <a class="facebook-contact" href="https://www.facebook.com/quocanhhoang1608" target="_blank" rel="noopener noreferrer" aria-label="Liên hệ Quốc Anh trên Facebook (mở tab mới)"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.62.77-1.62 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12Z"/></svg><span>Liên hệ Facebook</span><span class="contact-arrow" aria-hidden="true">↗</span></a>
     </footer>
   </main>
-  <dialog id="settings-dialog" class="date-picker settings-dialog" aria-labelledby="settings-title">
-    <div class="picker-heading"><h2 id="settings-title">Menu</h2><button id="close-settings" class="icon-button" type="button" aria-label="Đóng menu">×</button></div>
-    <div class="menu-tabs" role="tablist" aria-label="Nội dung menu"><button id="menu-settings-tab" type="button" role="tab" aria-selected="true" aria-controls="menu-settings-panel">Cài đặt</button><button id="menu-contact-tab" type="button" role="tab" aria-selected="false" aria-controls="menu-contact-panel" tabindex="-1">Contact</button></div>
-        <div id="menu-settings-panel" class="settings-content" role="tabpanel" aria-labelledby="menu-settings-tab">
-          <div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div>
-          <p id="sound-status" class="help" role="status"></p>
-          <div class="sound-preference"><label for="activity-consent">Chia sẻ lịch sử ẩn danh</label><input id="activity-consent" type="checkbox" role="switch"></div><p id="activity-status" class="help" role="status"></p>
-          <div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div>
-          <details class="notification-help"><summary>Trợ giúp thông báo <span class="ui-chevron" aria-hidden="true"></span></summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details>
-        </div>
-    <div id="menu-contact-panel" class="menu-contact-panel" role="tabpanel" aria-labelledby="menu-contact-tab" hidden>
-      <div class="contact-profile"><img src="logo.svg" width="44" height="44" alt=""><div><h3>Quốc Anh</h3><p>Kết nối cùng mình</p></div></div>
-      <a class="menu-contact-link" href="https://www.facebook.com/quocanhhoang1608" target="_blank" rel="noopener noreferrer"><span class="contact-channel-icon" aria-hidden="true">f</span><span>Facebook<small>Trang cá nhân của mình</small></span><span aria-hidden="true">↗</span><span class="sr-only"> (mở tab mới)</span></a>
-      <div class="menu-contact-link coming-soon" aria-label="Portfolio — sắp có"><span class="contact-channel-icon" aria-hidden="true">▱</span><span>Portfolio<small>Sắp có</small></span><span class="soon-tag">Soon</span></div>
-    </div>
+  <dialog id="settings-dialog" class="date-picker settings-dialog navigation-drawer" aria-labelledby="settings-title">
+    <div class="drawer-heading"><img src="logo.svg" width="44" height="44" alt=""><div><h2 id="settings-title">FOCUS LIST</h2><p>Không gian của bạn</p></div><button id="close-settings" class="icon-button" type="button" aria-label="Đóng menu">×</button></div>
+    <nav class="drawer-navigation" aria-label="Chức năng">
+      <button id="menu-sound-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-sound-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span>Âm thanh</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-sound-panel" class="drawer-panel" role="region" aria-labelledby="menu-sound-tab" hidden><div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Nghe thử</button></div><p id="sound-status" class="help" role="status"></p></div>
+      <button id="menu-notifications-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-notifications-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg><span>Thông báo</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-notifications-panel" class="drawer-panel" role="region" aria-labelledby="menu-notifications-tab" hidden><div class="notification-settings"><button id="enable-notifications" class="secondary" type="button">Bật thông báo</button><button id="test-notification-now" class="secondary" type="button">Gửi thử ngay</button><button id="test-notification" class="secondary" type="button">Thử sau 5 giây</button><p id="notification-status" role="status"></p></div><details class="notification-help"><summary>Trợ giúp thông báo <span class="ui-chevron" aria-hidden="true"></span></summary><p id="notification-diagnostics" class="help" role="status"></p><p class="help">Không thấy banner? Kiểm tra quyền thông báo và Không làm phiền trong Windows. Giữ trang mở để nhận nhắc; tab ngủ có thể gây trễ. Nhắc khi đóng trang cần backend và push notification.</p></details></div>
+      <button id="menu-activity-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-activity-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-4M13 15V7M18 15v-7"/></svg><span>Lịch sử ẩn danh</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-activity-panel" class="drawer-panel" role="region" aria-labelledby="menu-activity-tab" hidden><div class="sound-preference"><label for="activity-consent">Ghi nhận thao tác</label><input id="activity-consent" type="checkbox" role="switch"></div><p id="activity-status" class="help" role="status"></p></div>
+      <button id="menu-contact-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-contact-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11a9 9 0 0 1-9 9 10 10 0 0 1-4-.8L3 21l1.8-5A9 9 0 1 1 21 11Z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>Contact</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-contact-panel" class="drawer-panel" role="region" aria-labelledby="menu-contact-tab" hidden><a class="menu-contact-link" href="https://www.facebook.com/quocanhhoang1608" target="_blank" rel="noopener noreferrer"><span class="contact-channel-icon" aria-hidden="true">f</span><span>Facebook<small>Quốc Anh</small></span><span aria-hidden="true">↗</span><span class="sr-only"> (mở tab mới)</span></a><div class="menu-contact-link coming-soon" aria-label="Portfolio — sắp có"><span class="contact-channel-icon" aria-hidden="true">▱</span><span>Portfolio<small>Sắp có</small></span></div></div>
+    </nav>
   </dialog>
   <dialog id="date-picker" class="date-picker" aria-labelledby="picker-title">
     <div class="picker-heading"><div><p class="eyebrow">LÊN LỊCH HOÀN THÀNH</p><h2 id="picker-title">Chọn deadline</h2></div><button id="close-picker" class="icon-button" type="button" aria-label="Đóng bộ chọn">×</button></div>
