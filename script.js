@@ -655,20 +655,20 @@ const testSoundNotify = document.getElementById('test-sound-notify');
 if (testSoundNotify) testSoundNotify.addEventListener('click', () => playAlertSound(false));
 
 // Bắt click ở document để các nút vừa tạo (công việc, lịch) cũng có tiếng.
-// Âm click haptic / phím cơ ngắn (30ms), êm tai và tự nhiên thay cho tiếng beep chói.
+// Âm click pop / giọt nước trong trẻo, tươi sáng (C6 1046.5Hz -> C5 523.25Hz trong 25ms), không bị đục/thô.
 function playClickSound() {
   if (!soundEnabled || audioContext?.state !== 'running') return false;
   try {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const now = audioContext.currentTime;
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(460, now);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(1046.5, now);
     if (typeof oscillator.frequency.exponentialRampToValueAtTime === 'function') {
-      oscillator.frequency.exponentialRampToValueAtTime(140, now + 0.024);
+      oscillator.frequency.exponentialRampToValueAtTime(523.25, now + 0.024);
     }
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.08, now + 0.002);
+    gain.gain.linearRampToValueAtTime(0.065, now + 0.0015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
