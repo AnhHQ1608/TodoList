@@ -26,6 +26,8 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 
 ### Lịch tuần và task lặp
 
+Khi đã chọn ngày thực hiện, deadline của task một lần phải cùng ngày đó. Bộ chọn deadline mở đúng ngày đã chọn, khóa ngày khác và nút đổi tháng/ngày nhanh không phù hợp; giờ vẫn nhập được. Đổi ngày thực hiện tự giữ giờ và đổi phần ngày của deadline. Task cũ có deadline khác ngày được căn lại trong form khi bấm Sửa, chỉ ghi dữ liệu khi Lưu; vẫn chặn deadline mới trong quá khứ.
+
 TodoList có thanh Thứ Hai–Chủ nhật, chuyển tuần trước/sau và các bộ lọc Tất cả / Cả tuần / Chưa xếp ngày. Task cũ không có ngày vẫn hiện trong Tất cả và Chưa xếp ngày. Có thể đặt ngày cho task một lần hoặc bật **Lặp hằng tuần**, chọn nhiều thứ, ngày bắt đầu và giờ deadline mỗi lần (tùy chọn). Deadline của task một lần giữ nguyên cách chọn cũ.
 
 Lịch lặp lưu riêng trong `data.routines` của tài khoản, tối đa 100 lịch. Mỗi ngày có task ID cố định theo mã lịch + ngày, tránh tạo trùng khi mở lại. Hoàn thành hoặc xóa một lần chỉ đánh dấu ngày đó; task tuần sau vẫn mới và độc lập. Task hoàn thành vẫn tự xóa sau 2 giờ; ngày đã xử lý không bị tạo lại. Sửa task lặp cập nhật các lần chưa hoàn thành từ hôm nay; task đã hoàn thành và ngày cũ được giữ. Bỏ chọn Lặp hằng tuần khi sửa sẽ dừng lịch và giữ task đang sửa như task một lần, dọn các lần tương lai chưa hoàn thành khác. Ngày đã bỏ qua lưu tối đa 2.000 mốc mỗi lịch theo giới hạn API.

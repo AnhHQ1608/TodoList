@@ -103,9 +103,25 @@ function matchesDay(task) {
 }
 function selectDay(value) {
   selectedDay=value;
-  if(!editingId)taskDateInput.value=validDay(value)?value:'';
+  if(!editingId){taskDateInput.value=validDay(value)?value:'';syncDeadlineWithSchedule();}
   renderTasks();
 }
+// Khi đổi ngày thực hiện, giữ giờ đã nhập nhưng đưa deadline về đúng ngày đó.
+function syncDeadlineWithSchedule() {
+  if(repeatInput.checked || !validDay(taskDateInput.value) || !deadlineInput.value)return;
+  const existing=new Date(deadlineInput.value);
+  if(!Number.isFinite(existing.getTime()))return;
+  deadlineInput.value=taskDateInput.value+'T'+String(existing.getHours()).padStart(2,'0')+':'+String(existing.getMinutes()).padStart(2,'0');
+  updateDeadlineDisplay();
+}
+taskDateInput.addEventListener('change',()=>{
+  syncDeadlineWithSchedule();
+  if(!editingId && validDay(selectedDay)){
+    if(validDay(taskDateInput.value)){selectedDay=taskDateInput.value;visibleWeek=weekStart(new Date(selectedDay+'T12:00:00'));}
+    else if(!taskDateInput.value)selectedDay='unscheduled';
+    renderTasks();
+  }
+});
 function renderWeekPlanner() {
   const dates=weekDates(visibleWeek);
   document.getElementById('week-range').textContent=new Date(dates[0]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit'})+' – '+new Date(dates[6]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit',year:'numeric'});
@@ -433,6 +449,7 @@ function startEditing(task) {
     const pad = value => String(value).padStart(2, '0');
     deadlineInput.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } else deadlineInput.value = '';
+  syncDeadlineWithSchedule();
   updateDeadlineDisplay();
   submitButton.textContent = 'Lưu thay đổi';
   cancelButton.hidden = false;
@@ -540,6 +557,10 @@ form.addEventListener('submit', event => {
     message.textContent = 'Ngày giờ deadline không hợp lệ.'; document.getElementById('open-picker').focus(); return;
   }
   const deadline = date ? date.toISOString() : null;
+  if(date && scheduledDate && dayKey(date)!==scheduledDate){
+    message.textContent='Deadline phải cùng ngày thực hiện. Hãy chọn lại giờ deadline.';
+    document.getElementById('open-picker').focus();return;
+  }
   const originalDeadline = editingId ? tasks.find(task => task.id === editingId)?.deadline : null;
   if (date && date.getTime() <= Date.now() && deadline !== originalDeadline) {
     message.textContent = 'Deadline phải sau thời gian hiện tại.';
@@ -993,8 +1014,9 @@ function updatePickerPreview() {
   const date = new Date(selectedDate);
   date.setHours(time.hours, time.minutes, 0, 0);
   const invalid = date.getTime() <= Date.now();
-  document.getElementById('apply-deadline').disabled = invalid;
-  document.getElementById('picker-error').textContent = invalid ? 'Chọn thời gian trong tương lai.' : '';
+  const wrongDay=validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value;
+  document.getElementById('apply-deadline').disabled = invalid || wrongDay;
+  document.getElementById('picker-error').textContent = wrongDay ? 'Deadline phải cùng ngày thực hiện.' : invalid ? 'Chọn thời gian trong tương lai.' : '';
   document.getElementById('picker-preview').textContent = date.toLocaleString('vi-VN', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
   });
@@ -1014,7 +1036,7 @@ function renderCalendar() {
     button.type = 'button';
     button.textContent = date.getDate();
     button.className = 'calendar-day';
-    button.disabled = date.getTime() < todayStart;
+    button.disabled = date.getTime() < todayStart || (validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value);
     if (date.getMonth() !== calendarMonth.getMonth()) button.className += ' outside';
     if (sameDay(date, now)) { button.className += ' today'; button.setAttribute('aria-current', 'date'); }
     const chosen = sameDay(date, selectedDate);
@@ -1036,6 +1058,16 @@ function renderCalendar() {
 function openDatePicker() {
   const existing = deadlineInput.value ? new Date(deadlineInput.value) : null;
   selectedDate = existing && existing.getTime() > Date.now() ? existing : new Date(Math.ceil((Date.now() + 1) / 60000) * 60000);
+  const locked=validDay(taskDateInput.value);
+  if(locked){
+    const time=existing && Number.isFinite(existing.getTime()) ? existing : selectedDate;
+    selectedDate=new Date(taskDateInput.value+'T'+padDate(time.getHours())+':'+padDate(time.getMinutes()));
+  }
+  document.getElementById('previous-month').disabled=locked;
+  document.getElementById('next-month').disabled=locked;
+  const today=new Date(Date.now());const tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
+  document.getElementById('pick-today').disabled=locked && taskDateInput.value!==dayKey(today);
+  document.getElementById('pick-tomorrow').disabled=locked && taskDateInput.value!==dayKey(tomorrow);
   calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
   hourInput.value = padDate(selectedDate.getHours());
   minuteInput.value = padDate(selectedDate.getMinutes());
@@ -1079,6 +1111,7 @@ picker.addEventListener('click', event => { if (event.target === picker) {
 } });
 for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
   document.getElementById(id).addEventListener('click', () => {
+    if(validDay(taskDateInput.value))return;
     calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + step, 1);
     renderCalendar();
   });
@@ -1086,6 +1119,8 @@ for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
 for (const [id, offset] of [['pick-today', 0], ['pick-tomorrow', 1]]) {
   document.getElementById(id).addEventListener('click', () => {
     const now = new Date(Date.now());
+    const target=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+    if(validDay(taskDateInput.value) && dayKey(target)!==taskDateInput.value)return;
     selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
     calendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
     renderCalendar();
@@ -1096,7 +1131,7 @@ document.getElementById('apply-deadline').addEventListener('click', () => {
   if (!time) { updatePickerPreview(); return; }
   const date = new Date(selectedDate);
   date.setHours(time.hours, time.minutes, 0, 0);
-  if (date.getTime() <= Date.now()) {
+  if (date.getTime() <= Date.now() || (validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value)) {
     updatePickerPreview();
     return;
   }

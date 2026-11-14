@@ -143,6 +143,35 @@ test('Weekly input rejects empty weekdays, invalid time and failed storage witho
   addWeekly(app,[1],'25:00');assert.equal(app.run('routines.length'),0);
   const blocked=boot([],{blocked:true});addWeekly(blocked);assert.equal(blocked.run('routines.length'),0);assert.equal(blocked.run('tasks.length'),0);
 });
+test('Scheduled day controls the deadline picker date and prevents choosing a different day',()=>{
+  const app=boot();app.run("selectDay('2026-11-16')");
+  app.elements['open-picker'].listeners.click();
+  assert.equal(app.run('dayKey(selectedDate)'),'2026-11-16');
+  assert.equal(app.elements['previous-month'].disabled,true);
+  assert.equal(app.elements['pick-today'].disabled,true);
+  assert.equal(app.elements['calendar-days'].children.filter(day=>!day.disabled).length,1);
+  app.elements['pick-today'].listeners.click();assert.equal(app.run('dayKey(selectedDate)'),'2026-11-16');
+  app.elements['picker-hour'].value='18';app.elements['picker-minute'].value='30';
+  app.elements['apply-deadline'].listeners.click();
+  assert.equal(app.elements['deadline-input'].value,'2026-11-16T18:30');
+  app.run("selectDay('2026-11-18')");assert.equal(app.elements['deadline-input'].value,'2026-11-18T18:30');
+  app.elements['task-date'].value='2026-11-19';app.elements['task-date'].listeners.change();
+  assert.equal(app.elements['deadline-input'].value,'2026-11-19T18:30');
+  app.submit('Mismatched','2026-11-20T18:30');assert.equal(app.run('tasks.length'),0);
+  app.submit('Matched','2026-11-19T18:30');assert.equal(app.run('tasks[0].scheduledDate'),'2026-11-19');
+});
+test('Editing a legacy mismatched deadline aligns only the editor until saved; past scheduled dates remain blocked',()=>{
+  const original=iso(HOUR);
+  const app=boot([task({scheduledDate:'2026-11-16',deadline:original})]);
+  app.run('startEditing(tasks[0])');
+  assert.ok(app.elements['deadline-input'].value.startsWith('2026-11-16T'));
+  assert.equal(app.run('tasks[0].deadline'),original);
+  app.submit('Corrected',app.elements['deadline-input'].value);
+  assert.equal(app.run('dayKey(new Date(tasks[0].deadline))'),'2026-11-16');
+  app.run("selectDay('2026-11-13')");app.elements['open-picker'].listeners.click();
+  assert.equal(app.run('dayKey(selectedDate)'),'2026-11-13');
+  assert.equal(app.elements['apply-deadline'].disabled,true);
+});
 test('Migrate old tasks; add, edit, cancel, remove deadline, delete and filters', () => {
   const app = boot([task()], { permission: 'default' });
   assert.equal(app.run('tasks[0].deadline'), null);
