@@ -11,6 +11,7 @@
   let expiresTimer;
   let busy = false;
   let sessionRows = [];
+  let alertDevice = null;
   function selectAdminPanel(name) {
     for (const item of ['sessions', 'events']) {
       $('admin-' + item + '-panel').hidden = item !== name;
@@ -34,6 +35,9 @@
     $('events-body').replaceChildren();
     $('device-filter').replaceChildren();
     sessionRows = [];
+    alertDevice = null;
+    $('admin-alert-form').hidden = true;
+    $('admin-alert-message').value = '';
     $('admin-message').textContent = message;
   }
   async function api(path, body) {
@@ -115,6 +119,15 @@
         const button = document.createElement('button'); button.type = 'button'; button.className = 'session-link device-code'; button.textContent = deviceCode(session.device_no); button.title = 'Xem lịch sử thiết bị ' + deviceCode(session.device_no);
         button.addEventListener('click', () => { $('device-filter').value = String(session.device_no); selectAdminPanel('events'); loadEvents().catch(showError); });
         identity.append(button); row.append(identity);
+        const warn = document.createElement('button'); warn.type = 'button'; warn.className = 'secondary'; warn.textContent = 'Cảnh báo';
+        warn.addEventListener('click', () => {
+          alertDevice = session.device_no;
+          $('admin-alert-label').textContent = 'Ghi chú gửi đến ' + deviceCode(alertDevice);
+          $('admin-alert-message').value = '';
+          $('admin-alert-form').hidden = false;
+          $('admin-alert-message').focus();
+        });
+        identity.append(warn);
         cell(row, own ? 'admin · ' + session.device : session.device); cell(row, session.browser + ' / ' + session.os); cell(row, date(session.last_seen));
         cell(row, Date.now() / 1000 - session.last_seen < 120 ? 'Vừa hoạt động' : 'Không hoạt động gần đây');
         $('sessions-body').append(row);
@@ -142,6 +155,21 @@
     finally { $('admin-login-button').disabled = false; }
   });
   $('admin-refresh').addEventListener('click', refresh);
+  $('admin-alert-cancel').addEventListener('click', () => { $('admin-alert-form').hidden = true; alertDevice = null; });
+  $('admin-alert-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!token || !alertDevice) return;
+    const message = $('admin-alert-message').value.trim();
+    if (!message || message.length > 500) return;
+    $('admin-alert-send').disabled = true;
+    try {
+      await api('/admin/alerts', { deviceNo: alertDevice, message });
+      $('admin-alert-form').hidden = true;
+      $('admin-alert-message').value = '';
+      $('admin-message').textContent = 'Đã xếp hàng cảnh báo. Thiết bị sẽ nhận khi đang mở TodoList.';
+    } catch (error) { showError(error); }
+    finally { $('admin-alert-send').disabled = false; }
+  });
   $('admin-logout').addEventListener('click', () => logout());
   $('device-filter').addEventListener('change', () => { loadEvents().catch(showError); });
   for (const name of ['sessions', 'events']) {

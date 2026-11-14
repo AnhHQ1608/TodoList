@@ -5,6 +5,9 @@
 @media (max-width: 420px) { .admin-app header { flex-wrap: wrap; } .admin-back { padding: 9px 10px; font-size: 11px; } }
 .admin-app h1 { font-size: clamp(26px, 5vw, 36px); margin-top: 45px; }
 .admin-app h2 { margin: 24px 0 14px; }
+#admin-alert-form { margin: 20px 0; }
+#admin-alert-message { display: block; width: 100%; box-sizing: border-box; margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; resize: vertical; }
+.device-code + button { display: block; margin-top: 8px; font-size: 12px; }
 #admin-message { color: #dbb9ff; font-size: 13px; min-height: 20px; }
 #admin-login { max-width: 520px; margin-top: 28px; }
 #admin-login-form { display: grid; gap: 12px; }

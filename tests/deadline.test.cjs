@@ -680,7 +680,7 @@ test('Drawer hides features until clicked, toggles panels and supports keyboard 
   const app = boot();
   app.elements['open-settings'].listeners.click();
   assert.equal(app.elements['open-settings']['aria-expanded'], 'true');
-  for (const name of ['sound', 'notifications', 'activity', 'contact']) assert.equal(app.elements['menu-' + name + '-panel'].hidden, true);
+  for (const name of ['sound', 'notifications', 'contact']) assert.equal(app.elements['menu-' + name + '-panel'].hidden, true);
   app.elements['menu-contact-tab'].listeners.click();
   assert.equal(app.elements['menu-contact-panel'].hidden, false);
   assert.equal(app.elements['menu-sound-panel'].hidden, true);

@@ -21,3 +21,10 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS device_alerts (
+  id TEXT PRIMARY KEY,
+  visitor_id TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS device_alerts_visitor ON device_alerts(visitor_id, created_at DESC);

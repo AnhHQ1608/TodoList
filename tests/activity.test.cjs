@@ -107,25 +107,23 @@ function client({ apiUrl = 'https://activity.example', consent, dnt, fail = fals
   vm.runInNewContext(fs.readFileSync('activity.js', 'utf8'), context);
   return { ...context, sent, elements, storage };
 }
-test('Client sends nothing without configuration, after opt-out or with Do Not Track', async () => {
-  for (const options of [{ apiUrl: '', consent: 'yes' }, { consent: 'no' }, { consent: 'yes', dnt: '1' }]) {
+test('Client sends nothing without configuration or with Do Not Track', async () => {
+  for (const options of [{ apiUrl: '', consent: 'yes' }, { consent: 'yes', dnt: '1' }]) {
     const app = client(options);
     await app.window.todoActivity.track('task_created');
     assert.equal(app.sent.length, 0);
     assert.equal(app.storage.has('focus-activity-visitor-v1'), false);
   }
 });
-test('Client automatically creates visit, rejects arbitrary events and opt-out stops collection', async () => {
-  const app = client();
+test('Client automatically records allowed actions without a settings toggle and shows disclosure', async () => {
+  const app = client({consent:'no'});
   assert.equal(app.sent[0].body.action, 'visit');
   await app.window.todoActivity.track('task_completed');
   assert.deepEqual(Object.keys(app.sent[1].body).sort(), ['action', 'browser', 'device', 'eventId', 'os', 'sessionId', 'visitorId'].sort());
   await app.window.todoActivity.track('secret task text');
   assert.equal(app.sent.length, 2);
-  app.elements['activity-consent'].listeners.change({ target: { checked: false } });
-  await app.window.todoActivity.track('task_deleted');
-  assert.equal(app.sent.length, 2);
-  assert.equal(app.storage.has('focus-activity-visitor-v1'), false);
+  assert.equal(app.elements['activity-consent'].listeners.change, undefined);
+  assert.equal(app.elements['activity-notice'].hidden, false);
 });
 test('Unavailable analytics server does not fail task interaction', async () => {
   const app = client({ consent: 'yes', fail: true });
@@ -262,6 +260,41 @@ test('Returning device keeps one row and identity while last seen advances and h
   assert.ok(rows[0].last_seen>=before.last_seen+600);
   assert.equal(rows[0].event_count,2);
   assert.equal(env.sqlite.prepare('SELECT COUNT(*) total FROM events').get().total,2);
+});
+
+test('Only admin can send validated alerts; delivery is isolated to the target device', async () => {
+  const {default:worker,makeToken}=await workerModule;
+  const env=environment();
+  const device=event();
+  await worker.fetch(request('/events',{method:'POST',data:device}),env);
+  const number=env.sqlite.prepare('SELECT device_no FROM devices WHERE visitor_id=?').get(device.visitorId).device_no;
+  const data={deviceNo:number,message:'<img src=x onerror=alert(1)> Test'};
+  assert.equal((await worker.fetch(request('/admin/alerts',{method:'POST',data}),env)).status,401);
+  const token=await makeToken(env.AUTH_SECRET);
+  assert.equal((await worker.fetch(request('/admin/alerts',{method:'POST',data:{...data,message:' '},token}),env)).status,400);
+  assert.equal((await worker.fetch(request('/admin/alerts',{method:'POST',data:{...data,message:'x'.repeat(501)},token}),env)).status,400);
+  assert.equal((await worker.fetch(request('/admin/alerts',{method:'POST',data:{...data,deviceNo:999},token}),env)).status,404);
+  assert.equal((await worker.fetch(request('/admin/alerts',{method:'POST',data,token}),env)).status,202);
+  const read=async visitorId=>(await (await worker.fetch(request('/device/alerts',{method:'POST',data:{visitorId}}),env)).json());
+  assert.equal((await read(device.visitorId)).alerts[0].message,data.message);
+  assert.equal((await read(crypto.randomUUID())).alerts.length,0);
+  assert.equal((await worker.fetch(request('/device/alerts',{method:'POST',data:{visitorId:'bad'}}),env)).status,400);
+  env.sqlite.exec('UPDATE device_alerts SET created_at=0');
+  assert.equal((await read(device.visitorId)).alerts.length,0);
+  await worker.scheduled({},env);
+  assert.equal(env.sqlite.prepare('SELECT COUNT(*) total FROM device_alerts').get().total,0);
+});
+
+test('Admin warning button opens note input and posts to the selected device', async () => {
+  const app=adminClient(true,[{visitor_id:crypto.randomUUID(),device_no:7,device:'desktop',browser:'Other',os:'Other',last_seen:1}]);
+  await app.elements['admin-login-form'].listeners.submit({preventDefault(){}});
+  app.elements['sessions-body'].children[0].children[0].children[1].listeners.click();
+  assert.equal(app.elements['admin-alert-form'].hidden,false);
+  app.elements['admin-alert-message'].value='Please check your task';
+  await app.elements['admin-alert-form'].listeners.submit({preventDefault(){}});
+  const sent=app.requests.find(r=>r.url.endsWith('/admin/alerts'));
+  assert.deepEqual(JSON.parse(sent.options.body),{deviceNo:7,message:'Please check your task'});
+  assert.equal(app.elements['admin-alert-form'].hidden,true);
 });
 
 test('Admin lists only the latest 100 sessions and actions without older pages', async () => {

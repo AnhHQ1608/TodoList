@@ -421,3 +421,9 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 [data-theme="light"] .theme-switch-track { border-color: #d9d1e8; }
 [data-theme="light"] .folder-option-icon { color: #7952c4; background: #f1edfc; }
 [data-theme="light"] .folder-count { opacity: 1; }
+.device-alert-dialog { width: min(440px, calc(100% - 48px)); padding: 28px; border: 1px solid #a78bfa; border-radius: 20px; background: #20203b; color: #f3efff; box-shadow: 0 20px 80px #0006; }
+.device-alert-dialog::backdrop { background: #0b0b20aa; backdrop-filter: blur(5px); }
+.device-alert-dialog h2 { font-size: 20px; color: #c4b5fd; }
+.device-alert-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+[data-theme="light"] .device-alert-dialog { background: white; color: #334155; }
+[data-theme="light"] .device-alert-dialog h2 { color: #6d28d9; }

@@ -11,10 +11,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https:; base-uri 'none'; form-action 'none'; object-src 'none'">
   <title>Quản trị hoạt động · Focus List</title>
   <link rel="icon" href="logo.svg">
-  <link rel="stylesheet" href="style.css?v=explicit-light-1">
-  <link rel="stylesheet" href="admin.css?v=admin-tabs-1">
+  <link rel="stylesheet" href="style.css?v=device-alerts-1">
+  <link rel="stylesheet" href="admin.css?v=device-alerts-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=unique-device-1" defer></script>
+  <script src="admin.js?v=device-alerts-1" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -28,6 +28,13 @@
       <p class="help">Giữ đăng nhập 10 ngày trên trình duyệt này. Nhấn Đăng xuất để kết thúc sớm.</p>
     </section>
     <section id="admin-dashboard" hidden>
+      <form id="admin-alert-form" class="card" hidden>
+        <label id="admin-alert-label" for="admin-alert-message">Ghi chú cảnh báo</label>
+        <textarea id="admin-alert-message" maxlength="500" rows="3" required placeholder="Nhập nội dung gửi đến thiết bị…"></textarea>
+        <p class="help">Hiện trong TodoList khi thiết bị mở web. Không đảm bảo hiện khi đã đóng trang.</p>
+        <button id="admin-alert-send" class="secondary" type="submit">Gửi cảnh báo</button>
+        <button id="admin-alert-cancel" class="secondary" type="button">Hủy</button>
+      </form>
       <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>
       <div id="admin-sessions-panel" role="tabpanel" aria-labelledby="admin-sessions-tab">
       <p class="help">100 thiết bị gần nhất · Mỗi mã TB chỉ một dòng, cập nhật lần truy cập cuối.</p>

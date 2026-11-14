@@ -93,6 +93,15 @@ export default {
     const now = Math.floor(Date.now() / 1000);
     try {
       if (path === '/health' && request.method === 'GET') return reply({ ready: true });
+      if (path === '/device/alerts' && request.method === 'POST') {
+        if (origin !== env.ALLOWED_ORIGIN) return reply({ error: 'Origin không hợp lệ.' }, 403);
+        if (await limited(request, env, 'alerts-read', 100, 300, now)) return reply({ error: 'Thử lại sau.' }, 429);
+        let data;
+        try { data = await readBody(request); } catch { return reply({ error: 'Dữ liệu không hợp lệ.' }, 400); }
+        if (!uuid.test(data?.visitorId || '')) return reply({ error: 'Thiết bị không hợp lệ.' }, 400);
+        const rows = await env.DB.prepare('SELECT id,message,created_at FROM device_alerts WHERE visitor_id=?1 AND created_at>=?2 ORDER BY created_at DESC,id DESC LIMIT 20').bind(data.visitorId, now - 7 * 86400).all();
+        return reply({ alerts: rows.results });
+      }
       if (path === '/events' && request.method === 'POST') {
         if (origin !== env.ALLOWED_ORIGIN) return reply({ error: 'Origin không hợp lệ.' }, 403);
         if (await limited(request, env, 'events', 120, 300, now)) return reply({ error: 'Quá nhiều yêu cầu.' }, 429);
@@ -114,14 +123,24 @@ export default {
           return reply({ error: 'Mật khẩu không đúng.' }, 401);
         return reply({ token: await makeToken(env.AUTH_SECRET), expiresIn: SESSION_SECONDS, expiresAt: (now + SESSION_SECONDS) * 1000 });
       }
-      if (path === '/admin/sessions' || path === '/admin/events' || path === '/admin/logout') {
-        if (request.method !== (path === '/admin/logout' ? 'POST' : 'GET')) return reply({ error: 'Method không hợp lệ.' }, 405);
+      if (['/admin/sessions', '/admin/events', '/admin/logout', '/admin/alerts'].includes(path)) {
+        if (request.method !== (['/admin/logout', '/admin/alerts'].includes(path) ? 'POST' : 'GET')) return reply({ error: 'Method không hợp lệ.' }, 405);
         const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
         if (!await validToken(token, env.AUTH_SECRET)) return reply({ error: 'Hãy đăng nhập lại.' }, 401);
         const hash = toBase64(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
         const revokeKey = 'revoked:' + hash;
         const revoked = await env.DB.prepare('SELECT expires_at FROM rate_limits WHERE key=?1').bind(revokeKey).first();
         if (revoked && revoked.expires_at > now) return reply({ error: 'Phiên đã đăng xuất. Hãy đăng nhập lại.' }, 401);
+        if (path === '/admin/alerts') {
+          let data;
+          try { data = await readBody(request); } catch { return reply({ error: 'Dữ liệu không hợp lệ.' }, 400); }
+          if (!Number.isSafeInteger(data?.deviceNo) || data.deviceNo <= 0 || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 500) return reply({ error: 'Nhập ghi chú từ 1 đến 500 ký tự.' }, 400);
+          const device = await env.DB.prepare('SELECT visitor_id FROM devices WHERE device_no=?1').bind(data.deviceNo).first();
+          if (!device) return reply({ error: 'Thiết bị không còn tồn tại.' }, 404);
+          if (await limited(request, env, 'alerts-send', 20, 300, now)) return reply({ error: 'Gửi quá nhiều cảnh báo. Thử lại sau.' }, 429);
+          await env.DB.prepare('INSERT INTO device_alerts(id,visitor_id,message,created_at) VALUES(?1,?2,?3,?4)').bind(crypto.randomUUID(), device.visitor_id, data.message.trim(), now).run();
+          return reply({ queued: true }, 202);
+        }
         if (path === '/admin/logout') {
           const payload = JSON.parse(new TextDecoder().decode(fromBase64(token.split('.')[0])));
           await env.DB.prepare('INSERT OR REPLACE INTO rate_limits(key,count,expires_at) VALUES(?1,1,?2)').bind(revokeKey, payload.exp).run();
@@ -152,6 +171,7 @@ export default {
     const now = Math.floor(Date.now() / 1000);
     await env.DB.batch([
       env.DB.prepare('DELETE FROM events WHERE created_at<?1').bind(now - retention),
+      env.DB.prepare('DELETE FROM device_alerts WHERE created_at<?1').bind(now - 7 * 86400),
       env.DB.prepare('DELETE FROM devices WHERE NOT EXISTS(SELECT 1 FROM events WHERE events.visitor_id=devices.visitor_id)'),
       env.DB.prepare('DELETE FROM rate_limits WHERE expires_at<?1').bind(now)
     ]);

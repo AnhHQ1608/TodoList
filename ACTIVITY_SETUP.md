@@ -2,7 +2,7 @@
 
 ## Trạng thái hiện tại
 
-Backend đã triển khai tại `https://focus-list-activity.quocanh0918106.workers.dev`, database D1 đã tạo và secret quản trị đã cấu hình. Frontend kết nối bằng URL công khai trong `telemetry-config.js`. Ghi nhận ẩn danh mặc định khi mở trang, có thông báo ngắn và tùy chọn tắt trong Cài đặt.
+Backend đã triển khai tại `https://focus-list-activity.quocanh0918106.workers.dev`, database D1 đã tạo và secret quản trị đã cấu hình. Frontend kết nối bằng URL công khai trong `telemetry-config.js`. Ghi nhận loại thao tác tự động khi mở trang, có thông báo ngắn; không còn công tắc trong Cài đặt.
 
 Trang quản trị: `https://anhhq1608.github.io/TodoList/admin.html`. Mật khẩu ban đầu được tạo ngẫu nhiên và lưu trong tệp riêng `%USERPROFILE%\.focus-list\admin-access.txt`, bên ngoài project/Git, chỉ tài khoản Windows hiện tại có quyền đọc. Không đưa tệp đó vào Git hoặc chia sẻ cho người khác. Nên chuyển mật khẩu vào trình quản lý mật khẩu. Không cần nhập tên đăng nhập, chỉ cần mật khẩu.
 
@@ -20,11 +20,17 @@ Khi cập nhật từ phiên bản chưa có mã TB, chạy lại `backend/schem
 - Chỉ gửi mã sự kiện, mã khách, mã phiên, tên thao tác và nhóm trình duyệt/hệ điều hành/thiết bị. Thời gian do máy chủ ghi nhận.
 - Không gửi nội dung task, tên thư mục, deadline, phím gõ, ảnh màn hình, URL đang mở, mật khẩu hay tên người dùng.
 - Không ghi IP gốc vào D1. IP hạ tầng cung cấp chỉ được băm HMAC theo cửa sổ thời gian để giới hạn tốc độ. Khóa chống spam hết hạn sẽ được dọn mỗi ngày. Nhà cung cấp hạ tầng có thể xử lý dữ liệu mạng theo chính sách riêng.
-- Mặc định ghi nhận mà không cần bấm Đồng ý; có thể tắt trong Cài đặt. Lựa chọn từ chối trước đây và Do Not Track / Global Privacy Control vẫn được tôn trọng. Tắt ghi nhận không ảnh hưởng tính năng TodoList.
-- Lịch sử cũ hết 30 ngày bị dọn hằng ngày, API không trả dữ liệu quá 30 ngày. Tắt chia sẻ dừng gửi sự kiện mới, không tự xóa lịch sử đã lưu trước đó.
+- Ghi nhận tự động, không còn công tắc hay lựa chọn cũ trong localStorage. Do Not Track / Global Privacy Control của trình duyệt vẫn được tôn trọng. Không thể bảo đảm ghi nhận mọi lượt truy cập khi trình duyệt chặn mạng hoặc tắt JavaScript.
+- Lịch sử cũ hết 30 ngày bị dọn hằng ngày, API không trả dữ liệu quá 30 ngày.
 - Lịch sử là dữ liệu do client tự khai báo, không phải bằng chứng kiểm toán hay bảo mật. Trình chặn quảng cáo, offline, quota hoặc giới hạn tốc độ có thể làm thiếu sự kiện. “Vừa hoạt động” nghĩa là nhận sự kiện trong 2 phút gần đây, không chứng minh thiết bị đang online.
 
 ## Triển khai lần đầu trên Cloudflare
+
+### Cảnh báo thiết bị
+
+Trong Phiên gần nhất, bấm **Cảnh báo** dưới mã thiết bị, nhập ghi chú 1–500 ký tự và gửi. Chỉ admin đã đăng nhập mới được gửi (tối đa 20 lần/5 phút). Nội dung hiển thị dưới dạng văn bản, không thực thi HTML. Cảnh báo lưu tối đa 7 ngày; trình duyệt đích kiểm tra 15 giây/lần khi tab hiện, mở hộp thoại và lưu mã đã nhận để tránh lặp sau tải lại. Đây là trạng thái xếp hàng, không xác nhận người dùng đã đọc. Tối đa 20 cảnh báo gần nhất được trả về mỗi lần. Khóa nhận là UUID khách ngẫu nhiên của trình duyệt; không công khai hoặc chia sẻ khóa này. Xóa storage tạo thiết bị khác và không nhận cảnh báo của mã cũ. Khi website đóng, cần Web Push và service worker với quyền thông báo; polling JavaScript hiện tại không chạy lúc đóng trang.
+
+Chạy lại schema trước khi deploy Worker để thêm bảng `device_alerts`, giữ nguyên lịch sử hiện có.
 
 Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Các lệnh chạy ở thư mục project bằng Terminal của VS Code. Dùng `npx.cmd` / `npm.cmd` trên Windows nếu PowerShell chặn script.
 
@@ -73,7 +79,7 @@ Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Cá
 
    Commit/push thay đổi cấu hình công khai để GitHub Pages cập nhật. File này tuyệt đối không có secret.
 
-7. Mở TodoList bằng trình duyệt chưa tắt ghi nhận. Mở `/TodoList/admin.html`, đăng nhập bằng `ADMIN_PASSWORD`. Kiểm tra:
+7. Mở TodoList bằng trình duyệt không chặn ghi nhận. Mở `/TodoList/admin.html`, đăng nhập bằng `ADMIN_PASSWORD`. Kiểm tra:
    - Một phiên mới tự xuất hiện khi mở trang, không có nút Đồng ý.
    - Tạo/sửa/hoàn thành/xóa task chỉ hiện **tên thao tác**, không có nội dung task.
    - Lọc theo thiết bị và đăng xuất. Hai bảng chỉ hiển thị tối đa 100 dòng mới nhất; lịch sử không có phân trang.
@@ -84,7 +90,7 @@ Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Cá
 ## Kiểm tra mã
 
 ```powershell
-node --test tests/deadline.test.cjs tests/activity.test.cjs
+node --test tests/*.test.cjs
 node --check backend/worker.mjs
 npx.cmd --yes wrangler@4.162.0 deploy --dry-run --config backend/wrangler.toml
 ```
