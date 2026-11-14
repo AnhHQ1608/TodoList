@@ -6,6 +6,7 @@ const DEVICES = ['desktop', 'mobile', 'tablet'];
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const encoder = new TextEncoder();
 const retention = 30 * 86400;
+export const SESSION_SECONDS = 10 * 24 * 60 * 60;
 export function validEvent(data) {
   const keys = ['eventId', 'visitorId', 'sessionId', 'action', 'browser', 'os', 'device'];
   return data && typeof data === 'object' && !Array.isArray(data)
@@ -22,7 +23,7 @@ function fromBase64(value) {
   return Uint8Array.from(atob(value.replaceAll('-', '+').replaceAll('_', '/')), char => char.charCodeAt(0));
 }
 export async function makeToken(secret, now = Date.now()) {
-  const payload = toBase64(encoder.encode(JSON.stringify({ exp: Math.floor(now / 1000) + 1800, nonce: crypto.randomUUID() })));
+  const payload = toBase64(encoder.encode(JSON.stringify({ exp: Math.floor(now / 1000) + SESSION_SECONDS, nonce: crypto.randomUUID() })));
   const signature = await crypto.subtle.sign('HMAC', await signingKey(secret), encoder.encode(payload));
   return payload + '.' + toBase64(signature);
 }
@@ -35,7 +36,7 @@ export async function validToken(token, secret, now = Date.now()) {
     if (!verified) return false;
     const payload = JSON.parse(new TextDecoder().decode(fromBase64(parts[0])));
     const seconds = Math.floor(now / 1000);
-    return Number.isInteger(payload.exp) && payload.exp > seconds && payload.exp <= seconds + 1800;
+    return Number.isInteger(payload.exp) && payload.exp > seconds && payload.exp <= seconds + SESSION_SECONDS;
   } catch { return false; }
 }
 async function equalPassword(candidate, expected) {
@@ -111,12 +112,21 @@ export default {
         try { data = await readBody(request); } catch { return reply({ error: 'Dữ liệu đăng nhập không hợp lệ.' }, 400); }
         if (!data || typeof data.password !== 'string' || data.password.length > 256 || !await equalPassword(data.password, env.ADMIN_PASSWORD))
           return reply({ error: 'Mật khẩu không đúng.' }, 401);
-        return reply({ token: await makeToken(env.AUTH_SECRET), expiresIn: 1800 });
+        return reply({ token: await makeToken(env.AUTH_SECRET), expiresIn: SESSION_SECONDS, expiresAt: (now + SESSION_SECONDS) * 1000 });
       }
-      if (path === '/admin/sessions' || path === '/admin/events') {
-        if (request.method !== 'GET') return reply({ error: 'Method không hợp lệ.' }, 405);
+      if (path === '/admin/sessions' || path === '/admin/events' || path === '/admin/logout') {
+        if (request.method !== (path === '/admin/logout' ? 'POST' : 'GET')) return reply({ error: 'Method không hợp lệ.' }, 405);
         const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
         if (!await validToken(token, env.AUTH_SECRET)) return reply({ error: 'Hãy đăng nhập lại.' }, 401);
+        const hash = toBase64(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
+        const revokeKey = 'revoked:' + hash;
+        const revoked = await env.DB.prepare('SELECT expires_at FROM rate_limits WHERE key=?1').bind(revokeKey).first();
+        if (revoked && revoked.expires_at > now) return reply({ error: 'Phiên đã đăng xuất. Hãy đăng nhập lại.' }, 401);
+        if (path === '/admin/logout') {
+          const payload = JSON.parse(new TextDecoder().decode(fromBase64(token.split('.')[0])));
+          await env.DB.prepare('INSERT OR REPLACE INTO rate_limits(key,count,expires_at) VALUES(?1,1,?2)').bind(revokeKey, payload.exp).run();
+          return reply({ loggedOut: true });
+        }
         if (path === '/admin/sessions') {
           const rows = await env.DB.prepare('SELECT e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device,MIN(e.created_at) first_seen,MAX(e.created_at) last_seen,COUNT(*) event_count FROM events e JOIN devices d ON d.visitor_id=e.visitor_id WHERE e.created_at>=?1 GROUP BY e.session_id,e.visitor_id,d.device_no,e.browser,e.os,e.device ORDER BY last_seen DESC,e.session_id DESC LIMIT 100')
             .bind(now - retention).all();

@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="style.css?v=explicit-light-1">
   <link rel="stylesheet" href="admin.css?v=admin-tabs-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <script src="admin.js?v=admin-tabs-1" defer></script>
+  <script src="admin.js?v=ten-day-session-1" defer></script>
 </head>
 <body>
   <main class="admin-app">
@@ -25,7 +25,7 @@
     <section id="admin-login" class="card">
       <h2>Đăng nhập quản trị</h2>
       <form id="admin-login-form"><label for="admin-password">Mật khẩu quản trị</label><input id="admin-password" type="password" autocomplete="current-password" required maxlength="256"><button id="admin-login-button" class="add" type="submit">Đăng nhập</button></form>
-      <p class="help">Phiên đăng nhập hết hạn sau 30 phút. Token chỉ giữ trong bộ nhớ của tab này.</p>
+      <p class="help">Giữ đăng nhập 10 ngày trên trình duyệt này. Nhấn Đăng xuất để kết thúc sớm.</p>
     </section>
     <section id="admin-dashboard" hidden>
       <nav class="admin-navigation" aria-label="Nội dung quản trị"><div class="admin-tabs" role="tablist" aria-label="Bảng quản trị"><button id="admin-sessions-tab" type="button" role="tab" aria-selected="true" aria-controls="admin-sessions-panel">Phiên gần nhất</button><button id="admin-events-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-events-panel" tabindex="-1">Lịch sử thao tác</button></div><button id="admin-refresh" class="secondary" type="button">Làm mới</button><button id="admin-logout" class="secondary" type="button">Đăng xuất</button></nav>

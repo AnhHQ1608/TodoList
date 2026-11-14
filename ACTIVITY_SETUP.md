@@ -55,7 +55,7 @@ Yêu cầu Node.js 22 trở lên và tài khoản Cloudflare có Workers/D1. Cá
    npx.cmd --yes wrangler@4.162.0 secret put AUTH_SECRET --config backend/wrangler.toml
    ```
 
-   `ADMIN_PASSWORD`: mật khẩu riêng dài ít nhất 16 ký tự (lưu trong trình quản lý mật khẩu). `AUTH_SECRET`: chuỗi ngẫu nhiên khác dài ít nhất 32 ký tự. Backend trả 503 nếu thiếu cấu hình. Token quản trị có hạn 30 phút và chỉ giữ trong bộ nhớ trang. Đăng xuất hoặc tải lại trang sẽ mất token; xoay `AUTH_SECRET` vô hiệu hóa mọi token đã cấp. Đổi mật khẩu bằng cách chạy lại lệnh `secret put ADMIN_PASSWORD`.
+   `ADMIN_PASSWORD`: mật khẩu riêng dài ít nhất 16 ký tự (lưu trong trình quản lý mật khẩu). `AUTH_SECRET`: chuỗi ngẫu nhiên khác dài ít nhất 32 ký tự. Backend trả 503 nếu thiếu cấu hình. Token quản trị có hạn cố định 10 ngày từ lúc đăng nhập và được lưu trong localStorage của cùng trình duyệt; không lưu mật khẩu. Quay về TodoList hoặc tải lại trang vẫn giữ phiên, không kéo dài thời hạn. Đăng xuất xóa phiên trong trình duyệt và thu hồi token trên máy chủ. Xoay `AUTH_SECRET` vô hiệu hóa mọi token đã cấp. Đổi mật khẩu bằng cách chạy lại lệnh `secret put ADMIN_PASSWORD`.
 
 5. Triển khai:
 

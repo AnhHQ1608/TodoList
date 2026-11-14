@@ -59,7 +59,7 @@ test('Admin history requires a valid login and cannot be read with forged/expire
   assert.ok(token);
   assert.equal(await validToken(token, env.AUTH_SECRET), true);
   assert.equal(await validToken(token, 'a-different-secret'), false);
-  const expired = await makeToken(env.AUTH_SECRET, Date.now() - 1900 * 1000);
+  const expired = await makeToken(env.AUTH_SECRET, Date.now() - (10 * 86400 + 1) * 1000);
   assert.equal(await validToken(expired, env.AUTH_SECRET), false);
   assert.equal((await worker.fetch(request('/admin/sessions', { token }), env)).status, 200);
 });
@@ -132,8 +132,9 @@ test('Unavailable analytics server does not fail task interaction', async () => 
   await assert.doesNotReject(app.window.todoActivity.track('task_created'));
 });
 
-function adminClient(configured = true, sessions = [], visitorId = '') {
+function adminClient(configured = true, sessions = [], visitorId = '', storage = new Map()) {
   const elements = {};
+  const windowEvents = {};
   class Element {
     constructor() { this.listeners = {}; this.children = []; this.value = ''; }
     setAttribute(name, value) { this[name] = value; }
@@ -145,21 +146,21 @@ function adminClient(configured = true, sessions = [], visitorId = '') {
   for (const match of fs.readFileSync('admin.html','utf8').matchAll(/id="([^"]+)"/g)) elements[match[1]] = new Element();
   const requests = [];
   const context = {
-    window: { TODO_ANALYTICS: { apiUrl: configured ? 'https://activity.example' : '' } }, URL, Date,
-    localStorage: { getItem: () => visitorId },
+    window: { TODO_ANALYTICS: { apiUrl: configured ? 'https://activity.example' : '' }, addEventListener: (name, fn) => { windowEvents[name] = fn; } }, URL, Date,
+    localStorage: { getItem: key => key === 'focus-activity-visitor-v1' ? visitorId : storage.get(key), setItem: (key,value) => storage.set(key,value), removeItem: key => storage.delete(key) },
     document: { getElementById: id => elements[id], createElement: () => new Element(), visibilityState: 'visible' },
     setTimeout() {}, clearTimeout() {}, setInterval() {},
     fetch: async (url, options) => {
       requests.push({ url, options });
-      const data = url.endsWith('/admin/login') ? { token: 'test-token', expiresIn: 1800 }
+      const data = url.endsWith('/admin/login') ? { token: 'test-token', expiresIn: 10 * 86400 }
         : url.endsWith('/admin/sessions') ? { sessions } : { events: [], hasMore: false };
       return { ok: true, status: 200, json: async () => data };
     }
   };
   vm.runInNewContext(fs.readFileSync('admin.js','utf8'), context);
-  return { elements, requests };
+  return { elements, requests, storage, windowEvents };
 }
-test('Admin disabled without backend; login keeps token in memory and logout hides all history', async () => {
+test('Admin disabled without backend; login persists token and logout clears it and hides history', async () => {
   const disabled = adminClient(false);
   assert.equal(disabled.elements['admin-login-button'].disabled, true);
   assert.equal(disabled.requests.length, 0);
@@ -173,6 +174,46 @@ test('Admin disabled without backend; login keeps token in memory and logout hid
   assert.equal(app.elements['admin-dashboard'].hidden, true);
   assert.equal(app.elements['sessions-body'].children.length, 0);
   assert.equal(app.elements['events-body'].children.length, 0);
+});
+
+test('Admin session restores across navigation without extending expiry; expired or invalid storage is cleared', async () => {
+  const app = adminClient();
+  app.elements['admin-password'].value = 'never-store-this';
+  await app.elements['admin-login-form'].listeners.submit({ preventDefault() {} });
+  const key = 'focus-admin-session-v1';
+  const saved = app.storage.get(key);
+  assert.ok(saved.includes('test-token'));
+  assert.ok(!saved.includes('never-store-this'));
+  const restored = adminClient(true, [], '', app.storage);
+  await new Promise(setImmediate);
+  assert.equal(restored.elements['admin-dashboard'].hidden, false);
+  assert.equal(restored.requests[0].url, 'https://activity.example/admin/sessions');
+  assert.equal(app.storage.get(key), saved);
+  restored.elements['admin-logout'].listeners.click();
+  assert.equal(app.storage.has(key), false);
+  assert.ok(restored.requests.some(r => r.url.endsWith('/admin/logout')));
+  for (const value of ['{broken', JSON.stringify({token:'t',endpoint:'https://activity.example',expiresAt:Date.now()-1}), JSON.stringify({token:'t',endpoint:'https://other.example',expiresAt:Date.now()+1000})]) {
+    const storage = new Map([[key,value]]);
+    const invalid = adminClient(true, [], '', storage);
+    assert.equal(invalid.requests.length, 0);
+    assert.equal(storage.has(key), false);
+  }
+  app.windowEvents.storage({key, newValue:null});
+  assert.equal(app.elements['admin-dashboard'].hidden, true);
+});
+
+test('Server grants exactly ten days and logout revokes only that session', async () => {
+  const {default:worker,makeToken,validToken} = await workerModule;
+  const env=environment();
+  const response=await worker.fetch(request('/admin/login',{method:'POST',data:{password:env.ADMIN_PASSWORD}}),env);
+  const data=await response.json();
+  assert.equal(data.expiresIn,864000);
+  assert.ok(Math.abs(data.expiresAt-Date.now()-864000000)<2000);
+  const older=await makeToken(env.AUTH_SECRET,Date.now()-9*86400000);
+  assert.equal(await validToken(older,env.AUTH_SECRET),true);
+  assert.equal((await worker.fetch(request('/admin/logout',{method:'POST',token:data.token}),env)).status,200);
+  assert.equal((await worker.fetch(request('/admin/sessions',{token:data.token}),env)).status,401);
+  assert.equal((await worker.fetch(request('/admin/sessions',{token:older}),env)).status,200);
 });
 
 test('Admin names only this browser visitor admin, leaving other devices unchanged', async () => {

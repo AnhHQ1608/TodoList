@@ -1,10 +1,13 @@
-// Không nhúng mật khẩu, không lưu token đăng nhập vào localStorage.
+// Chỉ lưu token phiên có hạn; tuyệt đối không lưu mật khẩu quản trị.
 (() => {
   const $ = id => document.getElementById(id);
   const labels = { visit: 'Mở trang', heartbeat: 'Trang đang hoạt động', task_created: 'Thêm task', task_updated: 'Sửa task', task_deleted: 'Xóa task', task_completed: 'Hoàn thành task', task_reopened: 'Mở lại task', task_auto_deleted: 'Tự xóa task sau 2 giờ', folder_created: 'Tạo thư mục', folder_deleted: 'Xóa thư mục' };
   let endpoint = '';
   try { const url = new URL(window.TODO_ANALYTICS?.apiUrl); if (url.protocol === 'https:') endpoint = url.origin; } catch { /* Chưa cấu hình. */ }
   let token = '';
+  const sessionKey = 'focus-admin-session-v1';
+  const sessionLifetime = 10 * 24 * 60 * 60 * 1000;
+  let expiresAt = 0;
   let offset = 0;
   let expiresTimer;
   let busy = false;
@@ -16,8 +19,15 @@
       $('admin-' + item + '-tab').setAttribute('tabindex', item === name ? '0' : '-1');
     }
   }
-  function logout(message = 'Đã đăng xuất.') {
+  function logout(message = 'Đã đăng xuất.', revoke = true) {
+    const previousToken = token;
     token = '';
+    expiresAt = 0;
+    try { localStorage.removeItem(sessionKey); } catch { /* Vẫn xóa phiên trong bộ nhớ. */ }
+    if (revoke && previousToken) {
+      fetch(endpoint + '/admin/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + previousToken },
+        credentials: 'omit', referrerPolicy: 'no-referrer', keepalive: true }).catch(() => {});
+    }
     clearTimeout(expiresTimer);
     $('admin-dashboard').hidden = true;
     $('admin-login').hidden = false;
@@ -34,10 +44,34 @@
       ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
     const data = await response.json();
     if (!response.ok) {
-      if (response.status === 401 && token) logout('Phiên đăng nhập hết hạn. Hãy đăng nhập lại.');
+      if (response.status === 401 && token) logout('Phiên đăng nhập hết hạn. Hãy đăng nhập lại.', false);
       throw Error(data.error || 'Không tải được dữ liệu.');
     }
     return data;
+  }
+  function startSession(data) {
+    token = data.token;
+    expiresAt = data.expiresAt;
+    clearTimeout(expiresTimer);
+    expiresTimer = setTimeout(() => logout('Phiên đăng nhập hết hạn.', false), Math.max(0, expiresAt - Date.now()));
+    $('admin-login').hidden = true;
+    $('admin-dashboard').hidden = false;
+    offset = 0;
+    selectAdminPanel('sessions');
+  }
+  function restoreSession() {
+    if (!endpoint) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(sessionKey) || 'null');
+      if (!saved) return;
+      if (saved.endpoint !== endpoint || typeof saved.token !== 'string' || !saved.token
+        || !Number.isFinite(saved.expiresAt) || saved.expiresAt <= Date.now() || saved.expiresAt > Date.now() + sessionLifetime) {
+        localStorage.removeItem(sessionKey);
+        return;
+      }
+      startSession(saved);
+      refresh(); // Máy chủ kiểm tra lại chữ ký, thời hạn và trạng thái đăng xuất.
+    } catch { try { localStorage.removeItem(sessionKey); } catch { /* Storage không khả dụng. */ } }
   }
   const date = value => new Date(value * 1000).toLocaleString('vi-VN');
   const short = value => value.slice(0, 8);
@@ -76,6 +110,7 @@
   }
   async function refresh() {
     if (busy || !token) return;
+    if (expiresAt <= Date.now()) { logout('Phiên đăng nhập hết hạn.', false); return; }
     busy = true;
     $('admin-refresh').disabled = true;
     try {
@@ -119,11 +154,13 @@
     $('admin-login-button').disabled = true;
     try {
       const data = await api('/admin/login', { password: $('admin-password').value });
-      token = data.token;
       $('admin-password').value = '';
-      expiresTimer = setTimeout(() => logout('Phiên đăng nhập hết hạn.'), data.expiresIn * 1000);
-      $('admin-login').hidden = true; $('admin-dashboard').hidden = false; offset = 0; selectAdminPanel('sessions');
+      const session = { token: data.token, expiresAt: data.expiresAt || Date.now() + data.expiresIn * 1000, endpoint };
+      startSession(session);
+      let saved = true;
+      try { localStorage.setItem(sessionKey, JSON.stringify(session)); } catch { saved = false; }
       await refresh();
+      if (!saved && token) $('admin-message').textContent = 'Không lưu được phiên; trình duyệt có thể yêu cầu đăng nhập lại khi rời trang.';
     } catch (error) { showError(error); }
     finally { $('admin-login-button').disabled = false; }
   });
@@ -148,5 +185,9 @@
     $('admin-login-button').disabled = true;
     $('admin-message').textContent = 'Chưa kết nối backend. Xem ACTIVITY_SETUP.md để triển khai; hiện chưa có dữ liệu được thu thập.';
   }
+  window.addEventListener('storage', event => {
+    if ((event.key === sessionKey && event.newValue === null) || event.key === null) logout('Đã đăng xuất trên tab khác.', false);
+  });
+  restoreSession();
   setInterval(() => { if (token && document.visibilityState === 'visible') refresh(); }, 30000);
 })();
