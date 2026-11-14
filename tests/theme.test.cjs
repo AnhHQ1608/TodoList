@@ -21,7 +21,7 @@ test('Theme defaults dark, toggles light and persists across reload', () => {
   app.buttonEvents.click();
   assert.equal(app.attributes['data-theme'], 'light');
   assert.equal(app.buttonAttributes['aria-checked'], 'true');
-  assert.equal(app.metaAttributes.content, '#f5f2fc');
+  assert.equal(app.metaAttributes.content, '#ffffff');
   assert.equal(boot(app.storage).attributes['data-theme'], 'light');
   app.buttonEvents.click();
   assert.equal(app.storage.get('focus-theme-v1'), 'dark');
