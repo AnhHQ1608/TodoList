@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=overdue-history-1">
+  <link rel="stylesheet" href="style.css?v=compact-composer-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=overdue-history-1" defer></script>
+  <script src="auth.js?v=compact-composer-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -45,28 +45,23 @@
       </section>
       <form id="task-form" autocomplete="off">
         <label class="sr-only" for="task-input">Công việc mới</label>
-        <input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required>
-        <div class="task-schedule">
+        <div class="task-primary"><input id="task-input" placeholder="Bạn muốn hoàn thành điều gì?" maxlength="200" required><button id="submit-task" class="add" type="submit">＋ Add Task</button></div>
+        <div class="task-tools">
+<div class="folder-field"><span id="folder-select-label" class="sr-only">Mục công việc</span><select id="task-folder" hidden><option value="">Chưa phân loại</option></select><details id="folder-picker" class="folder-picker"><summary id="folder-picker-trigger" aria-labelledby="folder-select-label folder-selected-name"><span id="folder-selected-icon" class="folder-symbol" aria-hidden="true">▱</span><span id="folder-selected-name">Chưa phân loại</span><span class="folder-chevron ui-chevron" aria-hidden="true"></span></summary><div class="folder-menu"><p>CHỌN MỤC CÔNG VIỆC</p><div id="folder-options" role="group" aria-label="Chọn mục cho công việc"></div></div></details></div>
+          <details id="task-options" class="task-options"><summary><span aria-hidden="true">▦</span><span>Lên lịch</span><small id="task-options-summary">Không bắt buộc</small><span class="ui-chevron" aria-hidden="true"></span></summary><div class="task-options-content">
+<div class="task-schedule">
           <div class="schedule-date-field"><label id="task-date-label" for="open-schedule-picker">Ngày thực hiện / bắt đầu</label><input id="task-date" type="date" hidden><button id="open-schedule-picker" class="schedule-date-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-labelledby="task-date-label task-date-display"><span class="calendar-icon" aria-hidden="true">▦</span><span id="task-date-display">Chọn ngày</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
           <label class="repeat-toggle" for="task-repeat"><input id="task-repeat" type="checkbox"><span>Lặp hằng tuần</span><span aria-hidden="true">↻</span></label>
           <div id="repeat-options" hidden><div id="repeat-days" class="repeat-days" role="group" aria-label="Các thứ lặp lại"></div><label class="repeat-time-label" for="repeat-time">Giờ deadline mỗi lần (không bắt buộc)<input id="repeat-time" type="time"></label><p class="help">Mỗi ngày là một task riêng. Sửa task lặp sẽ cập nhật lịch lặp; bỏ chọn để dừng lặp.</p></div>
         </div>
-        <div class="folder-field"><span id="folder-select-label" class="field-label">Mục công việc</span><select id="task-folder" hidden><option value="">Chưa phân loại</option></select><details id="folder-picker" class="folder-picker"><summary id="folder-picker-trigger" aria-labelledby="folder-select-label folder-selected-name"><span id="folder-selected-icon" class="folder-symbol" aria-hidden="true">▱</span><span id="folder-selected-name">Chưa phân loại</span><span class="folder-chevron ui-chevron" aria-hidden="true"></span></summary><div class="folder-menu"><p>CHỌN MỤC CÔNG VIỆC</p><div id="folder-options" role="group" aria-label="Chọn mục cho công việc"></div></div></details></div>
-        <div id="task-deadline-field" class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
-        <button id="submit-task" class="add" type="submit">＋ Add Task</button>
-        <button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
+<div id="task-deadline-field" class="deadline-field"><label id="deadline-label">Deadline (không bắt buộc)</label><input id="deadline-input" type="datetime-local" hidden><button id="open-picker" class="deadline-trigger" type="button" aria-haspopup="dialog" aria-controls="date-picker" aria-expanded="false" aria-describedby="deadline-help"><span class="calendar-icon" aria-hidden="true">▦</span><span id="deadline-display">Chọn ngày & giờ</span><span class="ui-chevron" aria-hidden="true"></span></button></div>
+          </div></details>
+        </div>
+<button id="cancel-edit" class="secondary" type="button" hidden>Hủy sửa</button>
       </form>
       <span id="deadline-help" class="sr-only">Giờ địa phương, không bắt buộc.</span>
       <aside id="overdue-alert" class="overdue-alert" role="status" aria-live="polite" hidden><strong>⚠ Công việc quá hạn</strong><p id="overdue-summary"></p><button id="open-overdue-history" class="secondary" type="button">Xem lịch sử &amp; khôi phục</button></aside>
       <p id="message" role="status" aria-live="polite"></p>
-      <details id="overdue-history" class="overdue-history"><summary><span>Lịch sử quá hạn</span><span id="overdue-history-count" class="history-count">0</span><span class="ui-chevron" aria-hidden="true"></span></summary><p class="help">Giữ lại task đã lỡ hạn. Khôi phục với deadline mới để tiếp tục thực hiện.</p><div id="overdue-history-list" class="overdue-history-list"></div></details>
-      <details class="folder-section folder-manager">
-        <summary>Thư mục <span class="folder-manager-action">＋ Tạo / quản lý <span class="ui-chevron" aria-hidden="true"></span></span></summary>
-        <form id="folder-form" autocomplete="off"><label class="sr-only" for="folder-name">Tên mục mới</label><input id="folder-name" placeholder="Ví dụ: Học tập, Công việc, Cá nhân…" maxlength="40" required><button class="secondary" type="submit">＋ Tạo mục</button></form>
-        <p class="icon-label">Biểu tượng</p><div id="folder-icons" class="folder-icons" role="group" aria-label="Biểu tượng thư mục"></div>
-        <div class="folder-delete-row"><span class="help">Xóa mục vẫn giữ task.</span><button id="delete-folder" class="secondary delete-folder" type="button" hidden>Xóa mục này</button></div>
-        <p id="folder-message" class="help" role="status"></p>
-      </details>
       <div class="toolbar">
         <div class="filters" role="group" aria-label="Lọc công việc">
           <button type="button" data-filter="all" class="selected" aria-pressed="true">All</button>
@@ -82,6 +77,16 @@
         <div class="progress-label"><span id="completed-count" aria-live="polite"></span><strong id="percentage"></strong></div>
         <div id="progress" role="progressbar" aria-label="Tiến độ hoàn thành" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
       </footer>
+      <div class="task-management" aria-label="Quản lý công việc">
+      <details id="overdue-history" class="overdue-history"><summary><span>Lịch sử quá hạn</span><span id="overdue-history-count" class="history-count">0</span><span class="ui-chevron" aria-hidden="true"></span></summary><p class="help">Giữ lại task đã lỡ hạn. Khôi phục với deadline mới để tiếp tục thực hiện.</p><div id="overdue-history-list" class="overdue-history-list"></div></details>
+      <details class="folder-section folder-manager">
+        <summary>Thư mục <span class="folder-manager-action">＋ Tạo / quản lý <span class="ui-chevron" aria-hidden="true"></span></span></summary>
+        <form id="folder-form" autocomplete="off"><label class="sr-only" for="folder-name">Tên mục mới</label><input id="folder-name" placeholder="Ví dụ: Học tập, Công việc, Cá nhân…" maxlength="40" required><button class="secondary" type="submit">＋ Tạo mục</button></form>
+        <p class="icon-label">Biểu tượng</p><div id="folder-icons" class="folder-icons" role="group" aria-label="Biểu tượng thư mục"></div>
+        <div class="folder-delete-row"><span class="help">Xóa mục vẫn giữ task.</span><button id="delete-folder" class="secondary delete-folder" type="button" hidden>Xóa mục này</button></div>
+        <p id="folder-message" class="help" role="status"></p>
+      </details>
+      </div>
     </section>
     <aside id="activity-notice" class="activity-notice" aria-label="Thông tin ghi nhận hoạt động" hidden><p>Website ghi nhận loại thao tác và nhóm thiết bị để quản trị, không thu nội dung task. Lịch sử giữ 30 ngày.</p></aside>
     <footer class="site-footer" aria-label="Thông tin và liên hệ">

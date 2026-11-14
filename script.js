@@ -114,6 +114,7 @@ function beginHistoryRestore(entry) {
   resetEditor();
   if(existing)startEditing(existing);else {input.value=entry.task.text;folderSelect.value=folders.some(folder=>folder.id===entry.task.folderId)?entry.task.folderId:'';updateFolderPicker();}
   restoringHistoryId=entry.id;
+  document.getElementById('task-options').open=true;
   repeatInput.checked=false;repeatWeekdays=new Set();updateRepeatEditor();
   taskDateInput.value=dayKey(new Date(Date.now()));deadlineInput.value='';updateDeadlineDisplay();updateScheduleDisplay();
   selectedDay='all';currentFolder='all';setFilter('all');renderTasks();
@@ -181,6 +182,14 @@ function syncDeadlineWithSchedule() {
 }
 function updateScheduleDisplay() {
   document.getElementById('task-date-display').textContent=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00').toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}):'Chọn ngày';
+  updateTaskOptionsSummary();
+}
+function updateTaskOptionsSummary() {
+  const parts=[];
+  if(validDay(taskDateInput.value))parts.push(new Date(taskDateInput.value+'T12:00:00').toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+  if(repeatInput.checked)parts.push('Lặp '+repeatWeekdays.size+' ngày/tuần');
+  else if(deadlineInput.value && Number.isFinite(new Date(deadlineInput.value).getTime()))parts.push(new Date(deadlineInput.value).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}));
+  document.getElementById('task-options-summary').textContent=parts.join(' · ') || 'Không bắt buộc';
 }
 function handleScheduleChange() {
   updateScheduleDisplay();
@@ -210,6 +219,7 @@ function renderWeekPlanner() {
 function renderRepeatDays() {
   const container=document.getElementById('repeat-days');container.replaceChildren();
   weekdayNames.forEach((name,index)=>{const day=index+1;const button=document.createElement('button');button.type='button';button.id='repeat-weekday-'+day;button.textContent=index===6?'CN':'T'+(index+2);button.setAttribute('aria-label',name);button.setAttribute('aria-pressed',String(repeatWeekdays.has(day)));button.addEventListener('click',()=>{if(repeatWeekdays.has(day))repeatWeekdays.delete(day);else repeatWeekdays.add(day);renderRepeatDays();document.getElementById('repeat-weekday-'+day)?.focus();});container.append(button);});
+  updateTaskOptionsSummary();
 }
 function updateRepeatEditor() {
   updateScheduleDisplay();
@@ -509,6 +519,7 @@ function resetEditor() {
   updateDeadlineDisplay();
   submitButton.textContent = '＋ Add Task';
   cancelButton.hidden = true;
+  document.getElementById('task-options').open=false;
 }
 function startEditing(task) {
   restoringHistoryId=null;
@@ -529,6 +540,7 @@ function startEditing(task) {
   updateDeadlineDisplay();
   submitButton.textContent = 'Lưu thay đổi';
   cancelButton.hidden = false;
+  document.getElementById('task-options').open=Boolean(task.scheduledDate || task.deadline || routine);
   input.focus();
 }
 
@@ -625,6 +637,7 @@ function renderTasks() {
 }
 form.addEventListener('submit', event => {
   event.preventDefault();
+  if(repeatInput.checked || deadlineInput.value || restoringHistoryId)document.getElementById('task-options').open=true;
   captureOverdueHistory();
   if(restoringHistoryId && overdueHistory.find(entry=>entry.id===restoringHistoryId)?.restoredAt){message.textContent='Công việc này đã được khôi phục ở tab khác. Hãy hủy form và kiểm tra lại.';return;}
   const text = input.value.trim();
@@ -1087,6 +1100,7 @@ function updateDeadlineDisplay() {
   document.getElementById('deadline-display').textContent = deadlineInput.value
     ? new Date(deadlineInput.value).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
     : 'Chọn ngày & giờ';
+  updateTaskOptionsSummary();
 }
 function readPickerTime() {
   if (!/^\d{1,2}$/.test(hourInput.value) || !/^\d{1,2}$/.test(minuteInput.value)) return null;
@@ -1153,6 +1167,7 @@ function renderCalendar() {
   updatePickerPreview();
 }
 function openDatePicker(mode='deadline') {
+  document.getElementById('task-options').open=true;
   pickerMode=mode==='schedule'?'schedule':'deadline';
   const existing = deadlineInput.value ? new Date(deadlineInput.value) : null;
   selectedDate = existing && existing.getTime() > Date.now() ? existing : new Date(Math.ceil((Date.now() + 1) / 60000) * 60000);

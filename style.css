@@ -500,3 +500,35 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 [data-theme="light"] .history-task p { color: #98526e; }
 [data-theme="light"] #open-overdue-history { color: #9a3b60; }
 @media(max-width:420px) { .history-task { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .history-task > div { flex-basis: 100%; } .history-task button { margin-left: auto; } }
+/* Form gọn: nội dung trước, các tùy chọn chỉ mở khi cần. */
+#task-form { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.task-primary { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; }
+.task-primary #task-input { grid-column: auto; height: 50px; padding: 13px 15px; }
+.task-primary #submit-task { height: 50px; min-height: 50px; }
+.task-tools { display: grid; grid-template-columns: minmax(0,220px) minmax(0,1fr); align-items: start; gap: 10px; }
+#task-form .task-tools .folder-field { width: 100%; min-width: 0; grid-column: auto; }
+#task-form .task-tools .folder-picker summary { min-height: 43px; height: 43px; font-size: 12px; border-color: #a78bfa25; background: #a78bfa06; }
+.task-options { min-width: 0; }
+.task-options > summary { display: flex; align-items: center; gap: 8px; min-height: 43px; padding: 8px 12px; list-style: none; border: 1px solid #a78bfa25; border-radius: 11px; background: #a78bfa06; color: #d3c5e9; font-size: 12px; cursor: pointer; }
+.task-options > summary::-webkit-details-marker { display: none; }
+.task-options > summary > span:first-child { font-size: 17px; color: #b69ae8; }
+#task-options-summary { flex: 1; min-width: 0; text-align: right; color: var(--muted); font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.task-options > summary .ui-chevron { width: 21px; height: 21px; background: transparent; }
+.task-options[open] > summary .ui-chevron { transform: rotate(180deg); }
+.task-options[open] > summary { border-color: #a78bfa65; }
+.task-options-content { display: grid; gap: 14px; padding-top: 12px; }
+.task-options-content .task-schedule { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 0; background: transparent; gap: 10px; }
+.task-options-content .repeat-toggle { min-height: 30px; }
+.task-options-content #repeat-options { padding: 10px; border-radius: 10px; background: #a78bfa06; }
+#task-form .task-options-content .deadline-field > label { min-height: auto; margin-bottom: 7px; font-size: 11px; }
+#task-form .task-options-content .deadline-trigger { height: 44px; min-height: 44px; font-size: 12px; }
+#task-form .task-options-content .schedule-date-field label { margin-bottom: 7px; }
+#task-form #cancel-edit { align-self: flex-end; width: auto; }
+.task-management { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.task-management > details { margin: 0; padding: 13px 14px; border: 1px solid #a78bfa20; border-radius: 11px; background: transparent; }
+.task-management > details[open] { grid-column: 1/-1; }
+.task-management > details > summary { min-height: 22px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.task-management .folder-manager-action { font-size: 10px; }
+[data-theme="light"] .task-options > summary, [data-theme="light"] #task-form .task-tools .folder-picker summary { background: #f8fafc; border-color: #e2e8f0; color: #594773; }
+[data-theme="light"] .task-management > details { background: transparent; border-color: #e2e8f0; }
+@media(max-width:520px) { .task-tools { grid-template-columns: minmax(0,1fr); gap: 8px; } .task-primary #submit-task { min-width: 104px; padding: 0 12px; font-size: 12px; } .task-management { grid-template-columns: minmax(0,1fr); } #task-form #cancel-edit { width: 100%; } }
