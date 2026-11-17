@@ -14,10 +14,11 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=user-guide-1">
+  <link rel="stylesheet" href="style.css?v=languages-1">
+  <script src="language.js?v=1" defer></script>
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=loading-screen-1">
-  <script src="auth.js?v=user-guide-1" defer></script>
+  <script src="auth.js?v=languages-1" defer></script>
   <link rel="stylesheet" href="music.css?v=vinyl-vi-voice-1">
   <script src="music.js?v=welcome-little-corner-1" defer></script>
 </head>
@@ -118,6 +119,8 @@
   <dialog id="settings-dialog" class="date-picker settings-dialog navigation-drawer" aria-labelledby="settings-title">
     <div class="drawer-heading"><img src="logo.svg" width="44" height="44" alt=""><div><h2 id="settings-title">FOCUS LIST</h2><p>Không gian của bạn</p></div><button id="close-settings" class="icon-button" type="button" aria-label="Đóng menu">×</button></div>
     <nav class="drawer-navigation" aria-label="Chức năng">
+      <button id="menu-language-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-language-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg><span>Ngôn ngữ</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-language-panel" class="drawer-panel" role="region" aria-labelledby="menu-language-tab" hidden><p class="language-caption">Chọn ngôn ngữ hiển thị</p><div class="language-options" role="group" aria-label="Ngôn ngữ" data-no-translate><button type="button" data-language="vi" lang="vi" aria-pressed="true"><span>VI</span>Tiếng Việt</button><button type="button" data-language="en" lang="en" aria-pressed="false"><span>EN</span>English</button><button type="button" data-language="ja" lang="ja" aria-pressed="false"><span>JA</span>日本語</button></div></div>
       <button id="menu-guide-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-guide-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/></svg><span>Hướng dẫn sử dụng</span><span class="ui-chevron" aria-hidden="true"></span></button>
       <div id="menu-guide-panel" class="drawer-panel user-guide" role="region" aria-labelledby="menu-guide-tab" hidden>
         <p class="guide-intro">Bắt đầu từ một việc nhỏ, mỗi ngày.</p>

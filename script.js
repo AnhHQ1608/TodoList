@@ -1,5 +1,6 @@
 // 1. Trạng thái ứng dụng. Giữ khóa cũ để không mất công việc đã lưu.
 const form = document.getElementById('task-form');
+const appLocale = () => window.todoLanguage?.locale || 'vi-VN';
 const input = document.getElementById('task-input');
 const deadlineInput = document.getElementById('deadline-input');
 const submitButton = document.getElementById('submit-task');
@@ -99,8 +100,8 @@ function renderOverdueHistory() {
   [...overdueHistory].reverse().forEach(entry=>{
     const row=document.createElement('article');row.className='history-task';
     const content=document.createElement('div');
-    const title=document.createElement('strong');title.textContent=entry.task.text;
-    const deadline=document.createElement('p');deadline.textContent='Hạn cũ · '+new Date(entry.task.deadline).toLocaleString('vi-VN');
+    const title=document.createElement('strong');title.textContent=entry.task.text;title.setAttribute('data-no-translate','');
+    const deadline=document.createElement('p');deadline.textContent='Hạn cũ · '+new Date(entry.task.deadline).toLocaleString(appLocale());
     const state=document.createElement('small');
     const active=tasks.some(task=>task.id===entry.task.id && task.deadline===entry.task.deadline && !task.completed);
     state.textContent=entry.restoredAt?'Đã khôi phục':entry.completedAt?'Đã hoàn thành':active?'Đang quá hạn':'Không còn trong danh sách';
@@ -185,14 +186,14 @@ function syncDeadlineWithSchedule() {
   updateDeadlineDisplay();
 }
 function updateScheduleDisplay() {
-  document.getElementById('task-date-display').textContent=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00').toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}):'Chọn ngày';
+  document.getElementById('task-date-display').textContent=validDay(taskDateInput.value)?new Date(taskDateInput.value+'T12:00:00').toLocaleDateString(appLocale(),{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}):'Chọn ngày';
   updateDeadlineDisplay();
 }
 function updateTaskOptionsSummary() {
   const parts=[];
-  if(validDay(taskDateInput.value))parts.push(new Date(taskDateInput.value+'T12:00:00').toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+  if(validDay(taskDateInput.value))parts.push(new Date(taskDateInput.value+'T12:00:00').toLocaleDateString(appLocale(),{day:'2-digit',month:'2-digit'}));
   if(repeatInput.checked)parts.push('Lặp '+repeatWeekdays.size+' ngày/tuần');
-  else if(deadlineInput.value && Number.isFinite(new Date(deadlineInput.value).getTime()))parts.push(new Date(deadlineInput.value).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}));
+  else if(deadlineInput.value && Number.isFinite(new Date(deadlineInput.value).getTime()))parts.push(new Date(deadlineInput.value).toLocaleTimeString(appLocale(),{hour:'2-digit',minute:'2-digit',hour12:false}));
   document.getElementById('task-options-summary').textContent=parts.join(' · ') || 'Không bắt buộc';
 }
 function handleScheduleChange() {
@@ -212,7 +213,7 @@ function renderWeekPlanner() {
   document.getElementById('week-previous').disabled=visibleWeek.getTime()<=weekStart(new Date(Date.now())).getTime();
   updateScheduleDisplay();
   const dates=weekDates(visibleWeek);
-  document.getElementById('week-range').textContent=new Date(dates[0]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit'})+' – '+new Date(dates[6]+'T12:00:00').toLocaleDateString('vi-VN',{day:'numeric',month:'2-digit',year:'numeric'});
+  document.getElementById('week-range').textContent=new Date(dates[0]+'T12:00:00').toLocaleDateString(appLocale(),{day:'numeric',month:'2-digit'})+' – '+new Date(dates[6]+'T12:00:00').toLocaleDateString(appLocale(),{day:'numeric',month:'2-digit',year:'numeric'});
   const container=document.getElementById('week-days');container.replaceChildren();
   dates.forEach((date,index)=>{
     const button=document.createElement('button');button.type='button';button.className='week-day';button.id='week-day-'+date;button.setAttribute('aria-pressed',String(selectedDay===date));button.setAttribute('aria-label',weekdayNames[index]+', '+date);
@@ -277,6 +278,7 @@ function updateFolderPicker() {
   const selected = folderSelect.value;
   document.getElementById('folder-selected-icon').textContent = getFolderIcon(folders.find(folder => folder.id === selected));
   document.getElementById('folder-selected-name').textContent = folders.find(folder => folder.id === selected)?.name || 'Chưa phân loại';
+  document.getElementById('folder-selected-name').setAttribute('data-no-translate', String(Boolean(selected)));
   const options = document.getElementById('folder-options');
   options.replaceChildren();
   for (const folder of [{ id: '', name: 'Chưa phân loại' }, ...folders]) {
@@ -291,6 +293,7 @@ function updateFolderPicker() {
     const text = document.createElement('span');
     text.className = 'folder-option-name';
     text.textContent = folder.name;
+    if(folder.id)text.setAttribute('data-no-translate','');
     const check = document.createElement('span');
     check.textContent = folder.id === selected ? '✓' : '';
     check.setAttribute('aria-hidden', 'true');
@@ -320,6 +323,7 @@ function renderFolders() {
     const option = document.createElement('option');
     option.value = folder.id;
     option.textContent = folder.name;
+    if(folder.id)option.setAttribute('data-no-translate','');
     folderSelect.append(option);
   }
   folderSelect.value = folders.some(folder => folder.id === selected) ? selected : '';
@@ -337,6 +341,7 @@ function renderFolders() {
     button.setAttribute('aria-pressed', String(currentFolder === folder.id));
     const name = document.createElement('span');
     name.textContent = folder.name;
+    if(folder.id && folder.id!=='all')name.setAttribute('data-no-translate','');
     const count = document.createElement('span');
     count.className = 'folder-count';
     count.textContent = tasks.filter(task => folder.id === 'all' || taskFolderId(task) === folder.id).length;
@@ -481,7 +486,7 @@ function cleanupCompletedTasks(now = Date.now()) {
 function deadlineInfo(task, now = Date.now()) {
   if (!task.deadline) return { text: 'Không có deadline', className: '' };
   const date = new Date(task.deadline);
-  const formatted = date.toLocaleString('vi-VN');
+  const formatted = date.toLocaleString(appLocale());
   if (task.completed) return { text: 'Đã hoàn thành · Deadline: ' + formatted, className: '' };
   const remaining = date.getTime() - now;
   if (remaining <= 0) return { text: 'Quá hạn · Deadline: ' + formatted, className: 'overdue' };
@@ -583,6 +588,7 @@ function renderTasks() {
     const label = document.createElement('label');
     label.htmlFor = checkbox.id;
     label.textContent = task.text;
+    label.setAttribute('data-no-translate','');
     const deadline = document.createElement('p');
     deadline.id = 'deadline-' + task.id;
     content.append(label, deadline);
@@ -590,8 +596,9 @@ function renderTasks() {
     folderBadge.className = 'task-folder-badge';
     folderBadge.setAttribute('data-icon', getFolderIcon(folders.find(folder => folder.id === taskFolderId(task))));
     folderBadge.textContent = folders.find(folder => folder.id === taskFolderId(task))?.name || 'Chưa phân loại';
+    if(taskFolderId(task))folderBadge.setAttribute('data-no-translate','');
     content.append(folderBadge);
-    if(task.scheduledDate){const badge=document.createElement('span');badge.className='task-schedule-badge';badge.textContent=(task.routineId?'↻ ':'')+new Date(task.scheduledDate+'T12:00:00').toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'});content.append(badge);}
+    if(task.scheduledDate){const badge=document.createElement('span');badge.className='task-schedule-badge';badge.textContent=(task.routineId?'↻ ':'')+new Date(task.scheduledDate+'T12:00:00').toLocaleDateString(appLocale(),{weekday:'short',day:'numeric',month:'numeric'});content.append(badge);}
     if (task.completed) {
       const cleanupLabel = document.createElement('p');
       cleanupLabel.id = 'cleanup-' + task.id;
@@ -641,7 +648,7 @@ function renderTasks() {
   };
   empty.querySelector('h3').textContent = texts[currentFilter][0];
   empty.querySelector('p').textContent = texts[currentFilter][1];
-  document.getElementById('task-section-title').textContent=selectedDay==='week'?'Công việc trong tuần':validDay(selectedDay)?'Công việc ngày '+new Date(selectedDay+'T12:00:00').toLocaleDateString('vi-VN'):'Công việc của bạn';
+  document.getElementById('task-section-title').textContent=selectedDay==='week'?'Công việc trong tuần':validDay(selectedDay)?'Công việc ngày '+new Date(selectedDay+'T12:00:00').toLocaleDateString(appLocale()):'Công việc của bạn';
   updateCountdowns();
 }
 form.addEventListener('submit', event => {
@@ -1114,7 +1121,7 @@ function localDateValue(date) {
 function updateDeadlineDisplay() {
   document.getElementById('deadline-label').textContent=validDay(taskDateInput.value)?'Giờ deadline (không bắt buộc)':'Deadline (không bắt buộc)';
   document.getElementById('deadline-display').textContent = deadlineInput.value
-    ? new Date(deadlineInput.value).toLocaleString('vi-VN', { ...(validDay(taskDateInput.value)?{}:{day:'2-digit',month:'2-digit',year:'numeric'}), hour: '2-digit', minute: '2-digit', hour12: false })
+    ? new Date(deadlineInput.value).toLocaleString(appLocale(), { ...(validDay(taskDateInput.value)?{}:{day:'2-digit',month:'2-digit',year:'numeric'}), hour: '2-digit', minute: '2-digit', hour12: false })
     : validDay(taskDateInput.value)?'Chọn giờ':'Chọn ngày & giờ';
   updateTaskOptionsSummary();
 }
@@ -1160,7 +1167,7 @@ function updatePickerPreview() {
     const past=dayKey(selectedDate)<dayKey(new Date(Date.now()));
     document.getElementById('apply-deadline').disabled=past;
     document.getElementById('picker-error').textContent=past?'Ngày thực hiện không được ở quá khứ.':'';
-    document.getElementById('picker-preview').textContent=selectedDate.toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    document.getElementById('picker-preview').textContent=selectedDate.toLocaleDateString(appLocale(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
     return;
   }
   const time = readPickerTime();
@@ -1176,14 +1183,14 @@ function updatePickerPreview() {
   const wrongDay=validDay(taskDateInput.value) && dayKey(date)!==taskDateInput.value;
   document.getElementById('apply-deadline').disabled = invalid || wrongDay;
   document.getElementById('picker-error').textContent = wrongDay ? 'Deadline phải cùng ngày thực hiện.' : invalid ? 'Chọn thời gian trong tương lai.' : '';
-  document.getElementById('picker-preview').textContent = date.toLocaleString('vi-VN', {
+  document.getElementById('picker-preview').textContent = date.toLocaleString(appLocale(), {
     ...(validDay(taskDateInput.value)?{}:{weekday:'long',day:'2-digit',month:'long',year:'numeric'}),hour:'2-digit',minute:'2-digit',hour12:false
   });
 }
 function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function renderCalendar() {
   calendarDays.replaceChildren();
-  document.getElementById('calendar-month').textContent = `Tháng ${calendarMonth.getMonth() + 1}, ${calendarMonth.getFullYear()}`;
+  document.getElementById('calendar-month').textContent = appLocale()==='vi-VN' ? `Tháng ${calendarMonth.getMonth() + 1}, ${calendarMonth.getFullYear()}` : calendarMonth.toLocaleDateString(appLocale(),{month:'long',year:'numeric'});
   const first = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
   // Tuần bắt đầu bằng thứ Hai; hiển thị đủ 6 hàng để lịch không nhảy chiều cao.
   const offset = (first.getDay() + 6) % 7;
@@ -1201,7 +1208,7 @@ function renderCalendar() {
     const chosen = sameDay(date, selectedDate);
     if (chosen) button.className += ' chosen';
     button.setAttribute('aria-pressed', String(chosen));
-    button.setAttribute('aria-label', date.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+    button.setAttribute('aria-label', date.toLocaleDateString(appLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
     button.addEventListener('click', () => {
       if (button.disabled) return;
       selectedDate = date;
@@ -1349,7 +1356,7 @@ settingsDialog.addEventListener('click', event => {
   if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
 });
 
-const menuSections = ['guide', 'sound', 'notifications', 'contact'];
+const menuSections = ['language', 'guide', 'sound', 'notifications', 'contact'];
 function selectMenuSection(section) {
   for (const name of menuSections) {
     const active = name === section;
@@ -1414,3 +1421,8 @@ function updateHeaderClock(now = Date.now()) {
 }
 updateHeaderClock();
 setInterval(updateHeaderClock, 1000);
+// Đổi chữ và định dạng ngày ngay tại chỗ, giữ nguyên nội dung đang nhập.
+window.addEventListener('languagechange', () => {
+  renderTasks();renderRepeatDays();updateScheduleDisplay();updateTaskOptionsSummary();
+  if(picker.open)renderCalendar();
+});
