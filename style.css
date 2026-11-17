@@ -533,10 +533,13 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 #task-options-summary { flex: 1; min-width: 0; text-align: right; color: var(--muted); font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .task-options > summary .ui-chevron { width: 21px; height: 21px; background: transparent; }
 .task-options[open] > summary .ui-chevron { transform: rotate(180deg); }
-.task-options[open] > summary { border-color: #a78bfa65; }
-.task-options-content { display: grid; gap: 14px; padding-top: 12px; }
+.task-options[open] { border: 1px solid #a78bfa55; border-radius: 14px; background: linear-gradient(145deg, #a78bfa0c, #10132950); box-shadow: 0 8px 24px #0000000d; }
+.task-options[open] > summary { border: 0; border-bottom: 1px solid #a78bfa26; border-radius: 13px 13px 0 0; background: #a78bfa0a; min-height: 46px; }
+.task-options-content { display: grid; gap: 16px; padding: 16px; }
 .task-options-content .task-schedule { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 0; background: transparent; gap: 10px; }
-.task-options-content .repeat-toggle { min-height: 30px; }
+.task-options-content .repeat-toggle { min-height: 44px; padding: 8px 12px; border: 1px solid #a78bfa20; border-radius: 10px; background: #a78bfa07; }
+.task-options-content .repeat-toggle > span:last-child { margin-left: auto; }
+.task-options-content .deadline-field { padding-top: 16px; border-top: 1px solid #a78bfa26; }
 .task-options-content #repeat-options { padding: 10px; border-radius: 10px; background: #a78bfa06; }
 #task-form .task-options-content .deadline-field > label { min-height: auto; margin-bottom: 7px; font-size: 11px; }
 #task-form .task-options-content .deadline-trigger { height: 44px; min-height: 44px; font-size: 12px; }
@@ -548,6 +551,10 @@ a.menu-contact-link:hover { background: #a38aff20; border-color: #b59cff65; }
 .task-management > details > summary { min-height: 22px; color: var(--muted); font-size: 12px; font-weight: 500; }
 .task-management .folder-manager-action { font-size: 10px; }
 [data-theme="light"] .task-options > summary, [data-theme="light"] #task-form .task-tools .folder-picker summary { background: #f8fafc; border-color: #e2e8f0; color: #594773; }
+[data-theme="light"] .task-options[open] { background: #ffffff; border-color: #d8cbea; box-shadow: 0 8px 24px #6d28d906; }
+[data-theme="light"] .task-options[open] > summary { background: #f5f1fc; border-bottom-color: #e5dff0; }
+[data-theme="light"] .task-options-content .repeat-toggle { background: #f8f7fc; border-color: #e5dff0; }
+[data-theme="light"] .task-options-content .deadline-field { border-top-color: #e5dff0; }
 [data-theme="light"] .task-management > details { background: transparent; border-color: #e2e8f0; }
 @media(max-width:520px) { .task-tools { grid-template-columns: minmax(0,1fr); gap: 8px; } .task-primary #submit-task { min-width: 104px; padding: 0 12px; font-size: 12px; } .task-management { grid-template-columns: minmax(0,1fr); } #task-form #cancel-edit { width: 100%; } }
 .time-wheels { display: flex; align-items: center; gap: 15px; width: min(320px,100%); margin: 18px auto 8px; }
