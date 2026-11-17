@@ -9,14 +9,27 @@
   try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch {}
   // Mỗi lần vào web bắt đầu ở chế độ tự phát; Tắt nhạc vẫn có tác dụng trong phiên hiện tại.
   let enabled = true;
-  const preferredIndex = Number.isInteger(saved.index) ? saved.index : 0;
   let index = 0;
   // Nguồn đầu tiên có sẵn trong HTML để không bỏ lỡ tương tác khi playlist còn đang tải.
   let playlist = [{src:'music/xao-xuyen.mp3',title:'Xao Xuyến (ThahTrung Remix)'}];
+  try {
+    const initial=JSON.parse(document.getElementById('music-bootstrap')?.textContent || 'null');
+    if(Array.isArray(initial) && initial.length)playlist=initial;
+  } catch { /* Dùng bài đầu dự phòng. */ }
+  function randomIndex(items) {
+    const choices=items.map((_,i)=>i).filter(i=>items.length===1 || i!==saved.index);
+    return choices[Math.floor(Math.random()*choices.length)];
+  }
+  index=randomIndex(playlist);
+  audio.src=playlist[index].src;
   let interacted = false;
   let waiting = enabled;
   let request = 0;
-  audio.autoplay = enabled;
+  let introDone=false;
+  let introActive=false;
+  let introTimer;
+  let introSequence=0;
+  audio.autoplay = false;
   audio.playsInline = true;
   audio.volume = typeof saved.volume === 'number' && Number.isFinite(saved.volume) && saved.volume > 0 ? Math.min(1, saved.volume) : 0.35;
   const persist = () => {
@@ -30,6 +43,7 @@
     byId('volume-value').value = `${Math.round(audio.volume * 100)}%`;
   }
   function stop() {
+    cancelIntro();
     request++;
     enabled = false;
     audio.autoplay = false;
@@ -41,6 +55,7 @@
   }
   async function play() {
     if (!playlist.length) return;
+    if(introActive)cancelIntro();
     enabled = true;
     audio.autoplay = true;
     waiting = false;
@@ -60,6 +75,38 @@
     }
     render();
   }
+  function cancelIntro() {
+    introSequence++;introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;
+    if(typeof window!=='undefined')window.speechSynthesis?.cancel();
+  }
+  function startExperience(gesture=false) {
+    if(!enabled || introActive)return;
+    if(introDone){if(waiting || audio.paused)void play();return;}
+    const synth=typeof window!=='undefined'?window.speechSynthesis:null;
+    if(!synth || typeof SpeechSynthesisUtterance==='undefined'){introDone=true;void play();return;}
+    if(!gesture && !(typeof navigator!=='undefined' && navigator.userActivation?.hasBeenActive)){
+      waiting=true;status.textContent='Chạm vào trang để nghe lời chào và nhạc nền.';return;
+    }
+    introActive=true;waiting=false;audio.autoplay=false;audio.muted=true;
+    const sequence=++introSequence;
+    // Kích hoạt phần tử nhạc trong chính thao tác chạm, nhưng giữ im lặng khi đọc lời chào.
+    try {Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Vẫn đọc lời chào. */ }
+    const text='Chào mừng bạn đến với Focus List. Chúc bạn một ngày thật hiệu quả. Mời bạn nghe nhạc và cùng bắt đầu nhé!';
+    const utterance=new SpeechSynthesisUtterance(text);utterance.lang='vi-VN';utterance.rate=1;utterance.pitch=1;utterance.volume=Math.max(.5,audio.volume);
+    const voice=synth.getVoices().find(voice=>voice.lang.toLowerCase().startsWith('vi'));
+    if(voice)utterance.voice=voice;
+    function finish(){
+      if(sequence!==introSequence || !introActive)return;
+      introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;
+      if(enabled)void play();
+    }
+    function timeout(){if(sequence===introSequence && introActive){synth.cancel();finish();}}
+    utterance.onend=finish;utterance.onerror=finish;
+    utterance.onstart=()=>{clearTimeout(introTimer);introTimer=setTimeout(timeout,18000);};
+    introTimer=setTimeout(timeout,4000);
+    status.textContent='Đang đọc lời chào…';
+    try{synth.speak(utterance);}catch{finish();}
+  }
   function select(next, start = false) {
     if (!playlist.length) return;
     index = (next + playlist.length) % playlist.length;
@@ -70,11 +117,11 @@
     byId('current').textContent = '0:00';
     byId('duration').textContent = '0:00';
     persist();
-    if (start) void play();
+    if (start) {if(introActive)cancelIntro();enabled=true;startExperience(true);}
     else render();
   }
-  byId('toggle').addEventListener('click', () => enabled ? stop() : void play());
-  byId('play').addEventListener('click', () => !audio.paused ? stop() : void play());
+  byId('toggle').addEventListener('click', () => {if(enabled)stop();else {enabled=true;startExperience(true);}});
+  byId('play').addEventListener('click', () => {if(introActive || !audio.paused)stop();else {enabled=true;startExperience(true);}});
   byId('prev').addEventListener('click', () => select(index - 1, true));
   byId('next').addEventListener('click', () => select(index + 1, true));
   track.addEventListener('change', () => select(Number(track.value), true));
@@ -105,7 +152,7 @@
     if (event.type === 'keydown' && (event.repeat || event.ctrlKey || event.altKey || event.metaKey || ['Escape','Shift','Control','Alt','Meta'].includes(event.key))) return;
     if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-track')) return;
     interacted = true;
-    if (enabled && (waiting || audio.paused)) void play();
+    if (enabled && (waiting || audio.paused) && !introActive) startExperience(true);
   }
   document.addEventListener('click', unlock, true);
   document.addEventListener('pointerdown', unlock, true);
@@ -113,9 +160,10 @@
   document.addEventListener('touchend', unlock, {capture:true,passive:true});
   document.addEventListener('keydown', unlock, true);
   track.replaceChildren(...playlist.map((item,i)=>new Option(item.title,String(i))));
-  track.value='0';
+  track.value=String(index);
   render();
-  void play();
+  persist();
+  startExperience();
   fetch('music/playlist.json').then(response => {
     if (!response.ok) throw new Error('Playlist unavailable');
     return response.json();
@@ -125,12 +173,12 @@
     playlist = items;
     track.replaceChildren(...playlist.map((item, i) => new Option(item.title, String(i))));
     const activeIndex=playlist.findIndex(item=>item.src===activeSource);
-    const next=(interacted || !audio.paused) && activeIndex>=0 ? activeIndex : preferredIndex>=0 && preferredIndex<playlist.length ? preferredIndex : 0;
+    const next=activeIndex>=0 ? activeIndex : randomIndex(playlist);
     const sourceChanged=audio.getAttribute('src')!==playlist[next].src;
     select(next);
-    if (enabled && audio.paused && (sourceChanged || interacted)) void play();
-    else if (enabled && !audio.paused) status.textContent=`Đang phát: ${playlist[index].title}`;
-    else status.textContent = 'Đã tắt nhạc.';
+    if (enabled && !introActive && audio.paused && (sourceChanged || interacted)) startExperience(interacted);
+    else if (enabled && !introActive && !audio.paused) status.textContent=`Đang phát: ${playlist[index].title}`;
+    else if(!enabled) status.textContent = 'Đã tắt nhạc.';
   }).catch(() => {
     // Bài đầu vẫn phát được và nút tắt vẫn dùng được nếu mạng tải playlist bị lỗi.
     waiting = enabled && audio.paused;
