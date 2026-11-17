@@ -12,7 +12,8 @@
   let enabled = true;
   let index = 0;
   // Nguồn đầu tiên có sẵn trong HTML để không bỏ lỡ tương tác khi playlist còn đang tải.
-  let playlist = [{src:'music/xao-xuyen.mp3',title:'Xao Xuyến (ThahTrung Remix)'}];
+  const openingTrack='music/track-04.mp3';
+  let playlist = [{src:openingTrack,title:'track-04'}];
   try {
     const initial=JSON.parse(document.getElementById('music-bootstrap')?.textContent || 'null');
     if(Array.isArray(initial) && initial.length)playlist=initial;
@@ -21,7 +22,7 @@
     const choices=items.map((_,i)=>i).filter(i=>items.length===1 || i!==previous);
     return choices[Math.floor(Math.random()*choices.length)];
   }
-  // Fisher–Yates: xáo toàn bộ danh sách một lần cho mỗi lần mở trang.
+  // Fisher–Yates: xáo các bài còn lại, giữ track-04 ở đầu mỗi lần mở trang.
   function shuffle(items) {
     const result=[...items];
     for(let i=result.length-1;i>0;i--){
@@ -31,8 +32,9 @@
     return result;
   }
   const previousSource=saved.src || playlist[saved.index]?.src;
-  playlist=shuffle(playlist);
-  if(playlist.length>1 && playlist[0].src===previousSource){
+  const opening=playlist.find(item=>item.src===openingTrack);
+  playlist=opening ? [opening,...shuffle(playlist.filter(item=>item.src!==openingTrack))] : shuffle(playlist);
+  if(!opening && playlist.length>1 && playlist[0].src===previousSource){
     const next=1+Math.floor(Math.random()*(playlist.length-1));
     [playlist[0],playlist[next]]=[playlist[next],playlist[0]];
   }

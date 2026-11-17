@@ -6,7 +6,7 @@ function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,pr
   const elements={},events={};let plays=0,deny=blocked;
   for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},classList:{toggle(name,value){this[name]=value;}},focus(){},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
   const audio=elements['background-music'];audio.paused=true;
-  audio.src='music/xao-xuyen.mp3';audio.getAttribute=()=>audio.src;
+  audio.src='music/track-04.mp3';audio.getAttribute=()=>audio.src;
   audio.play=async()=>{plays++;if(deny){const error=Error('Blocked');error.name='NotAllowedError';throw error;}audio.paused=false;};
   audio.pause=()=>{audio.paused=true;};
   const greeting=elements['welcome-audio'];greeting.paused=true;let greetingPlays=0,greetingDenied=greetingBlocked;
@@ -18,7 +18,7 @@ function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,pr
   let release;
   const ready=new Promise(resolve=>release=resolve);
   const nativeVoice=savedVoice || voices.filter(v=>/^vi/i.test(v.lang)).sort((a,b)=>Number(/natural/i.test(b.name))-Number(/natural/i.test(a.name)))[0]?.voiceURI || 'recorded-vi';
-  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:speech?nativeVoice:'recorded-vi',voiceModeVersion:2}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
+  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:speech?nativeVoice:'recorded-vi',voiceModeVersion:2}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/track-04.mp3'}]};}};
   context.Math=Object.create(Math);context.Math.random=random;
   vm.runInNewContext(fs.readFileSync('music.js','utf8'),context);
   return {elements,events,plays:()=>plays,allow:()=>{deny=false;greetingDenied=false;},release,spoken,timers,greetingPlays:()=>greetingPlays};
@@ -86,6 +86,23 @@ test('Each visit shuffles the whole playlist, keeps its order after fetch and pl
   assert.equal(app.elements['background-music'].src,heard[0]);
   const another=boot({bootstrap:playlist,random:()=>.99});
   assert.notDeepEqual(order(),Array.from(another.elements['music-track'].children,item=>item.text));
+});
+
+test('Track 04 always opens the visit, while remaining songs shuffle without duplicates',async()=>{
+  const playlist=JSON.parse(fs.readFileSync('music/playlist.json','utf8'));
+  const first=boot({bootstrap:playlist,previousIndex:playlist.findIndex(item=>item.src==='music/track-04.mp3'),random:()=>0,delayed:true});
+  assert.equal(first.elements['background-music'].src,'music/track-04.mp3');
+  const order=Array.from(first.elements['music-track'].children,item=>item.text);
+  assert.equal(order[0],'track-04');
+  assert.equal(new Set(order).size,playlist.length);
+  first.release();await new Promise(setImmediate);
+  assert.equal(first.elements['background-music'].src,'music/track-04.mp3');
+  assert.deepEqual(Array.from(first.elements['music-track'].children,item=>item.text),order);
+  first.elements['music-next'].listeners.click();await new Promise(setImmediate);
+  assert.notEqual(first.elements['background-music'].src,'music/track-04.mp3');
+  const second=boot({bootstrap:playlist,random:()=>.99});
+  assert.equal(second.elements['background-music'].src,'music/track-04.mp3');
+  assert.notDeepEqual(Array.from(second.elements['music-track'].children,item=>item.text).slice(1),order.slice(1));
 });
 test('Selecting another track after stopping starts music without repeating the welcome',async()=>{
   const app=boot({speech:true});app.events.pointerup({type:'pointerup',target:{}});await new Promise(setImmediate);
