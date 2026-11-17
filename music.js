@@ -29,13 +29,35 @@
   let introActive=false;
   let introTimer;
   let introSequence=0;
+  let voiceChoice=saved.voiceURI || '';
+  const synth=typeof window!=='undefined'?window.speechSynthesis:null;
+  function vietnameseVoices() {
+    return (synth?.getVoices() || []).filter(voice=>/^vi(?:-|$)/i.test(voice.lang.replace('_','-'))).sort((a,b)=>{
+      const score=voice=>(/natural|neural|online/i.test(voice.name)?4:0)+(/google/i.test(voice.name)?2:0);
+      return score(b)-score(a);
+    });
+  }
+  function refreshVoices() {
+    const voices=vietnameseVoices();
+    if(voices.length && !voices.some(voice=>voice.voiceURI===voiceChoice))voiceChoice=voices[0].voiceURI;
+    byId('voice').replaceChildren(...voices.map(voice=>new Option(voice.name,voice.voiceURI)));
+    byId('voice').value=voiceChoice;byId('voice').hidden=voices.length<2;
+    byId('voice-note').textContent=voices.length?(voices.find(voice=>voice.voiceURI===voiceChoice)?.name || voices[0].name):'Thiết bị chưa cung cấp giọng tiếng Việt.';
+  }
+  refreshVoices();synth?.addEventListener?.('voiceschanged',refreshVoices);
+  byId('voice').addEventListener('change',()=>{voiceChoice=byId('voice').value;persist();refreshVoices();});
+  byId('greeting-preview').addEventListener('click',()=>{cancelIntro();introDone=false;enabled=true;startExperience(true);});
+  byId('close').addEventListener('click',()=>{byId('popover').open=false;byId('disc').focus();});
+  document.addEventListener('pointerdown',event=>{if(!event.target.closest?.('#music-popover'))byId('popover').open=false;},true);
+  byId('popover').addEventListener('keydown',event=>{if(event.key==='Escape'){byId('popover').open=false;byId('disc').focus();}});
   audio.autoplay = false;
   audio.playsInline = true;
   audio.volume = typeof saved.volume === 'number' && Number.isFinite(saved.volume) && saved.volume > 0 ? Math.min(1, saved.volume) : 0.35;
   const persist = () => {
-    try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume,voiceURI:voiceChoice })); } catch {}
   };
   function render() {
+    byId('disc').classList.toggle('is-playing',!audio.paused && !audio.muted && !introActive);
     byId('toggle').textContent = enabled ? 'Tắt nhạc' : 'Bật nhạc';
     byId('toggle').setAttribute('aria-pressed', String(enabled));
     byId('play').textContent = audio.paused ? 'Phát' : 'Tạm dừng';
@@ -84,6 +106,8 @@
     if(introDone){if(waiting || audio.paused)void play();return;}
     const synth=typeof window!=='undefined'?window.speechSynthesis:null;
     if(!synth || typeof SpeechSynthesisUtterance==='undefined'){introDone=true;void play();return;}
+    const voices=vietnameseVoices();
+    if(synth.getVoices().length && !voices.length){introDone=true;void play();return;}
     if(!gesture && !(typeof navigator!=='undefined' && navigator.userActivation?.hasBeenActive)){
       waiting=true;status.textContent='Chạm vào trang để nghe lời chào và nhạc nền.';return;
     }
@@ -91,9 +115,9 @@
     const sequence=++introSequence;
     // Kích hoạt phần tử nhạc trong chính thao tác chạm, nhưng giữ im lặng khi đọc lời chào.
     try {Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Vẫn đọc lời chào. */ }
-    const text='Chào mừng bạn đến với Focus List. Chúc bạn một ngày thật hiệu quả. Mời bạn nghe nhạc và cùng bắt đầu nhé!';
-    const utterance=new SpeechSynthesisUtterance(text);utterance.lang='vi-VN';utterance.rate=1;utterance.pitch=1;utterance.volume=Math.max(.5,audio.volume);
-    const voice=synth.getVoices().find(voice=>voice.lang.toLowerCase().startsWith('vi'));
+    const text='Chào mừng bạn đến với góc tập trung của Quốc Anh. Chúc bạn một ngày thật hiệu quả. Mời bạn nghe một chút nhạc và bắt đầu nhé!';
+    const utterance=new SpeechSynthesisUtterance(text);utterance.lang='vi-VN';utterance.rate=.95;utterance.pitch=1;utterance.volume=Math.max(.5,audio.volume);
+    const voice=voices.find(voice=>voice.voiceURI===voiceChoice) || voices[0];
     if(voice)utterance.voice=voice;
     function finish(){
       if(sequence!==introSequence || !introActive)return;
@@ -151,7 +175,7 @@
   function unlock(event) {
     if (event.button > 0) return;
     if (event.type === 'keydown' && (event.repeat || event.ctrlKey || event.altKey || event.metaKey || ['Escape','Shift','Control','Alt','Meta'].includes(event.key))) return;
-    if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-random, #music-track')) return;
+    if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-random, #music-track, #music-voice, #music-greeting-preview')) return;
     interacted = true;
     if (enabled && (waiting || audio.paused) && !introActive) startExperience(true);
   }

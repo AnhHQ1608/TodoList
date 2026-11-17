@@ -2,19 +2,19 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex}={}){
+function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice}={}){
   const elements={},events={};let plays=0,deny=blocked;
-  for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
+  for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},classList:{toggle(name,value){this[name]=value;}},focus(){},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
   const audio=elements['background-music'];audio.paused=true;
   audio.src='music/xao-xuyen.mp3';audio.getAttribute=()=>audio.src;
   audio.play=async()=>{plays++;if(deny){const error=Error('Blocked');error.name='NotAllowedError';throw error;}audio.paused=false;};
   audio.pause=()=>{audio.paused=true;};
   if(bootstrap)elements['music-bootstrap'].textContent=JSON.stringify(bootstrap);
   const spoken=[],timers=[];
-  const synth={getVoices:()=>[{lang:'vi-VN',name:'Vietnamese'}],speak:utterance=>spoken.push(utterance),cancel(){}};
+  const synth={getVoices:()=>voices,speak:utterance=>spoken.push(utterance),cancel(){}};
   let release;
   const ready=new Promise(resolve=>release=resolve);
-  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
+  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:savedVoice}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
   vm.runInNewContext(fs.readFileSync('music.js','utf8'),context);
   return {elements,events,plays:()=>plays,allow:()=>{deny=false;},release,spoken,timers};
 }
@@ -34,16 +34,17 @@ test('First gesture can start music before playlist response arrives without res
   app.allow();app.events.pointerup({type:'pointerup',target:{}});await new Promise(setImmediate);assert.equal(app.plays(),2);
   app.release();await new Promise(setImmediate);assert.equal(app.plays(),2);
 });
-test('Music player lives inside the collapsed hamburger music section',()=>{
+test('Music uses a separate logo disc next to hamburger and preserves random playback',()=>{
   const html=fs.readFileSync('index.html','utf8');
-  assert.ok(html.indexOf('id="music-player"')>html.indexOf('id="settings-dialog"'));
-  assert.match(html, /id="menu-music-panel"[^>]+hidden/);
-  assert.ok(html.indexOf('id="menu-music-panel"')<html.indexOf('id="music-player"'));
+  assert.ok(html.indexOf('id="music-disc"')<html.indexOf('id="open-settings"'));
+  assert.ok(!html.includes('id="menu-music-tab"'));
+  assert.match(html,/class="vinyl-record"/);
 });
+
 test('Welcome speech runs once before audible music and repeat gestures do not repeat greeting',async()=>{
   const app=boot({speech:true});await new Promise(setImmediate);assert.equal(app.plays(),0);
   app.events.pointerdown({type:'pointerdown',target:{}});await new Promise(setImmediate);
-  assert.equal(app.spoken.length,1);assert.equal(app.spoken[0].lang,'vi-VN');assert.match(app.spoken[0].text,/Mời bạn nghe nhạc/);
+  assert.equal(app.spoken.length,1);assert.equal(app.spoken[0].lang,'vi-VN');assert.match(app.spoken[0].text,/Mời bạn nghe/);
   assert.equal(app.elements['background-music'].muted,true);assert.equal(app.elements['background-music'].paused,true);
   app.events.click({type:'click',target:{}});assert.equal(app.spoken.length,1);
   app.spoken[0].onend();await new Promise(setImmediate);
@@ -74,4 +75,15 @@ test('Random song button always picks a different track and starts playback',asy
     const previous=app.elements['background-music'].src;app.elements['music-random'].listeners.click();await new Promise(setImmediate);
     assert.notEqual(app.elements['background-music'].src,previous);assert.equal(app.elements['background-music'].paused,false);
   }
+});
+test('Welcome prefers natural Vietnamese voices, honors voice choice and never chooses English voices',async()=>{
+  const voices=[{lang:'en-US',name:'English Natural',voiceURI:'en'},{lang:'vi-VN',name:'Microsoft An',voiceURI:'an'},{lang:'vi-VN',name:'HoaiMy Natural',voiceURI:'natural'}];
+  const preferred=boot({speech:true,voices});preferred.events.pointerup({type:'pointerup',target:{}});assert.equal(preferred.spoken[0].voice.voiceURI,'natural');
+  const saved=boot({speech:true,voices,savedVoice:'an'});saved.events.pointerup({type:'pointerup',target:{}});assert.equal(saved.spoken[0].voice.voiceURI,'an');
+  const englishOnly=boot({speech:true,voices:[voices[0]]});await new Promise(setImmediate);assert.equal(englishOnly.spoken.length,0);assert.equal(englishOnly.elements['background-music'].paused,false);
+});
+test('Disc rotates only during audible music; closing player does not pause music',async()=>{
+  const app=boot();await new Promise(setImmediate);assert.equal(app.elements['music-disc'].classList['is-playing'],true);
+  app.elements['music-popover'].open=true;app.elements['music-close'].listeners.click();assert.equal(app.elements['music-popover'].open,false);assert.equal(app.elements['background-music'].paused,false);
+  app.elements['music-toggle'].listeners.click();assert.equal(app.elements['music-disc'].classList['is-playing'],false);
 });
