@@ -16,14 +16,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="style.css?v=time-wheel-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
-  <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=vinyl-vi-voice-1" defer></script>
+  <link rel="stylesheet" href="account.css?v=loading-screen-1">
+  <script src="auth.js?v=loading-screen-1" defer></script>
   <link rel="stylesheet" href="music.css?v=vinyl-vi-voice-1">
   <script src="music.js?v=recorded-welcome-1" defer></script>
 </head>
 <body>
-  <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
+  <section id="account-gate" aria-label="Chuẩn bị tài khoản" aria-busy="true">
+    <div class="account-loader-card">
+      <div class="account-loader-logo" aria-hidden="true"><span></span><img src="logo.svg" alt="" width="64" height="64"></div>
+      <p class="account-loader-brand">FOCUS LIST</p>
+      <h1>Góc tập trung của bạn.</h1>
+      <p id="account-gate-message" role="status">Đang tải tài khoản…</p>
+      <div class="account-loader-track" aria-hidden="true"><span></span></div>
+      <p class="account-loader-caption">Mỗi ngày, một bước tiến.</p>
+      <div class="account-gate-actions"><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a></div>
     <div id="account-conflict" hidden><p>Có bản sửa chưa đồng bộ trên máy và bản mới trên máy chủ. Bạn có thể tải bản trên máy để giữ lại trước khi mở bản máy chủ.</p><button id="account-conflict-download" type="button" class="secondary">Tải bản chưa đồng bộ</button><button id="account-use-server" type="button" class="secondary">Mở bản máy chủ (giữ bản sao trên máy)</button></div>
+    </div>
   </section>
   <noscript>Bạn cần bật JavaScript để đăng nhập và dùng TodoList.</noscript>
   <div class="ambient-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>

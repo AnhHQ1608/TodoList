@@ -106,7 +106,13 @@
         });
         document.getElementById('account-import').hidden = !hasOld;
       } catch { /* Không để dữ liệu cũ hỏng chặn tài khoản mới. */ }
-    } catch(error) { gate.textContent = error.message || 'Không tải được tài khoản. Hãy kiểm tra kết nối và tải lại.'; document.getElementById('account-gate-retry').hidden = false; }
+    } catch(error) {
+      gate.textContent = error.message || 'Không tải được tài khoản. Hãy kiểm tra kết nối và tải lại.';
+      const screen = document.getElementById('account-gate');
+      screen.setAttribute('data-state', 'error');
+      screen.setAttribute('aria-busy', 'false');
+      document.getElementById('account-gate-retry').hidden = false;
+    }
   }
   document.getElementById('account-gate-retry').addEventListener('click', () => location.reload());
   document.getElementById('account-profile').addEventListener('click', () => {
