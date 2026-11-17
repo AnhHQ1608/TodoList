@@ -61,18 +61,23 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     await send('Fetch.enable',{patterns:[{urlPattern:'https://api.example/*',requestStage:'Request'}]});
     await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     async function evaluate(expression){const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;}
-    async function until(expression){for(let i=0;i<100;i++){if(await evaluate(expression))return;await delay(100);}throw Error('Timeout: '+expression);}
+    async function until(expression){for(let i=0;i<250;i++){if(await evaluate(expression))return;await delay(100);}throw Error('Timeout: '+expression);}
     await send('Page.navigate',{url:origin+'/index.html'});
     await until("location.pathname.endsWith('/login.html') && !!document.getElementById('auth-submit')");
     await evaluate("document.getElementById('auth-register-tab').click();document.getElementById('auth-fullname').value='Hoàng Quốc Anh';document.getElementById('auth-username').value='testuser';document.getElementById('auth-password').value='Test-password-12345';document.getElementById('auth-confirm').value='Test-password-12345';document.getElementById('auth-form').requestSubmit();");
     await until("!!window.todoAccount && !document.documentElement.classList.contains('account-loading')");
     assert.equal(await evaluate("document.getElementById('account-name').textContent"),'Hoàng Quốc Anh');
     await until("document.getElementById('background-music').readyState>=1");
+    await until("document.getElementById('welcome-audio').readyState>=1");
+    assert.ok(await evaluate("document.getElementById('welcome-audio').duration>5"));
     await evaluate("document.getElementById('task-input').scrollIntoView({block:'center'})");
     const point=await evaluate("(()=>{const rect=document.getElementById('task-input').getBoundingClientRect();return {x:rect.x+20,y:rect.y+20};})()");
     await send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
     await send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+    await until("!document.getElementById('welcome-audio').paused && document.getElementById('welcome-audio').currentTime>0.1");
+    assert.equal(await evaluate("document.getElementById('background-music').paused || document.getElementById('background-music').muted"),true);
     await until("!document.getElementById('background-music').paused && document.getElementById('background-music').currentTime>0.1");
+    assert.equal(await evaluate("document.getElementById('welcome-audio').ended"),true);
     assert.equal(await evaluate("document.getElementById('background-music').volume>0 && !document.getElementById('background-music').muted"),true);
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.vinyl-record')).animationPlayState"),'running');
     await evaluate("window.scrollTo(0,0);document.getElementById('music-disc').click()");

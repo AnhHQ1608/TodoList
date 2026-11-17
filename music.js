@@ -1,6 +1,7 @@
 (() => {
   const byId = id => document.getElementById(`music-${id}`);
   const audio = document.getElementById('background-music');
+  const greetingAudio = document.getElementById('welcome-audio');
   const player = byId('player');
   const track = byId('track');
   const status = byId('status');
@@ -29,7 +30,7 @@
   let introActive=false;
   let introTimer;
   let introSequence=0;
-  let voiceChoice=saved.voiceURI || '';
+  let voiceChoice=saved.voiceModeVersion===2 ? saved.voiceURI || 'recorded-vi' : 'recorded-vi';
   const synth=typeof window!=='undefined'?window.speechSynthesis:null;
   function vietnameseVoices() {
     return (synth?.getVoices() || []).filter(voice=>/^vi(?:-|$)/i.test(voice.lang.replace('_','-'))).sort((a,b)=>{
@@ -39,10 +40,10 @@
   }
   function refreshVoices() {
     const voices=vietnameseVoices();
-    if(voices.length && !voices.some(voice=>voice.voiceURI===voiceChoice))voiceChoice=voices[0].voiceURI;
-    byId('voice').replaceChildren(...voices.map(voice=>new Option(voice.name,voice.voiceURI)));
-    byId('voice').value=voiceChoice;byId('voice').hidden=voices.length<2;
-    byId('voice-note').textContent=voices.length?(voices.find(voice=>voice.voiceURI===voiceChoice)?.name || voices[0].name):'Thiết bị chưa cung cấp giọng tiếng Việt.';
+    if(voiceChoice!=='recorded-vi' && !voices.some(voice=>voice.voiceURI===voiceChoice))voiceChoice='recorded-vi';
+    byId('voice').replaceChildren(new Option('Giọng Việt có sẵn','recorded-vi'),...voices.map(voice=>new Option(voice.name,voice.voiceURI)));
+    byId('voice').value=voiceChoice;byId('voice').hidden=!voices.length;
+    byId('voice-note').textContent=voiceChoice==='recorded-vi'?'Lời chào tiếng Việt có sẵn trên web.':voices.find(voice=>voice.voiceURI===voiceChoice)?.name || '';
   }
   refreshVoices();synth?.addEventListener?.('voiceschanged',refreshVoices);
   byId('voice').addEventListener('change',()=>{voiceChoice=byId('voice').value;persist();refreshVoices();});
@@ -54,13 +55,13 @@
   audio.playsInline = true;
   audio.volume = typeof saved.volume === 'number' && Number.isFinite(saved.volume) && saved.volume > 0 ? Math.min(1, saved.volume) : 0.35;
   const persist = () => {
-    try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume,voiceURI:voiceChoice })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume,voiceURI:voiceChoice,voiceModeVersion:2 })); } catch {}
   };
   function render() {
     byId('disc').classList.toggle('is-playing',!audio.paused && !audio.muted && !introActive);
     byId('toggle').textContent = enabled ? 'Tắt nhạc' : 'Bật nhạc';
     byId('toggle').setAttribute('aria-pressed', String(enabled));
-    byId('play').textContent = audio.paused ? 'Phát' : 'Tạm dừng';
+    byId('play').textContent = introActive ? 'Dừng lời chào' : audio.paused ? 'Phát' : 'Tạm dừng';
     byId('volume').value = Math.round(audio.volume * 100);
     byId('volume-value').value = `${Math.round(audio.volume * 100)}%`;
   }
@@ -99,15 +100,39 @@
   }
   function cancelIntro() {
     introSequence++;introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;
+    greetingAudio.pause();
     if(typeof window!=='undefined')window.speechSynthesis?.cancel();
+  }
+  function playRecordedGreeting(gesture=false) {
+    introActive=true;waiting=false;audio.autoplay=false;audio.pause();audio.muted=true;
+    const sequence=++introSequence;
+    if(gesture){try{Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Tiếp tục phát lời chào. */ }}
+    greetingAudio.currentTime=0;greetingAudio.volume=Math.max(.5,audio.volume);greetingAudio.playbackRate=1;
+    function finish(){
+      if(sequence!==introSequence || !introActive)return;
+      introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;greetingAudio.pause();
+      if(enabled)void play();
+    }
+    function failed(error){
+      if(sequence!==introSequence || !introActive)return;
+      if(error?.name==='NotAllowedError' || error?.name==='AbortError'){
+        introActive=false;waiting=true;clearTimeout(introTimer);audio.muted=false;
+        status.textContent='Chạm vào trang để nghe lời chào, sau đó nhạc sẽ phát.';render();
+      }else{byId('voice-note').textContent='Chưa tải được lời chào. Hãy thử nút Nghe lời chào.';finish();}
+    }
+    greetingAudio.onended=finish;greetingAudio.onerror=()=>failed();
+    introTimer=setTimeout(()=>failed(),30000);
+    status.textContent='Đang phát lời chào tiếng Việt…';render();
+    try{if(greetingAudio.error)greetingAudio.load();Promise.resolve(greetingAudio.play()).catch(failed);}catch(error){failed(error);}
   }
   function startExperience(gesture=false) {
     if(!enabled || introActive)return;
     if(introDone){if(waiting || audio.paused)void play();return;}
+    if(voiceChoice==='recorded-vi'){playRecordedGreeting(gesture);return;}
     const synth=typeof window!=='undefined'?window.speechSynthesis:null;
-    if(!synth || typeof SpeechSynthesisUtterance==='undefined'){introDone=true;void play();return;}
+    if(!synth || typeof SpeechSynthesisUtterance==='undefined'){playRecordedGreeting(gesture);return;}
     const voices=vietnameseVoices();
-    if(synth.getVoices().length && !voices.length){introDone=true;void play();return;}
+    if(synth.getVoices().length && !voices.length){playRecordedGreeting(gesture);return;}
     if(!gesture && !(typeof navigator!=='undefined' && navigator.userActivation?.hasBeenActive)){
       waiting=true;status.textContent='Chạm vào trang để nghe lời chào và nhạc nền.';return;
     }
@@ -124,12 +149,13 @@
       introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;
       if(enabled)void play();
     }
-    function timeout(){if(sequence===introSequence && introActive){synth.cancel();finish();}}
-    utterance.onend=finish;utterance.onerror=finish;
+    function fallback(){if(sequence!==introSequence || !introActive)return;introActive=false;clearTimeout(introTimer);playRecordedGreeting();}
+    function timeout(){if(sequence===introSequence && introActive){synth.cancel();fallback();}}
+    utterance.onend=finish;utterance.onerror=fallback;
     utterance.onstart=()=>{clearTimeout(introTimer);introTimer=setTimeout(timeout,18000);};
     introTimer=setTimeout(timeout,4000);
     status.textContent='Đang đọc lời chào…';
-    try{synth.speak(utterance);}catch{finish();}
+    try{synth.speak(utterance);}catch{fallback();}
   }
   function select(next, start = false) {
     if (!playlist.length) return;

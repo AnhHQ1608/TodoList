@@ -2,21 +2,25 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice}={}){
+function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice,autoGreeting=true,greetingBlocked=false}={}){
   const elements={},events={};let plays=0,deny=blocked;
   for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},classList:{toggle(name,value){this[name]=value;}},focus(){},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
   const audio=elements['background-music'];audio.paused=true;
   audio.src='music/xao-xuyen.mp3';audio.getAttribute=()=>audio.src;
   audio.play=async()=>{plays++;if(deny){const error=Error('Blocked');error.name='NotAllowedError';throw error;}audio.paused=false;};
   audio.pause=()=>{audio.paused=true;};
+  const greeting=elements['welcome-audio'];greeting.paused=true;let greetingPlays=0,greetingDenied=greetingBlocked;
+  greeting.play=async()=>{greetingPlays++;if(greetingDenied){const error=Error('Blocked');error.name='NotAllowedError';throw error;}greeting.paused=false;if(autoGreeting)queueMicrotask(()=>{greeting.paused=true;greeting.onended?.();});};
+  greeting.pause=()=>{greeting.paused=true;};
   if(bootstrap)elements['music-bootstrap'].textContent=JSON.stringify(bootstrap);
   const spoken=[],timers=[];
   const synth={getVoices:()=>voices,speak:utterance=>spoken.push(utterance),cancel(){}};
   let release;
   const ready=new Promise(resolve=>release=resolve);
-  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:savedVoice}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
+  const nativeVoice=savedVoice || voices.filter(v=>/^vi/i.test(v.lang)).sort((a,b)=>Number(/natural/i.test(b.name))-Number(/natural/i.test(a.name)))[0]?.voiceURI || 'recorded-vi';
+  const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:speech?nativeVoice:'recorded-vi',voiceModeVersion:2}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
   vm.runInNewContext(fs.readFileSync('music.js','utf8'),context);
-  return {elements,events,plays:()=>plays,allow:()=>{deny=false;},release,spoken,timers};
+  return {elements,events,plays:()=>plays,allow:()=>{deny=false;greetingDenied=false;},release,spoken,timers,greetingPlays:()=>greetingPlays};
 }
 test('Background music attempts autoplay and retries once on the first user gesture when blocked',async()=>{
   const app=boot({blocked:true});await new Promise(setImmediate);assert.equal(app.plays(),1);
@@ -86,4 +90,16 @@ test('Disc rotates only during audible music; closing player does not pause musi
   const app=boot();await new Promise(setImmediate);assert.equal(app.elements['music-disc'].classList['is-playing'],true);
   app.elements['music-popover'].open=true;app.elements['music-close'].listeners.click();assert.equal(app.elements['music-popover'].open,false);assert.equal(app.elements['background-music'].paused,false);
   app.elements['music-toggle'].listeners.click();assert.equal(app.elements['music-disc'].classList['is-playing'],false);
+});
+test('Recorded Vietnamese welcome works without installed voices and music waits until it ends',async()=>{
+  const app=boot({autoGreeting:false});await new Promise(setImmediate);
+  assert.equal(app.greetingPlays(),1);assert.equal(app.plays(),0);
+  assert.match(app.elements['music-voice-note'].textContent,/có sẵn/);
+  app.elements['welcome-audio'].onended();await new Promise(setImmediate);assert.equal(app.plays(),1);
+});
+test('Blocked recorded welcome retries on gesture and stopping it never starts music',async()=>{
+  const app=boot({autoGreeting:false,greetingBlocked:true});await new Promise(setImmediate);assert.equal(app.plays(),0);
+  app.allow();app.events.pointerup({type:'pointerup',target:{}});await new Promise(setImmediate);
+  assert.equal(app.greetingPlays(),2);assert.equal(app.elements['background-music'].paused,true);
+  app.elements['music-toggle'].listeners.click();app.elements['welcome-audio'].onended();await new Promise(setImmediate);assert.equal(app.elements['background-music'].paused,true);
 });
