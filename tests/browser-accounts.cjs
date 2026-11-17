@@ -15,11 +15,11 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     const file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]==='/'?'/index.html':req.url.split('?')[0]));
     if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end();}
     if(file.endsWith('telemetry-config.js')){res.setHeader('Content-Type','application/javascript');return res.end("window.TODO_ANALYTICS={apiUrl:'https://api.example'};");}
-    try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.png')?'image/png':'text/html');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}
+    try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.png')?'image/png':file.endsWith('.mp3')?'audio/mpeg':'text/html');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}
   });
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const origin='http://127.0.0.1:'+server.address().port;
-  const child=spawn(edge,['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
+  const child=spawn(edge,['--headless=new','--disable-gpu','--autoplay-policy=user-gesture-required','--no-first-run','--no-default-browser-check','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
   let socket;
   try{
     let port;
@@ -67,6 +67,13 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     await evaluate("document.getElementById('auth-register-tab').click();document.getElementById('auth-fullname').value='Hoàng Quốc Anh';document.getElementById('auth-username').value='testuser';document.getElementById('auth-password').value='Test-password-12345';document.getElementById('auth-confirm').value='Test-password-12345';document.getElementById('auth-form').requestSubmit();");
     await until("!!window.todoAccount && !document.documentElement.classList.contains('account-loading')");
     assert.equal(await evaluate("document.getElementById('account-name').textContent"),'Hoàng Quốc Anh');
+    await until("document.getElementById('background-music').readyState>=1");
+    await evaluate("document.getElementById('task-input').scrollIntoView({block:'center'})");
+    const point=await evaluate("(()=>{const rect=document.getElementById('task-input').getBoundingClientRect();return {x:rect.x+20,y:rect.y+20};})()");
+    await send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
+    await send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+    await until("!document.getElementById('background-music').paused && document.getElementById('background-music').currentTime>0.1");
+    assert.equal(await evaluate("document.getElementById('background-music').volume>0 && !document.getElementById('background-music').muted"),true);
     assert.equal(await evaluate("document.getElementById('task-options').open"),false);
     assert.equal(await evaluate("[...document.querySelectorAll('#week-days button')].every(button=>button.disabled===(button.id.slice(-10)<dayKey(new Date(Date.now()))))"),true);
     assert.equal(await evaluate("document.getElementById('week-previous').disabled"),true);

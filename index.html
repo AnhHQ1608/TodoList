@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="account.css?v=full-name-1">
   <script src="auth.js?v=drawer-music-1" defer></script>
   <link rel="stylesheet" href="music.css?v=drawer-autoplay-1">
-  <script src="music.js?v=drawer-autoplay-1" defer></script>
+  <script src="music.js?v=gesture-playback-2" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -108,7 +108,6 @@
       <div class="music-controls"><button id="music-prev" type="button" class="secondary" aria-label="Bài trước">❮</button><button id="music-play" type="button" class="secondary">Phát</button><button id="music-next" type="button" class="secondary" aria-label="Bài tiếp theo">❯</button><label class="music-volume" for="music-volume">Âm lượng <input id="music-volume" type="range" min="0" max="100" value="35"><output id="music-volume-value" for="music-volume">35%</output></label></div>
       <div class="music-progress"><span id="music-current">0:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Vị trí phát nhạc" disabled><span id="music-duration">0:00</span></div>
       <p id="music-status" role="status" aria-live="polite">Nhạc sẽ phát sau lần tương tác đầu tiên.</p>
-      <audio id="background-music" preload="none"></audio>
     </section>
       </div>
       <button id="menu-sound-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-sound-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span>Âm thanh</span><span class="ui-chevron" aria-hidden="true"></span></button>
@@ -132,5 +131,6 @@
     <p id="picker-error" class="picker-error" role="alert"></p>
     <div class="picker-footer"><button id="cancel-picker" class="secondary" type="button">Hủy</button><button id="apply-deadline" class="add" type="button">Xác nhận deadline <span aria-hidden="true">↗</span></button></div>
   </dialog>
+  <audio id="background-music" src="music/xao-xuyen.mp3" preload="metadata" playsinline></audio>
 </body>
 </html>
