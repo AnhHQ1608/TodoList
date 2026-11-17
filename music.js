@@ -17,11 +17,25 @@
     const initial=JSON.parse(document.getElementById('music-bootstrap')?.textContent || 'null');
     if(Array.isArray(initial) && initial.length)playlist=initial;
   } catch { /* Dùng bài đầu dự phòng. */ }
-  function randomIndex(items,previous=saved.index) {
+  function randomIndex(items,previous) {
     const choices=items.map((_,i)=>i).filter(i=>items.length===1 || i!==previous);
     return choices[Math.floor(Math.random()*choices.length)];
   }
-  index=randomIndex(playlist);
+  // Fisher–Yates: xáo toàn bộ danh sách một lần cho mỗi lần mở trang.
+  function shuffle(items) {
+    const result=[...items];
+    for(let i=result.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [result[i],result[j]]=[result[j],result[i]];
+    }
+    return result;
+  }
+  const previousSource=saved.src || playlist[saved.index]?.src;
+  playlist=shuffle(playlist);
+  if(playlist.length>1 && playlist[0].src===previousSource){
+    const next=1+Math.floor(Math.random()*(playlist.length-1));
+    [playlist[0],playlist[next]]=[playlist[next],playlist[0]];
+  }
   audio.src=playlist[index].src;
   let interacted = false;
   let waiting = enabled;
@@ -55,7 +69,7 @@
   audio.playsInline = true;
   audio.volume = typeof saved.volume === 'number' && Number.isFinite(saved.volume) && saved.volume > 0 ? Math.min(1, saved.volume) : 0.35;
   const persist = () => {
-    try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume,voiceURI:voiceChoice,voiceModeVersion:2 })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ enabled, index, src:playlist[index].src, volume: audio.volume,voiceURI:voiceChoice,voiceModeVersion:2 })); } catch {}
   };
   function render() {
     byId('disc').classList.toggle('is-playing',!audio.paused && !audio.muted && !introActive);
@@ -221,7 +235,11 @@
   }).then(items => {
     if (!Array.isArray(items) || !items.length) throw new Error('Empty playlist');
     const activeSource = playlist[index].src;
-    playlist = items;
+    // Giữ thứ tự đã xáo và bài đang nghe khi bản playlist mới tải về.
+    const existingSources=new Set(playlist.map(item=>item.src));
+    const updatedBySource=new Map(items.map(item=>[item.src,item]));
+    playlist=[...playlist.filter(item=>updatedBySource.has(item.src)).map(item=>updatedBySource.get(item.src)),
+      ...shuffle(items.filter(item=>!existingSources.has(item.src)))];
     track.replaceChildren(...playlist.map((item, i) => new Option(item.title, String(i))));
     const activeIndex=playlist.findIndex(item=>item.src===activeSource);
     const next=activeIndex>=0 ? activeIndex : randomIndex(playlist);

@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice,autoGreeting=true,greetingBlocked=false}={}){
+function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice,autoGreeting=true,greetingBlocked=false,random=Math.random}={}){
   const elements={},events={};let plays=0,deny=blocked;
   for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},classList:{toggle(name,value){this[name]=value;}},focus(){},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
   const audio=elements['background-music'];audio.paused=true;
@@ -19,6 +19,7 @@ function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,pr
   const ready=new Promise(resolve=>release=resolve);
   const nativeVoice=savedVoice || voices.filter(v=>/^vi/i.test(v.lang)).sort((a,b)=>Number(/natural/i.test(b.name))-Number(/natural/i.test(a.name)))[0]?.voiceURI || 'recorded-vi';
   const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:speech?nativeVoice:'recorded-vi',voiceModeVersion:2}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/xao-xuyen.mp3'}]};}};
+  context.Math=Object.create(Math);context.Math.random=random;
   vm.runInNewContext(fs.readFileSync('music.js','utf8'),context);
   return {elements,events,plays:()=>plays,allow:()=>{deny=false;greetingDenied=false;},release,spoken,timers,greetingPlays:()=>greetingPlays};
 }
@@ -66,6 +67,25 @@ test('New visit selects a random track different from the previous one and keeps
   const playlist=[{title:'A',src:'music/a.mp3'},{title:'B',src:'music/b.mp3'},{title:'C',src:'music/c.mp3'}];
   const app=boot({speech:true,bootstrap:playlist,previousIndex:1});const initial=app.elements['background-music'].src;assert.notEqual(initial,'music/b.mp3');
   await new Promise(setImmediate);assert.equal(app.elements['background-music'].src,initial);
+});
+
+test('Each visit shuffles the whole playlist, keeps its order after fetch and plays every track before looping',async()=>{
+  const playlist=['A','B','C','D'].map(title=>({title,src:`music/${title}.mp3`}));
+  const app=boot({bootstrap:playlist,delayed:true,random:()=>0});
+  const order=()=>Array.from(app.elements['music-track'].children,item=>item.text);
+  const shuffled=order();
+  assert.notDeepEqual(shuffled,playlist.map(item=>item.title));
+  assert.deepEqual([...shuffled].sort(),['A','B','C','D']);
+  app.release();await new Promise(setImmediate);assert.deepEqual(order(),shuffled);
+  const heard=[];
+  for(let i=0;i<playlist.length;i++){
+    heard.push(app.elements['background-music'].src);
+    app.elements['background-music'].listeners.ended();await new Promise(setImmediate);
+  }
+  assert.equal(new Set(heard).size,4);
+  assert.equal(app.elements['background-music'].src,heard[0]);
+  const another=boot({bootstrap:playlist,random:()=>.99});
+  assert.notDeepEqual(order(),Array.from(another.elements['music-track'].children,item=>item.text));
 });
 test('Selecting another track after stopping starts music without repeating the welcome',async()=>{
   const app=boot({speech:true});app.events.pointerup({type:'pointerup',target:{}});await new Promise(setImmediate);
