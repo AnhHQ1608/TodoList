@@ -2,9 +2,8 @@
 const fs = require('node:fs');
 (async () => {
   const sentences = [
-    'Chào mừng bạn quay trở lại.',
-    'Chúc bạn một ngày thật hiệu quả.',
-    'Mời bạn nghe một chút nhạc và bắt đầu nhé!'
+    'Chào mừng bạn đến với góc nhỏ của tôi!',
+    'Cùng lên kế hoạch, hoàn thành từng mục tiêu và mời bạn nghe chút nhạc nhẹ để ngày mới thêm dễ chịu nhé!'
   ];
   const chunks = [];
   for (const text of sentences) {

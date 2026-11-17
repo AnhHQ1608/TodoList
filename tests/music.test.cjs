@@ -49,7 +49,7 @@ test('Music uses a separate logo disc next to hamburger and preserves random pla
 test('Welcome speech runs once before audible music and repeat gestures do not repeat greeting',async()=>{
   const app=boot({speech:true});await new Promise(setImmediate);assert.equal(app.plays(),0);
   app.events.pointerdown({type:'pointerdown',target:{}});await new Promise(setImmediate);
-  assert.equal(app.spoken.length,1);assert.equal(app.spoken[0].lang,'vi-VN');assert.match(app.spoken[0].text,/Mời bạn nghe/);
+  assert.equal(app.spoken.length,1);assert.equal(app.spoken[0].lang,'vi-VN');assert.equal(app.spoken[0].text,'Chào mừng bạn đến với góc nhỏ của tôi! Cùng lên kế hoạch, hoàn thành từng mục tiêu và mời bạn nghe chút nhạc nhẹ để ngày mới thêm dễ chịu nhé!');
   assert.equal(app.elements['background-music'].muted,true);assert.equal(app.elements['background-music'].paused,true);
   app.events.click({type:'click',target:{}});assert.equal(app.spoken.length,1);
   app.spoken[0].onend();await new Promise(setImmediate);

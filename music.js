@@ -156,7 +156,7 @@
     const sequence=++introSequence;
     // Kích hoạt phần tử nhạc trong chính thao tác chạm, nhưng giữ im lặng khi đọc lời chào.
     try {Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Vẫn đọc lời chào. */ }
-    const text='Chào mừng bạn đến với góc tập trung của Quốc Anh. Chúc bạn một ngày thật hiệu quả. Mời bạn nghe một chút nhạc và bắt đầu nhé!';
+    const text='Chào mừng bạn đến với góc nhỏ của tôi! Cùng lên kế hoạch, hoàn thành từng mục tiêu và mời bạn nghe chút nhạc nhẹ để ngày mới thêm dễ chịu nhé!';
     const utterance=new SpeechSynthesisUtterance(text);utterance.lang='vi-VN';utterance.rate=.95;utterance.pitch=1;utterance.volume=Math.max(.5,audio.volume);
     const voice=voices.find(voice=>voice.voiceURI===voiceChoice) || voices[0];
     if(voice)utterance.voice=voice;
