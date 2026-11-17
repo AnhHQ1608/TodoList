@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="Focus List">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=time-wheel-1">
+  <link rel="stylesheet" href="style.css?v=user-guide-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=loading-screen-1">
-  <script src="auth.js?v=loading-screen-1" defer></script>
+  <script src="auth.js?v=user-guide-1" defer></script>
   <link rel="stylesheet" href="music.css?v=vinyl-vi-voice-1">
   <script src="music.js?v=welcome-little-corner-1" defer></script>
 </head>
@@ -118,6 +118,19 @@
   <dialog id="settings-dialog" class="date-picker settings-dialog navigation-drawer" aria-labelledby="settings-title">
     <div class="drawer-heading"><img src="logo.svg" width="44" height="44" alt=""><div><h2 id="settings-title">FOCUS LIST</h2><p>Không gian của bạn</p></div><button id="close-settings" class="icon-button" type="button" aria-label="Đóng menu">×</button></div>
     <nav class="drawer-navigation" aria-label="Chức năng">
+      <button id="menu-guide-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-guide-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/></svg><span>Hướng dẫn sử dụng</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-guide-panel" class="drawer-panel user-guide" role="region" aria-labelledby="menu-guide-tab" hidden>
+        <p class="guide-intro">Bắt đầu từ một việc nhỏ, mỗi ngày.</p>
+        <ol class="guide-steps">
+          <li><h3>Thêm công việc</h3><p>Nhập việc cần làm, chọn mục phân loại rồi bấm <strong>Add Task</strong>. Mở <strong>Lên lịch</strong> nếu muốn chọn ngày và deadline.</p></li>
+          <li><h3>Lên kế hoạch tuần</h3><p>Chọn ngày trên lịch tuần để xem và thêm task cho ngày đó. Dùng mũi tên để chuyển tuần. Bật <strong>Lặp hằng tuần</strong> và chọn các thứ cho công việc định kỳ.</p></li>
+          <li><h3>Sắp xếp &amp; hoàn thành</h3><p>Mở <strong>Thư mục</strong> để tạo mục và chọn icon. Dùng <strong>All / Active / Completed</strong> hoặc tên thư mục để lọc; bấm ô vuông để hoàn thành, <strong>Sửa</strong> để cập nhật hoặc × để xóa task.</p></li>
+          <li><h3>Theo dõi deadline</h3><p>Task sắp đến hạn chuyển vàng, quá hạn chuyển đỏ. Mở <strong>Lịch sử quá hạn</strong> để khôi phục và đặt deadline mới. Lịch sử tự xóa sau 10 ngày; task hoàn thành tự xóa sau 2 giờ.</p></li>
+          <li><h3>Bật nhắc nhở</h3><p>Vào <strong>Thông báo → Bật thông báo</strong>, cho phép trên trình duyệt rồi gửi thử. Giữ web mở để nhận nhắc; tab ngủ có thể gây trễ. Khi đóng web, nhắc nền cần backend và push notification.</p></li>
+          <li><h3>Nghe nhạc &amp; tùy chỉnh</h3><p>Bấm đĩa logo cạnh menu để đổi bài, chỉnh âm lượng hoặc tạm dừng. Nếu trình duyệt chặn tự phát, chạm vào trang để bắt đầu. Đổi sáng/tối ở cuối menu; bật/tắt tiếng bấm trong <strong>Âm thanh</strong>.</p></li>
+        </ol>
+        <p class="guide-note">Kiểm tra trạng thái <strong>Đã đồng bộ</strong> trước khi đổi thiết bị hoặc đăng xuất để bảo đảm thay đổi đã lưu vào tài khoản.</p>
+      </div>
       <button id="menu-sound-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-sound-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span>Âm thanh</span><span class="ui-chevron" aria-hidden="true"></span></button>
       <div id="menu-sound-panel" class="drawer-panel" role="region" aria-labelledby="menu-sound-tab" hidden><div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Thử cảnh báo</button><button id="test-sound-notify" class="secondary" type="button" disabled>Thử thông báo</button></div><p id="sound-status" class="help" role="status"></p></div>
       <button id="menu-notifications-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-notifications-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg><span>Thông báo</span><span class="ui-chevron" aria-hidden="true"></span></button>
