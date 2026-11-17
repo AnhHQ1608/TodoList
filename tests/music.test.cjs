@@ -67,3 +67,11 @@ test('Selecting another track after stopping starts music without repeating the 
   app.elements['music-toggle'].listeners.click();app.elements['music-next'].listeners.click();await new Promise(setImmediate);
   assert.equal(app.elements['background-music'].paused,false);assert.equal(app.spoken.length,1);
 });
+test('Random song button always picks a different track and starts playback',async()=>{
+  const playlist=[{title:'A',src:'music/a.mp3'},{title:'B',src:'music/b.mp3'},{title:'C',src:'music/c.mp3'}];
+  const app=boot({bootstrap:playlist});await new Promise(setImmediate);
+  for(let i=0;i<10;i++){
+    const previous=app.elements['background-music'].src;app.elements['music-random'].listeners.click();await new Promise(setImmediate);
+    assert.notEqual(app.elements['background-music'].src,previous);assert.equal(app.elements['background-music'].paused,false);
+  }
+});

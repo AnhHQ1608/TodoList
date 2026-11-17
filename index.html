@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="account.css?v=full-name-1">
   <script src="auth.js?v=drawer-music-1" defer></script>
   <link rel="stylesheet" href="music.css?v=drawer-autoplay-1">
-  <script src="music.js?v=welcome-random-1" defer></script>
+  <script src="music.js?v=shuffle-14-tracks-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -105,7 +105,7 @@
     <section id="music-player" class="music-player" aria-labelledby="music-heading">
       <div class="music-heading"><div><h2 id="music-heading">Nhạc nền ♫</h2></div><button id="music-toggle" type="button" class="secondary" aria-pressed="false">Bật nhạc</button></div>
       <label class="sr-only" for="music-track">Chọn bài hát</label><select id="music-track"></select>
-      <div class="music-controls"><button id="music-prev" type="button" class="secondary" aria-label="Bài trước">❮</button><button id="music-play" type="button" class="secondary">Phát</button><button id="music-next" type="button" class="secondary" aria-label="Bài tiếp theo">❯</button><label class="music-volume" for="music-volume">Âm lượng <input id="music-volume" type="range" min="0" max="100" value="35"><output id="music-volume-value" for="music-volume">35%</output></label></div>
+      <div class="music-controls"><button id="music-prev" type="button" class="secondary" aria-label="Bài trước">❮</button><button id="music-play" type="button" class="secondary">Phát</button><button id="music-next" type="button" class="secondary" aria-label="Bài tiếp theo">❯</button><button id="music-random" type="button" class="secondary" aria-label="Phát một bài ngẫu nhiên khác">⇄ Ngẫu nhiên</button><label class="music-volume" for="music-volume">Âm lượng <input id="music-volume" type="range" min="0" max="100" value="35"><output id="music-volume-value" for="music-volume">35%</output></label></div>
       <div class="music-progress"><span id="music-current">0:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Vị trí phát nhạc" disabled><span id="music-duration">0:00</span></div>
       <p id="music-status" role="status" aria-live="polite">Nhạc sẽ phát sau lần tương tác đầu tiên.</p>
     </section>
@@ -131,7 +131,7 @@
     <p id="picker-error" class="picker-error" role="alert"></p>
     <div class="picker-footer"><button id="cancel-picker" class="secondary" type="button">Hủy</button><button id="apply-deadline" class="add" type="button">Xác nhận deadline <span aria-hidden="true">↗</span></button></div>
   </dialog>
-  <script id="music-bootstrap" type="application/json">[{"src":"music/xao-xuyen.mp3","title":"Xao Xuyến (ThahTrung Remix)"},{"src":"music/50-nam-ve-sau.mp3","title":"50 Năm Về Sau (Remix)"},{"src":"music/dao-buoc-hongkong-1999.mp3","title":"Dạo Bước HongKong 1999"},{"src":"music/come-my-way.mp3","title":"Come My Way"},{"src":"music/proud.mp3","title":"PROUD"},{"src":"music/xin-dung-roi-xa-anh.mp3","title":"Xin Đừng Rời Xa Anh (Hwx x HDung Remix)"},{"src":"music/dam-ruc-ro.mp3","title":"Dám Rực Rỡ"},{"src":"music/den-khi-nao.mp3","title":"Đến Khi Nào (Drill)"},{"src":"music/young-money.mp3","title":"Young Money"},{"src":"music/laviem.mp3","title":"LAVIEM"}]</script>
+  <script id="music-bootstrap" type="application/json">[{"src":"music/xao-xuyen.mp3","title":"Xao Xuyến (ThahTrung Remix)"},{"src":"music/50-nam-ve-sau.mp3","title":"50 Năm Về Sau (Remix)"},{"src":"music/dao-buoc-hongkong-1999.mp3","title":"Dạo Bước HongKong 1999"},{"src":"music/come-my-way.mp3","title":"Come My Way"},{"src":"music/proud.mp3","title":"PROUD"},{"src":"music/xin-dung-roi-xa-anh.mp3","title":"Xin Đừng Rời Xa Anh (Hwx x HDung Remix)"},{"src":"music/dam-ruc-ro.mp3","title":"Dám Rực Rỡ"},{"src":"music/den-khi-nao.mp3","title":"Đến Khi Nào (Drill)"},{"src":"music/young-money.mp3","title":"Young Money"},{"src":"music/laviem.mp3","title":"LAVIEM"},{"src":"music/track-06.mp3","title":"track-06"},{"src":"music/track-04.mp3","title":"track-04"},{"src":"music/track-08.mp3","title":"track-08"},{"src":"music/track-01.mp3","title":"track-01"}]</script>
   <audio id="background-music" src="music/xao-xuyen.mp3" preload="metadata" playsinline></audio>
 </body>
 </html>

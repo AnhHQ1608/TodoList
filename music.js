@@ -16,8 +16,8 @@
     const initial=JSON.parse(document.getElementById('music-bootstrap')?.textContent || 'null');
     if(Array.isArray(initial) && initial.length)playlist=initial;
   } catch { /* Dùng bài đầu dự phòng. */ }
-  function randomIndex(items) {
-    const choices=items.map((_,i)=>i).filter(i=>items.length===1 || i!==saved.index);
+  function randomIndex(items,previous=saved.index) {
+    const choices=items.map((_,i)=>i).filter(i=>items.length===1 || i!==previous);
     return choices[Math.floor(Math.random()*choices.length)];
   }
   index=randomIndex(playlist);
@@ -124,6 +124,7 @@
   byId('play').addEventListener('click', () => {if(introActive || !audio.paused)stop();else {enabled=true;startExperience(true);}});
   byId('prev').addEventListener('click', () => select(index - 1, true));
   byId('next').addEventListener('click', () => select(index + 1, true));
+  byId('random').addEventListener('click', () => select(randomIndex(playlist,index),true));
   track.addEventListener('change', () => select(Number(track.value), true));
   byId('volume').addEventListener('input', event => {
     audio.volume = Number(event.target.value) / 100;
@@ -150,7 +151,7 @@
   function unlock(event) {
     if (event.button > 0) return;
     if (event.type === 'keydown' && (event.repeat || event.ctrlKey || event.altKey || event.metaKey || ['Escape','Shift','Control','Alt','Meta'].includes(event.key))) return;
-    if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-track')) return;
+    if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-random, #music-track')) return;
     interacted = true;
     if (enabled && (waiting || audio.paused) && !introActive) startExperience(true);
   }
@@ -164,7 +165,7 @@
   render();
   persist();
   startExperience();
-  fetch('music/playlist.json').then(response => {
+  fetch('music/playlist.json',{cache:'no-cache'}).then(response => {
     if (!response.ok) throw new Error('Playlist unavailable');
     return response.json();
   }).then(items => {
