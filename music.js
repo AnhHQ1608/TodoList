@@ -12,6 +12,8 @@
   let playlist = [];
   let waiting = enabled;
   let request = 0;
+  audio.autoplay = enabled;
+  audio.playsInline = true;
   audio.volume = typeof saved.volume === 'number' && Number.isFinite(saved.volume) ? Math.max(0, Math.min(1, saved.volume)) : 0.35;
   const persist = () => {
     try { localStorage.setItem(key, JSON.stringify({ enabled, index, volume: audio.volume })); } catch {}
@@ -93,11 +95,12 @@
     if (Number.isFinite(audio.duration)) audio.currentTime = Number(event.target.value) / 100 * audio.duration;
   });
   function unlock(event) {
-    if (event.type === 'keydown' && (event.repeat || !['Enter', ' '].includes(event.key))) return;
+    if (event.type === 'keydown' && (event.repeat || event.ctrlKey || event.altKey || event.metaKey || ['Escape','Shift','Control','Alt','Meta'].includes(event.key))) return;
     if (player.contains(event.target)) return;
     if (enabled && waiting && playlist.length) void play();
   }
   document.addEventListener('click', unlock);
+  document.addEventListener('pointerdown', unlock);
   document.addEventListener('keydown', unlock);
   render();
   fetch('music/playlist.json').then(response => {

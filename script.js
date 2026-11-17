@@ -1349,7 +1349,7 @@ settingsDialog.addEventListener('click', event => {
   if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeSettings();
 });
 
-const menuSections = ['sound', 'notifications', 'contact'];
+const menuSections = ['music', 'sound', 'notifications', 'contact'];
 function selectMenuSection(section) {
   for (const name of menuSections) {
     const active = name === section;

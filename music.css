@@ -1,4 +1,11 @@
 .music-player { margin-bottom: 22px; padding: 22px; }
+.navigation-drawer .music-player { margin: 0; padding: 0; }
+.navigation-drawer .music-heading { margin-bottom: 12px; }
+.navigation-drawer .music-heading h2 { font-size: 14px; }
+.navigation-drawer .music-player button { min-height: 36px; padding: 7px 10px; font-size: 11px; }
+.navigation-drawer .music-player select { font-size: 12px; }
+.navigation-drawer .music-volume { flex-basis: 100%; margin: 2px 0 0; }
+.navigation-drawer .music-volume input[type="range"] { flex: 1; }
 .music-heading, .music-controls, .music-volume, .music-progress { display: flex; align-items: center; gap: 10px; }
 .music-heading { justify-content: space-between; margin-bottom: 16px; }
 .music-heading .eyebrow { margin: 0 0 6px; font-size: 10px; }

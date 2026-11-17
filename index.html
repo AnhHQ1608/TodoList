@@ -17,9 +17,9 @@
   <link rel="stylesheet" href="style.css?v=time-wheel-1">
   <script src="telemetry-config.js?v=live-activity-1" defer></script>
   <link rel="stylesheet" href="account.css?v=full-name-1">
-  <script src="auth.js?v=history-retention-1" defer></script>
-  <link rel="stylesheet" href="music.css?v=1">
-  <script src="music.js?v=1" defer></script>
+  <script src="auth.js?v=drawer-music-1" defer></script>
+  <link rel="stylesheet" href="music.css?v=drawer-autoplay-1">
+  <script src="music.js?v=drawer-autoplay-1" defer></script>
 </head>
 <body>
   <section id="account-gate" class="card" role="status"><p id="account-gate-message">Đang tải tài khoản…</p><button id="account-gate-retry" class="secondary" type="button" hidden>Tải lại</button><a href="login.html">Đăng nhập</a>
@@ -38,14 +38,7 @@
       <h1 id="title">Bớt bận rộn.<br><span>Thêm tập trung.</span></h1>
       <p>Ghi lại điều cần làm, tập trung vào điều quan trọng.</p>
     </section>
-    <section id="music-player" class="card music-player" aria-labelledby="music-heading">
-      <div class="music-heading"><div><p class="eyebrow">GIAI ĐIỆU CỦA BẠN</p><h2 id="music-heading">Nhạc nền ♫</h2></div><button id="music-toggle" type="button" class="secondary" aria-pressed="false">Bật nhạc</button></div>
-      <label class="sr-only" for="music-track">Chọn bài hát</label><select id="music-track"></select>
-      <div class="music-controls"><button id="music-prev" type="button" class="secondary" aria-label="Bài trước">❮</button><button id="music-play" type="button" class="secondary">Phát</button><button id="music-next" type="button" class="secondary" aria-label="Bài tiếp theo">❯</button><label class="music-volume" for="music-volume">Âm lượng <input id="music-volume" type="range" min="0" max="100" value="35"><output id="music-volume-value" for="music-volume">35%</output></label></div>
-      <div class="music-progress"><span id="music-current">0:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Vị trí phát nhạc" disabled><span id="music-duration">0:00</span></div>
-      <p id="music-status" role="status" aria-live="polite">Nhạc sẽ phát sau lần tương tác đầu tiên.</p>
-      <audio id="background-music" preload="none"></audio>
-    </section>
+
     <section class="card" aria-label="Quản lý công việc">
       <div class="heading"><h2 id="task-section-title">Công việc của bạn</h2><span class="badge">LET’S DO THIS</span></div>
       <section class="week-planner" aria-label="Kế hoạch tuần">
@@ -107,6 +100,17 @@
   <dialog id="settings-dialog" class="date-picker settings-dialog navigation-drawer" aria-labelledby="settings-title">
     <div class="drawer-heading"><img src="logo.svg" width="44" height="44" alt=""><div><h2 id="settings-title">FOCUS LIST</h2><p>Không gian của bạn</p></div><button id="close-settings" class="icon-button" type="button" aria-label="Đóng menu">×</button></div>
     <nav class="drawer-navigation" aria-label="Chức năng">
+      <button id="menu-music-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-music-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13M9 9l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>Nhạc nền</span><span class="ui-chevron" aria-hidden="true"></span></button>
+      <div id="menu-music-panel" class="drawer-panel" role="region" aria-labelledby="menu-music-tab" hidden>
+    <section id="music-player" class="music-player" aria-labelledby="music-heading">
+      <div class="music-heading"><div><h2 id="music-heading">Nhạc nền ♫</h2></div><button id="music-toggle" type="button" class="secondary" aria-pressed="false">Bật nhạc</button></div>
+      <label class="sr-only" for="music-track">Chọn bài hát</label><select id="music-track"></select>
+      <div class="music-controls"><button id="music-prev" type="button" class="secondary" aria-label="Bài trước">❮</button><button id="music-play" type="button" class="secondary">Phát</button><button id="music-next" type="button" class="secondary" aria-label="Bài tiếp theo">❯</button><label class="music-volume" for="music-volume">Âm lượng <input id="music-volume" type="range" min="0" max="100" value="35"><output id="music-volume-value" for="music-volume">35%</output></label></div>
+      <div class="music-progress"><span id="music-current">0:00</span><input id="music-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Vị trí phát nhạc" disabled><span id="music-duration">0:00</span></div>
+      <p id="music-status" role="status" aria-live="polite">Nhạc sẽ phát sau lần tương tác đầu tiên.</p>
+      <audio id="background-music" preload="none"></audio>
+    </section>
+      </div>
       <button id="menu-sound-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-sound-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span>Âm thanh</span><span class="ui-chevron" aria-hidden="true"></span></button>
       <div id="menu-sound-panel" class="drawer-panel" role="region" aria-labelledby="menu-sound-tab" hidden><div class="sound-preference"><label for="toggle-sound">Âm thanh</label><input id="toggle-sound" type="checkbox" role="switch" checked><button id="test-sound" class="secondary" type="button" disabled>Thử cảnh báo</button><button id="test-sound-notify" class="secondary" type="button" disabled>Thử thông báo</button></div><p id="sound-status" class="help" role="status"></p></div>
       <button id="menu-notifications-tab" class="drawer-item" type="button" aria-expanded="false" aria-controls="menu-notifications-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg><span>Thông báo</span><span class="ui-chevron" aria-hidden="true"></span></button>
