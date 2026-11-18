@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice,autoGreeting=true,greetingBlocked=false,random=Math.random}={}){
+function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,previousIndex,voices=[{lang:'vi-VN',name:'Vietnamese',voiceURI:'vi-default'}],savedVoice,autoGreeting=true,greetingBlocked=false,random=Math.random,youtube=false}={}){
   const elements={},events={};let plays=0,deny=blocked;
   for(const match of fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g))elements[match[1]]={listeners:{},classList:{toggle(name,value){this[name]=value;}},focus(){},value:'',addEventListener(n,fn){this.listeners[n]=fn;},setAttribute(n,v){this[n]=v;},replaceChildren(...items){this.children=items;},contains(){return false;},querySelectorAll(){return [];}};
   const audio=elements['background-music'];audio.paused=true;
@@ -20,8 +20,12 @@ function boot({muted=false,blocked=false,delayed=false,speech=false,bootstrap,pr
   const nativeVoice=savedVoice || voices.filter(v=>/^vi/i.test(v.lang)).sort((a,b)=>Number(/natural/i.test(b.name))-Number(/natural/i.test(a.name)))[0]?.voiceURI || 'recorded-vi';
   const context={window:speech?{speechSynthesis:synth}:{},navigator:{userActivation:{hasBeenActive:false}},...(speech?{SpeechSynthesisUtterance:function(text){this.text=text;}}:{}),setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},clearTimeout(){},document:{getElementById:id=>elements[id],addEventListener:(n,fn)=>events[n]=fn},localStorage:{getItem:()=>JSON.stringify({enabled:!muted,index:previousIndex,voiceURI:speech?nativeVoice:'recorded-vi',voiceModeVersion:2}),setItem(){}},Option:function(text,value){return {text,value};},fetch:async()=>{if(delayed)await ready;return {ok:true,json:async()=>bootstrap || [{title:'Track',src:'music/track-04.mp3'}]};}};
   context.Math=Object.create(Math);context.Math.random=random;
+  if(youtube){
+    const bridge={active:false,calls:[],play:async(id)=>{bridge.calls.push(id);bridge.active=true;elements['music-video-dock'].hidden=false;bridge.onState(1);},pause:()=>{bridge.active=false;},stop:()=>{bridge.active=false;elements['music-video-dock'].hidden=true;},volume:value=>bridge.volumeValue=value,seek:value=>bridge.seekValue=value,isPlaying:()=>bridge.active,duration:()=>120,currentTime:()=>30};
+    context.window.todoYouTube=bridge;context.MutationObserver=class{observe(){}};context.document.querySelectorAll=()=>[];
+  }
   vm.runInNewContext(fs.readFileSync('music.js','utf8'),context);
-  return {elements,events,plays:()=>plays,allow:()=>{deny=false;greetingDenied=false;},release,spoken,timers,greetingPlays:()=>greetingPlays};
+  return {elements,events,plays:()=>plays,allow:()=>{deny=false;greetingDenied=false;},release,spoken,timers,greetingPlays:()=>greetingPlays,youtube:context.window.todoYouTube,document:context.document};
 }
 test('Background music attempts autoplay and retries once on the first user gesture when blocked',async()=>{
   const app=boot({blocked:true});await new Promise(setImmediate);assert.equal(app.plays(),1);
@@ -139,4 +143,31 @@ test('Blocked recorded welcome retries on gesture and stopping it never starts m
   app.allow();app.events.pointerup({type:'pointerup',target:{}});await new Promise(setImmediate);
   assert.equal(app.greetingPlays(),2);assert.equal(app.elements['background-music'].paused,true);
   app.elements['music-toggle'].listeners.click();app.elements['welcome-audio'].onended();await new Promise(setImmediate);assert.equal(app.elements['background-music'].paused,true);
+});
+
+test('YouTube selection pauses MP3, syncs controls and advances to MP3 without overlapping playback',async()=>{
+  const playlist=[{title:'track-04',src:'music/track-04.mp3'},{title:'YouTube song',type:'youtube',videoId:'pD80zA6XzgY',src:'youtube:pD80zA6XzgY'}];
+  const app=boot({bootstrap:playlist,youtube:true});await new Promise(setImmediate);
+  assert.equal(app.elements['background-music'].src,'music/track-04.mp3');
+  app.elements['music-next'].listeners.click();await new Promise(setImmediate);
+  assert.equal(app.elements['background-music'].paused,true);assert.equal(app.youtube.active,true);
+  assert.equal(app.youtube.calls[0],'pD80zA6XzgY');assert.equal(app.elements['music-video-dock'].hidden,false);
+  app.youtube.onProgress();assert.equal(app.elements['music-current'].textContent,'0:30');
+  app.elements['music-seek'].listeners.input({target:{value:50}});assert.equal(app.youtube.seekValue,60);
+  app.elements['music-volume'].listeners.input({target:{value:70}});assert.equal(app.youtube.volumeValue,.7);
+  app.elements['music-play'].listeners.click();assert.equal(app.youtube.active,false);
+  app.elements['music-play'].listeners.click();await new Promise(setImmediate);assert.equal(app.youtube.active,true);
+  app.youtube.onState(0);await new Promise(setImmediate);
+  assert.equal(app.youtube.active,false);assert.equal(app.elements['music-video-dock'].hidden,true);
+  assert.equal(app.elements['background-music'].paused,false);assert.equal(app.elements['background-music'].src,'music/track-04.mp3');
+});
+
+test('YouTube stops in another tab and closing its video prevents gesture-based restart',async()=>{
+  const playlist=[{title:'track-04',src:'music/track-04.mp3'},{title:'Video',type:'youtube',videoId:'pD80zA6XzgY',src:'youtube:pD80zA6XzgY'}];
+  const app=boot({bootstrap:playlist,youtube:true});await new Promise(setImmediate);
+  app.elements['music-next'].listeners.click();await new Promise(setImmediate);
+  app.document.hidden=true;app.events.visibilitychange();assert.equal(app.youtube.active,false);
+  app.document.hidden=false;app.elements['music-play'].listeners.click();await new Promise(setImmediate);assert.equal(app.youtube.active,true);
+  app.elements['music-video-close'].listeners.click();assert.equal(app.elements['music-video-dock'].hidden,true);
+  app.events.pointerdown({type:'pointerdown',target:{}});await new Promise(setImmediate);assert.equal(app.youtube.active,false);
 });

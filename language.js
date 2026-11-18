@@ -6,6 +6,7 @@
   try { const saved=localStorage.getItem(key);if(languages[saved])language=saved; } catch {}
   const rows=[
     ['Ngôn ngữ','Language','言語'],['Contact','Contact','お問い合わせ'],['Add Task','Add Task','タスクを追加'],['All / Active / Completed','All / Active / Completed','すべて / 未完了 / 完了'],
+    ['Trình phát YouTube','YouTube player','YouTubeプレーヤー'],['Mở trên YouTube ↗','Open on YouTube ↗','YouTubeで開く ↗'],['Dừng và đóng video','Stop and close video','動画を停止して閉じる'],['Không phát được? Mở trên YouTube hoặc chọn bài khác.','Cannot play? Open on YouTube or choose another song.','再生できない場合はYouTubeで開くか、別の曲を選んでください。'],['Bấm Phát để xem video YouTube.','Press Play to watch the YouTube video.','再生ボタンを押してYouTube動画をご覧ください。'],['Không phát được video. Mở trên YouTube hoặc chọn bài khác.','Cannot play this video. Open on YouTube or choose another song.','動画を再生できません。YouTubeで開くか、別の曲を選んでください。'],
     ['Chọn ngôn ngữ hiển thị','Choose your display language','表示言語を選択'],
     ['Mở menu','Open menu','メニューを開く'],['Đóng menu','Close menu','メニューを閉じる'],
     ['Không gian của bạn','Your space','あなたの空間'],

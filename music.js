@@ -5,6 +5,9 @@
   const player = byId('player');
   const track = byId('track');
   const status = byId('status');
+  const youtube=window.todoYouTube;
+  const isYouTube=()=>playlist[index]?.type==='youtube';
+  const playing=()=>isYouTube()?Boolean(youtube?.isPlaying()):!audio.paused && !audio.muted;
   const key = 'focus-list-music-v1';
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch {}
@@ -38,7 +41,7 @@
     const next=1+Math.floor(Math.random()*(playlist.length-1));
     [playlist[0],playlist[next]]=[playlist[next],playlist[0]];
   }
-  audio.src=playlist[index].src;
+  if(!isYouTube())audio.src=playlist[index].src;
   let interacted = false;
   let waiting = enabled;
   let request = 0;
@@ -74,10 +77,10 @@
     try { localStorage.setItem(key, JSON.stringify({ enabled, index, src:playlist[index].src, volume: audio.volume,voiceURI:voiceChoice,voiceModeVersion:2 })); } catch {}
   };
   function render() {
-    byId('disc').classList.toggle('is-playing',!audio.paused && !audio.muted && !introActive);
+    byId('disc').classList.toggle('is-playing',playing() && !introActive);
     byId('toggle').textContent = enabled ? 'Tắt nhạc' : 'Bật nhạc';
     byId('toggle').setAttribute('aria-pressed', String(enabled));
-    byId('play').textContent = introActive ? 'Dừng lời chào' : audio.paused ? 'Phát' : 'Tạm dừng';
+    byId('play').textContent = introActive ? 'Dừng lời chào' : playing() ? 'Tạm dừng' : 'Phát';
     byId('volume').value = Math.round(audio.volume * 100);
     byId('volume-value').value = `${Math.round(audio.volume * 100)}%`;
   }
@@ -88,6 +91,7 @@
     audio.autoplay = false;
     waiting = false;
     audio.pause();
+    youtube?.pause();
     status.textContent = 'Đã tắt nhạc.';
     persist();
     render();
@@ -103,6 +107,15 @@
     persist();
     render();
     try {
+      if(isYouTube()){
+        audio.pause();audio.autoplay=false;
+        if(document.hidden || document.querySelector?.('dialog[open]')){waiting=true;status.textContent='Bấm Phát để xem video YouTube.';render();return;}
+        if(!youtube)throw Error('YouTube unavailable');
+        await youtube.play(playlist[index].videoId,audio.volume);
+        if(current!==request || !enabled || !isYouTube())return;
+        if(playing())status.textContent=`Đang phát: ${playlist[index].title}`;
+        render();return;
+      }
       if (audio.error) audio.load();
       await audio.play();
       if (current !== request) return;
@@ -110,16 +123,18 @@
     } catch (error) {
       if (current !== request) return;
       waiting = error.name === 'NotAllowedError' || error.name === 'AbortError';
-      status.textContent = waiting ? 'Bấm Phát hoặc tương tác với trang để bật nhạc.' : 'Không phát được bài này. Hãy thử lại hoặc chọn bài khác.';
+      status.textContent = isYouTube() ? (waiting ? 'Bấm Phát để xem video YouTube.' : 'Không phát được video. Mở trên YouTube hoặc chọn bài khác.') : waiting ? 'Bấm Phát hoặc tương tác với trang để bật nhạc.' : 'Không phát được bài này. Hãy thử lại hoặc chọn bài khác.';
     }
     render();
   }
   function cancelIntro() {
+    request++;
     introSequence++;introActive=false;introDone=true;clearTimeout(introTimer);audio.muted=false;
     greetingAudio.pause();
     if(typeof window!=='undefined')window.speechSynthesis?.cancel();
   }
   function playRecordedGreeting(gesture=false) {
+    youtube?.pause();
     introActive=true;waiting=false;audio.autoplay=false;audio.pause();audio.muted=true;
     const sequence=++introSequence;
     if(gesture){try{Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Tiếp tục phát lời chào. */ }}
@@ -143,7 +158,7 @@
   }
   function startExperience(gesture=false) {
     if(!enabled || introActive)return;
-    if(introDone){if(waiting || audio.paused)void play();return;}
+    if(introDone){if(waiting || !playing())void play();return;}
     if(voiceChoice==='recorded-vi'){playRecordedGreeting(gesture);return;}
     const synth=typeof window!=='undefined'?window.speechSynthesis:null;
     if(!synth || typeof SpeechSynthesisUtterance==='undefined'){playRecordedGreeting(gesture);return;}
@@ -153,6 +168,7 @@
       waiting=true;status.textContent='Chạm vào trang để nghe lời chào và nhạc nền.';return;
     }
     introActive=true;waiting=false;audio.autoplay=false;audio.muted=true;
+    youtube?.pause();
     const sequence=++introSequence;
     // Kích hoạt phần tử nhạc trong chính thao tác chạm, nhưng giữ im lặng khi đọc lời chào.
     try {Promise.resolve(audio.play()).then(()=>{if(introActive && sequence===introSequence)audio.pause();}).catch(()=>{});}catch{ /* Vẫn đọc lời chào. */ }
@@ -175,9 +191,12 @@
   }
   function select(next, start = false) {
     if (!playlist.length) return;
+    const previous=playlist[index].src;
     index = (next + playlist.length) % playlist.length;
     track.value = String(index);
-    if (audio.getAttribute('src') !== playlist[index].src) {request++;audio.src = playlist[index].src;}
+    if(previous!==playlist[index].src){request++;youtube?.stop();audio.pause();}
+    if(isYouTube()){audio.autoplay=false;audio.pause();}
+    else if (audio.getAttribute('src') !== playlist[index].src) {request++;audio.src = playlist[index].src;}
     byId('seek').value = 0;
     byId('seek').disabled = true;
     byId('current').textContent = '0:00';
@@ -187,39 +206,62 @@
     else render();
   }
   byId('toggle').addEventListener('click', () => {if(enabled)stop();else {enabled=true;startExperience(true);}});
-  byId('play').addEventListener('click', () => {if(introActive || !audio.paused)stop();else {enabled=true;startExperience(true);}});
+  byId('play').addEventListener('click', () => {if(introActive || playing())stop();else {enabled=true;startExperience(true);}});
   byId('prev').addEventListener('click', () => select(index - 1, true));
   byId('next').addEventListener('click', () => select(index + 1, true));
   byId('random').addEventListener('click', () => select(randomIndex(playlist,index),true));
   track.addEventListener('change', () => select(Number(track.value), true));
   byId('volume').addEventListener('input', event => {
     audio.volume = Number(event.target.value) / 100;
+    youtube?.volume(audio.volume);
     persist();
     render();
   });
   const time = value => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '0:00';
   function progress() {
-    const valid = Number.isFinite(audio.duration) && audio.duration > 0;
+    const duration=isYouTube()?youtube?.duration() || 0:audio.duration;
+    const currentTime=isYouTube()?youtube?.currentTime() || 0:audio.currentTime;
+    const valid = Number.isFinite(duration) && duration > 0;
     byId('seek').disabled = !valid;
-    byId('seek').value = valid ? audio.currentTime / audio.duration * 100 : 0;
-    byId('current').textContent = time(audio.currentTime);
-    byId('duration').textContent = time(audio.duration);
+    byId('seek').value = valid ? currentTime / duration * 100 : 0;
+    byId('current').textContent = time(currentTime);
+    byId('duration').textContent = time(duration);
   }
   audio.addEventListener('loadedmetadata', progress);
   audio.addEventListener('timeupdate', progress);
   audio.addEventListener('play', render);
   audio.addEventListener('pause', render);
-  audio.addEventListener('ended', () => { if (enabled) select(index + 1, true); });
-  audio.addEventListener('error', () => { status.textContent = 'Không tải được bài hát. Hãy chọn bài khác hoặc thử lại.'; render(); });
+  audio.addEventListener('ended', () => { if (enabled && !isYouTube()) select(index + 1, true); });
+  audio.addEventListener('error', () => { if(isYouTube())return;status.textContent = 'Không tải được bài hát. Hãy chọn bài khác hoặc thử lại.'; render(); });
   byId('seek').addEventListener('input', event => {
+    if(isYouTube()){youtube?.seek(Number(event.target.value)/100*youtube.duration());return;}
     if (Number.isFinite(audio.duration)) audio.currentTime = Number(event.target.value) / 100 * audio.duration;
   });
+  byId('video-close').addEventListener('click',()=>{stop();youtube?.stop();});
+  if(youtube){
+    youtube.onProgress=progress;
+    youtube.onState=state=>{
+      if(!isYouTube())return;
+      if(state===1){
+        if(!enabled || introActive || document.hidden || document.querySelector?.('dialog[open]')){youtube.pause();return;}
+        waiting=false;status.textContent=`Đang phát: ${playlist[index].title}`;
+      }
+      if(state===0 && enabled){select(index+1,true);return;}
+      progress();render();
+    };
+    youtube.onBlocked=()=>{if(isYouTube()){waiting=true;status.textContent='Bấm Phát để xem video YouTube.';render();}};
+    youtube.onError=()=>{if(isYouTube()){waiting=false;status.textContent='Không phát được video. Mở trên YouTube hoặc chọn bài khác.';render();}};
+    document.addEventListener('visibilitychange',()=>{if(document.hidden && isYouTube())stop();});
+    // Dừng khi một hộp thoại che video; không phát YouTube trong khung bị ẩn.
+    const visibility=new MutationObserver(()=>{if(isYouTube() && document.querySelector('dialog[open]'))stop();});
+    document.querySelectorAll('dialog').forEach(dialog=>visibility.observe(dialog,{attributes:true,attributeFilter:['open']}));
+  }
   function unlock(event) {
     if (event.button > 0) return;
     if (event.type === 'keydown' && (event.repeat || event.ctrlKey || event.altKey || event.metaKey || ['Escape','Shift','Control','Alt','Meta'].includes(event.key))) return;
     if (event.target.closest?.('#music-toggle, #music-play, #music-prev, #music-next, #music-random, #music-track, #music-voice, #music-greeting-preview')) return;
     interacted = true;
-    if (enabled && (waiting || audio.paused) && !introActive) startExperience(true);
+    if (!isYouTube() && enabled && (waiting || audio.paused) && !introActive) startExperience(true);
   }
   document.addEventListener('click', unlock, true);
   document.addEventListener('pointerdown', unlock, true);
@@ -245,10 +287,10 @@
     track.replaceChildren(...playlist.map((item, i) => new Option(item.title, String(i))));
     const activeIndex=playlist.findIndex(item=>item.src===activeSource);
     const next=activeIndex>=0 ? activeIndex : randomIndex(playlist);
-    const sourceChanged=audio.getAttribute('src')!==playlist[next].src;
+    const sourceChanged=activeSource!==playlist[next].src;
     select(next);
-    if (enabled && !introActive && audio.paused && (sourceChanged || interacted)) startExperience(interacted);
-    else if (enabled && !introActive && !audio.paused) status.textContent=`Đang phát: ${playlist[index].title}`;
+    if (enabled && !introActive && !playing() && (sourceChanged || interacted)) startExperience(interacted);
+    else if (enabled && !introActive && playing()) status.textContent=`Đang phát: ${playlist[index].title}`;
     else if(!enabled) status.textContent = 'Đã tắt nhạc.';
   }).catch(() => {
     // Bài đầu vẫn phát được và nút tắt vẫn dùng được nếu mạng tải playlist bị lỗi.

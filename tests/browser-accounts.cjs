@@ -85,6 +85,28 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     assert.equal(await evaluate("(()=>{const r=document.getElementById('music-player').getBoundingClientRect();return r.left>=0 && r.right<=innerWidth;})()"),true);
     await evaluate("document.getElementById('music-close').click()");
     assert.equal(await evaluate("document.getElementById('music-popover').open"),false);
+    // Giả lập API YouTube để QA giao diện không phụ thuộc quảng cáo hay mạng bên ngoài.
+    await evaluate(`window.YT={Player:function(host,options){
+      const iframe=document.createElement('iframe');iframe.src='about:blank';host.replaceWith(iframe);
+      const instance={state:-1,getIframe:()=>iframe,getVideoData:()=>({video_id:options.videoId}),
+        setVolume(value){this.volume=value;},seekTo(){},getDuration:()=>180,getCurrentTime:()=>20,
+        getPlayerState(){return this.state;},destroy(){iframe.remove();},
+        playVideo(){this.state=1;options.events.onStateChange({target:this,data:1});},
+        pauseVideo(){this.state=2;options.events.onStateChange({target:this,data:2});}};
+      queueMicrotask(()=>options.events.onReady({target:instance}));return instance;
+    }};
+    document.getElementById('music-track').value=[...document.getElementById('music-track').options].find(option=>option.text.includes('(YouTube)')).value;
+    document.getElementById('music-track').dispatchEvent(new Event('change'));`);
+    await until("!!document.querySelector('.youtube-frame iframe') && window.todoYouTube.isPlaying()");
+    assert.equal(await evaluate("document.getElementById('background-music').paused"),true);
+    assert.equal(await evaluate("(()=>{const r=document.querySelector('.youtube-frame iframe').getBoundingClientRect();return r.width>=200 && r.height>=200 && r.left>=0 && r.right<=innerWidth;})()"),true);
+    assert.equal(await evaluate("document.getElementById('music-popover').open"),false);
+    assert.equal(await evaluate("document.getElementById('music-video-dock').hidden"),false);
+    await evaluate("document.getElementById('music-video-close').click()");
+    assert.equal(await evaluate("document.getElementById('music-video-dock').hidden"),true);
+    assert.equal(await evaluate("window.todoYouTube.isPlaying()"),false);
+    await evaluate("document.getElementById('music-track').value=[...document.getElementById('music-track').options].find(option=>option.text==='track-04').value;document.getElementById('music-track').dispatchEvent(new Event('change'));");
+    await until("!document.getElementById('background-music').paused");
     await evaluate("document.getElementById('open-settings').click();document.getElementById('menu-guide-tab').click()");
     assert.equal(await evaluate("document.getElementById('menu-guide-panel').hidden"),false);
     assert.equal(await evaluate("document.getElementById('menu-guide-tab').getAttribute('aria-expanded')"),'true');
