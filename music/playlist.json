@@ -44,9 +44,7 @@
     "title": "track-01"
   },
   {
-    "type": "youtube",
-    "videoId": "pD80zA6XzgY",
-    "src": "youtube:pD80zA6XzgY",
-    "title": "SAO HẠNG A - HIEUTHUHAI, JSOL, DƯƠNG DOMIC, SONG LUÂN (YouTube)"
+    "src": "music/sao-hang-a.mp3",
+    "title": "Sao Hạng A"
   }
 ]
